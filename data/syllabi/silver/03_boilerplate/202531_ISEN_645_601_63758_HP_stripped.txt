@@ -1,0 +1,84 @@
+[INSTITUTIONAL] 2.8 COURSE MATERIAL AND COPYRIGHT (level 2, 561 chars)
+## 2.8 COURSE MATERIAL AND COPYRIGHT
+
+All documents used in this course are copyrighted. Here, "documents" means all materials generated for this class, including, but not limited to, syllabi, exams, problem sets, slide sets, and all materials appearing on the class web site or sent to you via email. Because these materials are copyrighted, you do not have the right to copy any of them for any purpose other than your own personal academic use unless I grant permission. In particular, course materials may not be given or sold to any for-profit enterprise.
+
+[TAMU_POLICY] 6 UNIVERSITY POLICIES (level 1, 7722 chars)
+# 6 UNIVERSITY POLICIES
+## 6.1 ATTENDANCE POLICY
+
+The university views class attendance and participation as an individual student responsibility. Students are expected to attend class and complete all assignments.
+
+Please refer to Student Rule 7 in its entirety for information about excused absences, including definitions, and related documentation and timelines.
+
+With respect to medical issues, students may use the Explanatory Statement for Absence from Class form in lieu of a medical confirmation. Students must submit the Explanatory Statement for Absence from Class within two business days after the last date of absence.  This includes absence because the student is too ill to attend class to take an exam.  (See paragraph below regarding 'Personal Illness and Quarantine'.)
+
+Also, please note that the rule regarding job interviews is as follows: 'Mandatory interviews for permanent, full-time employment or full-time internships (including those that are part of a cooperative education program) that have a duration of at least 10 weeks, provided that such interviews are related to the student's academic program and provided that the interviews are fixed date by employer policy and cannot be rescheduled. A student may not request excused absences for employment or internship interviews for more than one scheduled class meeting in one academic term.'  Also, 'Documentation from the employer must be provided 5 business days in advance.'
+
+In this class, I only need official documentation regarding an excused absence if the absence is during an exam time.  For other times, documentation is not needed.
+
+Course Syllabus
+
+
+
+## 6.2 MAKEUP WORK POLICY
+
+Students will be excused from attending class on the day of a graded activity or when attendance contributes to a student's grade, for the reasons stated in Student Rule 7, or other reason deemed appropriate by the instructor.
+
+Please refer to Student Rule 7 in its entirety for information about makeup work, including definitions, and related documentation and timelines.
+
+Absences related to Title IX of the Education Amendments of 1972 may necessitate a period of more than 30 days for make-up work, and the timeframe for make-up work should be agreed upon by the student and instructor' (Student Rule 7, Section 7.4.1).
+
+'The instructor is under no obligation to provide an opportunity for the student to make up work missed because of an unexcused absence' (Student Rule 7, Section 7.4.2).
+
+Students who request an excused absence are expected to uphold the Aggie Honor Code and Student Conduct Code. (See Student Rule 24.)
+
+## 6.3 ACADEMIC INTEGRITY STATEMENT AND POLICY 'An Aggie does not lie, cheat or steal, or tolerate those who do.'
+
+'Texas A&M University students are responsible for authenticating all work submitted to an instructor. If asked, students must be able to produce proof that the item submitted is indeed the work of that student. Students must keep appropriate records at all times. The inability to authenticate one's work, should the instructor request it, may be sufficient grounds to initiate an academic misconduct case' (Section 20.1.2.3, Student Rule 20).
+
+You can learn more about the Aggie Honor System Office Rules and Procedures, academic integrity, and your rights and responsibilities at aggiehonor.tamu.edu.
+
+The Industrial and Systems Engineering Department has adopted a 'no tolerance' position with respect to violations of the Aggie Honor Code.  In this course, I will request the Aggie Honor Office to assign a grade of F* for any violation of the Aggie Honor Code, no matter how minimal the violation may be.  (The Honor Council Rules and Procedures can be found at http://aggiehonor.tamu.edu.)
+
+## 6.4 AMERICANS WITH DISABILITIES ACT (ADA) POLICY
+
+Texas A&M University is committed to providing equitable access to learning opportunities for all students. If you experience barriers to your education due to a disability or think you may have a disability, please contact Disability Resources in the Student Services Building or at (979) 845-1637 or visit disability.tamu.edu. Disabilities may include, but are not limited to attentional, learning, mental health, sensory, physical, or chronic health conditions. All students are encouraged to discuss their disability related needs with Disability Resources and their instructors as soon as possible.
+
+Course Syllabus
+
+
+
+## 6.5 TITLE IX AND STATEMENT ON LIMITS TO CONFIDENTIALITY
+
+Texas A&M University is committed to fostering a learning environment that is safe and productive for all. University policies and federal and state laws prohibit gender-based discrimination and sexual harassment, including sexual assault, sexual exploitation, domestic violence, dating violence, and stalking.
+
+With the exception of some medical and mental health providers, all university employees (including full and part-time faculty, staff, paid graduate assistants, student workers, etc.) are Mandatory Reporters and must report to the Title IX Office if the employee experiences, observes, or becomes aware of an incident that meets the following conditions (see University Rule 08.01.01.M1):
+
+- The incident is reasonably believed to be discrimination or harassment.
+
+- The incident is alleged to have been committed by or against a person who, at the time of the incident, was (1) a student enrolled at the University or (2) an employee of the University.
+
+Mandatory Reporters must file a report regardless of how the information comes to their attention including but not limited to face-to-face conversations, a written class assignment or paper, class discussion, email, text, or social media post. Although Mandatory Reporters must file a report, in most instances, you will be able to control how the report is handled, including whether or not to pursue a formal investigation. The University's goal is to make sure you are aware of the range of options available to you and to ensure access to the resources you need.
+
+Students wishing to discuss concerns in a confidential setting are encouraged to make an appointment with Counseling and Psychological Services (CAPS).
+
+Students can learn more about filing a report, accessing supportive resources, and navigating the Title IX investigation and resolution process on the University's Title IX webpage.
+
+## 6.6 STATEMENT ON MENTAL HEALTH AND WELLNESS
+
+Texas A&M University recognizes that mental health and wellness are critical factors that influence a student's academic success and overall wellbeing. Students are encouraged to engage in proper selfcare by utilizing the resources and services available from Counseling & Psychological Services (CAPS). Students who need someone to talk to can call the TAMU Helpline (979-845-2700) from 4:00 p.m. to 8:00 a.m. weekdays and 24 hours on weekends. 24-hour emergency help is also available through the National Suicide Prevention Hotline (800-273-8255) or at suicidepreventionlifeline.org.
+
+## 6.7 Artificial Intelligence (AI) Usage
+
+You are allowed to use AI tools as you see fit. AI exists today and advancing daily, so it's valuable as part of your education that you get familiar with them and comfortable using them. In this course, you are invited to use AI platforms to aid your learning development of Lean Engineering.
+
+When submitting your work, you must clearly identify any writing, text, or media generated by AI. This can be done by highlight in BLUE to annotate this work was generated by AI. NO AI tool will be used during the FINAL EXAM.
+
+Course Syllabus
+
+
+
+Course Syllabus
+
+NOTE: The instructor reserves the right to make changes or modify this syllabus and its requirements (lectures, grading, assignments, exams, etc.) as deemed necessary.

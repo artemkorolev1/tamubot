@@ -15,6 +15,7 @@ Batch validation (CLI — run from repo root):
 """
 
 import json
+import re
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -64,6 +65,12 @@ BOILERPLATE_REGISTRY: dict[str, list[str]] = {
         "title ix and statement on limits to confidentiality",  # Title IX boilerplate (34/100 files)
         "texas a&m at college station",  # Location header inside boilerplate blocks
         "attendance policy",  # Generic attendance policy (distinct from "university attendance policy")
+        "americans with disabilities act (ada) policy statement",  # Variant with "Statement" suffix (HP files)
+        "student observances for religious holy days",  # Religious observance boilerplate
+        "mental health and well-being",  # Variant of "Statement on Mental Health and Wellness"
+        "mental health and wellness",  # Short variant without "Statement on" prefix
+        "additional departmental, college, and university policies",  # Catch-all policy pointer
+        "campus-specific policies",  # Campus-specific policy block
     ],
     # IT helpdesk / tool support blocks (zero course-specific content)
     "TECH_SUPPORT": [
@@ -87,6 +94,7 @@ BOILERPLATE_REGISTRY: dict[str, list[str]] = {
         "accessibility statement",  # Disability accommodation boilerplate
         "late days table",  # Template table repeated verbatim
         "course material and copyright",  # Variant of "course copyright" (ISEN 689)
+        "plagiarism policy",  # Standalone plagiarism policy section (HP files)
     ],
 }
 
@@ -109,9 +117,20 @@ BODY_BOILERPLATE_HEADERS: list[str] = [
 ]
 
 
+_LEADING_NUMBER_RE = re.compile(r"^[\d.]+\s+")
+
+
 def classify_header(text: str) -> str | None:
     """Return boilerplate category label if text matches registry, else None."""
-    return _HEADER_MAP.get(text.lower().strip().rstrip(":"))
+    norm = text.lower().strip().rstrip(":")
+    result = _HEADER_MAP.get(norm)
+    if result:
+        return result
+    # Strip leading section numbers (e.g. "6.1 ATTENDANCE POLICY" -> "attendance policy")
+    stripped = _LEADING_NUMBER_RE.sub("", norm)
+    if stripped != norm:
+        return _HEADER_MAP.get(stripped)
+    return None
 
 
 def strip_markdown_boilerplate(md_text: str) -> tuple[str, list[dict]]:
@@ -123,7 +142,6 @@ def strip_markdown_boilerplate(md_text: str) -> tuple[str, list[dict]]:
         filtered_md  — Markdown with boilerplate sections removed
         strip_log    — list of {header, type, chars, header_level} dicts
     """
-    import re
 
     sections: list[tuple[str | None, int, list[str]]] = []
     cur_header: str | None = None

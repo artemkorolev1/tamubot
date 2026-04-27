@@ -1,0 +1,28 @@
+{
+  "file_stem": "202531_ISEN_645_601_63758_HP",
+  "findings": {
+    "content_preservation": [],
+    "strip_completeness": [
+      "Text 'Course Syllabus' appears as a header for the table in section 3 Course Schedule."
+    ],
+    "structural_coherence": [
+      "In section 2.3 Learning Objectives, the phrase 'Course Syllabus Course Syllabus' is embedded within a sentence ('But it is during LPS design that we must Course Syllabus Course Syllabus instrument for waste accounting...'), disrupting the text flow.",
+      "The 'COURSE SCHEDULE' section (Section 3) is presented as columnar text rather than a properly formatted markdown table.",
+      "The 'GRADE COMPONENTS' section (Section 5.1) lists items and percentages in a way that suggests a table, but it is not formatted as a markdown table, and the percentages are on separate lines from their descriptions."
+    ],
+    "metadata_accuracy": [
+      "Teaching Assistant information (Name, Email, Availability) is missing (TBD)."
+    ]
+  },
+  "timing_s": 16.72,
+  "proposals": {
+    "new_false_positives": [
+      "Course Syllabus"
+    ],
+    "new_boilerplate": [],
+    "text_cleanups": [
+      "Course Syllabus Course Syllabus"
+    ],
+    "reasoning": "The phrase 'Course Syllabus' appears as a header-like element within the 'Course Schedule' section, but it is not a true section header and should be demoted. The repeated phrase 'Course Syllabus Course Syllabus' is an artifact embedded in a sentence in 'Learning Objectives' and should be removed for text clarity."
+  }
+}

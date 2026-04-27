@@ -1,0 +1,25 @@
+{
+  "file_stem": "202531_ISEN_625_601_52030_HP",
+  "findings": {
+    "content_preservation": [],
+    "strip_completeness": [],
+    "structural_coherence": [
+      "Extraneous characters '\ue91a \ue91b' found at the end of the 'Office Hours' description.",
+      "Extraneous character '\uf15f' found at the end of the 'Course Description' paragraph.",
+      "Extraneous characters '\ue91a \ue91b' found at the end of the first recommended textbook entry under 'Textbook and/or Resource Materials'.",
+      "The bullet point '- required of all students.' in the 'Grading Policy' section is an orphaned fragment of the preceding sentence, incorrectly formatted as a new bullet point.",
+      "Extraneous characters '\ue91a \ue91b' found at the end of the 'Week 8' entry in the 'Course Schedule'."
+    ],
+    "metadata_accuracy": []
+  },
+  "timing_s": 19.12,
+  "proposals": {
+    "new_false_positives": [],
+    "new_boilerplate": [],
+    "text_cleanups": [
+      "\ue91a \ue91b",
+      "\uf15f"
+    ],
+    "reasoning": "The identified characters '\ue91a \ue91b' and '\uf15f' are extraneous symbols that appear to be artifacts from the PDF parsing process and should be removed from the output text to improve readability and data quality."
+  }
+}

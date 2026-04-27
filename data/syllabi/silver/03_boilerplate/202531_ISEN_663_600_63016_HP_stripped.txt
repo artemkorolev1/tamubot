@@ -1,0 +1,58 @@
+[TECH_SUPPORT] 1.11 Technology Support (level 2, 370 chars)
+## 1.11 Technology Support
+The VMWare server (ISEN desktop) will provide access to any software tools that are leveraged throughout the semester.  These include:  AI0WIN, ProSim, SmartER, Visio, and MS-Project. Additionally, VSMod can be accessed through www.vsmod.org
+The TA/Grader can assist you with connecting to the correct VMWare server and the associated desktop.
+
+[TAMU_POLICY] 1.13 University Policies (level 2, 5932 chars)
+## 1.13 University Policies
+### 1.13.1 Attendance Policy
+    The university views class attendance and participation as an individual student responsibility. Students are expected to attend class and to complete all assignments.
+    Please refer to Student Rule 7 in its entirety for information about excused absences, including definitions, and related documentation and timelines.
+### 1.13.2 Makeup Work Policy
+    Students will be excused from attending class on the day of a graded activity or when attendance contributes to a student's grade, for the reasons stated in Student Rule 7, or other reason deemed appropriate by the instructor.
+    Please refer to Student Rule 7 in its entirety for information about makeup work, including definitions, and related documentation and timelines.
+    Absences related to Title IX of the Education Amendments of 1972 may necessitate a period of more than 30 days for make-up work, and the timeframe for make-up work should be agreed upon by the student and instructor' ( Student Rule 7, Section 7.4.1).
+    'The instructor is under no obligation to provide an opportunity for the student to make up work missed because of an unexcused absence' ( Student Rule 7, Section 7.4.2).
+    Students who request an excused absence are expected to uphold the Aggie Honor Code and Student Conduct Code. (See Student Rule 24.)
+### 1.13.3 Academic Integrity Statement and Policy
+    Academic dishonesty is any attempt, whether overt or passive, made by a student to corrupt the integrity of the conduct of the course or program.
+    ' An Aggie does not lie, cheat or steal, or tolerate those who do. '
+    'Texas A&M University students are responsible for authenticating all work submitted to an instructor. If asked, students must be able to produce proof that the item submitted is indeed the work of that student. Students must keep appropriate records at al l times. The inability to authenticate one's work,
+    
+#### Course Syllabus:  ISEN 663 Management Control Systems Fall 2025
+    should the instructor request it, may be sufficient grounds to initiate an academic misconduct case' (Section 20.1.2.3, Student Rule 20).
+#### Texas A&M at College Station
+    You can learn more about the Aggie Honor System Office Rules and Procedures, academic integrity, and your rights and responsibilities at aggiehonor.tamu.edu.
+### 1.13.4 Americans with Disabilities Act (ADA) Policy
+    Texas A&M University is committed to providing equitable access to learning opportunities for all students. If you experience barriers to your education due to a disability or think you may have a disability, please contact the Disability Resources office on your campus (resources listed below) Disabilities may include, but are not limited to attentional, learning, mental health, sensory, physical, or chronic health conditions. All students are encouraged to discuss their disability related needs with Disability Resources and their instructors as soon as possible.
+#### Texas A&M at College Station
+    Disability Resources is located in the Student Services Building or at (979) 845-1637 or visit disability.tamu.edu.
+### 1.13.5 Title IX and Statement on Limits to Confidentiality
+    Texas A&M University is committed to fostering a learning environment that is safe and productive for all. University policies and federal and state laws prohibit gender-based discrimination and sexual harassment, including sexual assault, sexual exploitation, domestic violence, dating violence, and stalking.
+    With the exception of some medical and mental health providers, all university employees (including full and part-time faculty, staff, paid graduate assistants, student workers, etc.) are Mandatory Reporters and must report to the Title IX Office if the employee experiences, observes, or becomes aware of an incident that meets the following conditions (see University Rule 08.01.01.M1):
+    - The incident is reasonably believed to be discrimination or harassment.
+    - The incident is alleged to have been committed by or against a person who, at the time of the incident, was (1) a student enrolled at the University or (2) an employee of the University.
+    Mandatory Reporters must file a report regardless of how the information comes to their attention -including but not limited to face-to-face conversations, a written class assignment or paper, class discussion, email, text, or social media post. Although Mandatory Reporters must file a report, in most instances, a person who is subjected to the alleged conduct will be able to control how the report is handled, including whether or not to pursue a formal investigation. The University's goal is to make sure you are aware of the range of options available to you and to ensure access to the resources you need.
+    Texas A&M at College Station
+    
+#### Course Syllabus:  ISEN 663 Management Control Systems Fall 2025
+    Students wishing to discuss concerns in a confidential setting are encouraged to make an appointment with Counseling and Psychological Services (CAPS).
+    Students can learn more about filing a report, accessing supportive resources, and navigating the Title IX investigation and resolution process on the University's Title IX webpage.
+### 1.13.6 Statement on Mental Health and Wellness
+    Texas A&M University recognizes that mental health and wellness are critical factors that influence a student's academic success and overall wellbeing. Students are encouraged to engage in healthy selfcare by utilizing available resources and services on your campus
+Texas A&M College Station
+    Students who need someone to talk to can contact Counseling & Psychological Services (CAPS) or call the TAMU Helpline (979-845-2700) from 4:00 p.m. to 8:00 a.m. weekdays and 24 hours on weekends. 24hour emergency help is also available through the National Suicide Prevention Hotline (800-273-8255) or at suicidepreventionlifeline.org.
+
+[TAMU_POLICY] 1.14 Campus-Specific Policies (level 2, 1897 chars)
+## 1.14 Campus-Specific Policies
+### Statement on the Family Educational Rights and Privacy Act (FERPA)
+    FERPA is a federal law designed to protect the privacy of educational records by limiting access to these records, to establish the right of students to inspect and review their educational records and to provide guidelines for the correction of inaccurate and misleading data through informal and formal hearings. Currently enrolled students wishing to withhold any or all directory information items may do so by going to howdy.tamu.edu and clicking on the "Directory Hold Information" link in the Student Records channel on the MyRecord tab. The complete FERPA Notice to Students and the student records policy is available on the Office of the Registrar webpage.
+    Items that can never be identified as public information are a student's social security number, citizenship, gender, grades, GPR or class schedule. All efforts will be made in this class to protect your privacy and to ensure confidential treatment of information associated with or generated by your participation in the class.
+    Directory items include name, UIN, local address, permanent address, email address, local telephone number, permanent telephone number, dates of attendance, program of study (college, major, campus), classification, previous institutions attended, degrees honors and awards received, participation in officially recognized activities and sports, medical residence location and medical residence specialization.
+1. The time, date, and the exact AI technology (also termed AI-bot (for AI-Chatbot) below) used
+2. The full specification of the prompt that was used
+3. The full response provided by the AI-bot
+
+1. Represent an organization of interest using SE architectures, archetypes, methods, and tools.
+
+2. Analyze and design, using SE methods and tools, an organization for viability.

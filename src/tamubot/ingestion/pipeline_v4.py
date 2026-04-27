@@ -50,6 +50,7 @@ RAW_SOURCE = Path("tamu_data/raw/simple_syllabus")
 ALL_STEPS = [
     "copy",
     "convert",
+    "image_recovery",
     "false_positive",
     "boilerplate",
     "hierarchy",
@@ -64,11 +65,12 @@ _CODE_TO_SEASON = {"11": "Spring", "21": "Summer", "41": "Fall"}
 
 # Silver sub-step directories
 SILVER_DIRS = {
-    "false_positive": SILVER_ROOT / "01_false_positive",
-    "boilerplate": SILVER_ROOT / "02_boilerplate",
-    "hierarchy": SILVER_ROOT / "03_hierarchy",
-    "validate": SILVER_ROOT / "04_validate",
-    "chunk": SILVER_ROOT / "05_chunk",
+    "image_recovery": SILVER_ROOT / "01_image_recovery",
+    "false_positive": SILVER_ROOT / "02_false_positive",
+    "boilerplate": SILVER_ROOT / "03_boilerplate",
+    "hierarchy": SILVER_ROOT / "04_hierarchy",
+    "validate": SILVER_ROOT / "05_validate",
+    "chunk": SILVER_ROOT / "06_chunk",
 }
 
 
@@ -277,9 +279,15 @@ def step_filter(
     version: str,
 ) -> Path:
     """Run a filter on all markdown files in input_dir."""
-    from tamubot.ingestion.filters import BoilerplateFilter, FalsePositiveFilter, HierarchyFilter
+    from tamubot.ingestion.filters import (
+        BoilerplateFilter,
+        FalsePositiveFilter,
+        HierarchyFilter,
+        ImageRecoveryFilter,
+    )
 
     filter_map = {
+        "image_recovery": ImageRecoveryFilter,
         "false_positive": FalsePositiveFilter,
         "boilerplate": BoilerplateFilter,
         "hierarchy": HierarchyFilter,
@@ -403,21 +411,29 @@ def _input_dir_for_step(step: str, steps: list[str]) -> Path:
         return RAW_SOURCE  # not used directly
     if step == "convert":
         return RAW_ROOT
+    if step == "image_recovery":
+        return BRONZE_ROOT
     if step == "false_positive":
+        if "image_recovery" in steps:
+            return SILVER_DIRS["image_recovery"]
         return BRONZE_ROOT
     if step == "boilerplate":
         if "false_positive" in steps:
             return SILVER_DIRS["false_positive"]
+        if "image_recovery" in steps:
+            return SILVER_DIRS["image_recovery"]
         return BRONZE_ROOT
     if step == "hierarchy":
         if "boilerplate" in steps:
             return SILVER_DIRS["boilerplate"]
         if "false_positive" in steps:
             return SILVER_DIRS["false_positive"]
+        if "image_recovery" in steps:
+            return SILVER_DIRS["image_recovery"]
         return BRONZE_ROOT
     if step in ("validate", "chunk"):
         # Use the last filter output
-        for prev in reversed(["hierarchy", "boilerplate", "false_positive"]):
+        for prev in reversed(["hierarchy", "boilerplate", "false_positive", "image_recovery"]):
             if prev in steps:
                 return SILVER_DIRS[prev]
         return BRONZE_ROOT
@@ -491,7 +507,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
                 args.converter,
             )
 
-        elif step in ("false_positive", "boilerplate", "hierarchy"):
+        elif step in ("image_recovery", "false_positive", "boilerplate", "hierarchy"):
             input_dir = _input_dir_for_step(step, steps)
             step_filter(step, input_dir, SILVER_DIRS[step], version)
 

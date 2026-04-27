@@ -1,0 +1,35 @@
+{
+  "file_stem": "202531_ISEN_635_600_63276_HP",
+  "findings": {
+    "content_preservation": [
+      "The 'Grade Determination' section is missing the 'C' grade range (e.g., 70-79%)."
+    ],
+    "strip_completeness": [],
+    "structural_coherence": [
+      "The 'Lecture Topics and Tentative Schedule' is split into two separate markdown tables.",
+      "The 'Lecture Topics and Tentative Schedule' tables are malformed; they lack proper header rows and column delimiters, causing all content to appear in a single column per row."
+    ],
+    "metadata_accuracy": []
+  },
+  "timing_s": 40.31,
+  "proposals": {
+    "new_false_positives": [
+      "Lecture :",
+      "Instructor:",
+      "Text:"
+    ],
+    "new_boilerplate": [],
+    "text_cleanups": [
+      "(\\d)\\s(st|nd|rd|th)",
+      "^\\|\\s*(.*?)\\s*\\|$"
+    ],
+    "reasoning": {
+      "new_false_positives": "The entries 'Lecture :', 'Instructor:', and 'Text:' are short labels introducing information rather than distinct section headers. They should be demoted to body text to improve document structure.",
+      "new_boilerplate": "No university-wide institutional boilerplate text was identified in the document that appears verbatim across all syllabi.",
+      "text_cleanups": [
+        "The regex pattern '(\\d)\\s(st|nd|rd|th)' is proposed to correct inconsistent spacing in ordinal numbers (e.g., '1 st' should be '1st', '2 nd' should be '2nd') for better readability and consistency.",
+        "The regex pattern '^\\|\\s*(.*?)\\s*\\|$' is proposed to remove leading and trailing pipe characters from lines that were incorrectly parsed as single-column tables. This addresses the issue of malformed tables by treating their content as regular body text, cleaning up the artifact characters."
+      ]
+    }
+  }
+}

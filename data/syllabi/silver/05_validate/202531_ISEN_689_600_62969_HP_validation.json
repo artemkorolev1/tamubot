@@ -1,0 +1,50 @@
+{
+  "file_stem": "202531_ISEN_689_600_62969_HP",
+  "findings": {
+    "content_preservation": [],
+    "strip_completeness": [
+      "Section 'University Policies' is boilerplate and should be removed",
+      "Section 'Attendance Policy' is boilerplate and should be removed",
+      "Section 'Student Observances for Religious Holy Days' is boilerplate and should be removed",
+      "Section 'Makeup Work Policy' is boilerplate and should be removed",
+      "Section 'Academic Integrity Statement and Policy' is boilerplate and should be removed",
+      "Section 'Plagiarism Policy' is boilerplate and should be removed",
+      "Section 'Americans with Disabilities Act (ADA) Policy' is boilerplate and should be removed",
+      "Section 'Title IX and Statement on Limits to Confidentiality' is boilerplate and should be removed",
+      "Section 'Statement on Mental Health and Wellness' is boilerplate and should be removed",
+      "Section 'Pregnancy Accommodations' is boilerplate and should be removed"
+    ],
+    "structural_coherence": [
+      "The description for 'Axler, S. (2015) Linear Algebra Done Right' under 'Textbook and/or Resource Materials' is formatted as a separate bullet point (`-`) instead of being part of the numbered list item.",
+      "The description for 'Iozzi, A. (2020) Multilinear Algebra and Applications' under 'Textbook and/or Resource Materials' is formatted as a separate bullet point (`-`) instead of being part of the numbered list item.",
+      "Heading levels are excessively deep and inconsistent throughout the document, often jumping multiple levels (e.g., from H1 to H4, or H4 to H6) and not following a logical hierarchy.",
+      "The 'Assessments' heading is at the same level as 'Grading Policy' but should be a sub-heading.",
+      "The 'Homework' description under 'Assessments' contains a stray bullet point (`- points deducted for mathematical correctness.`) that breaks the flow of the paragraph.",
+      "The grading scale under 'Grading' is presented as a list of key-value pairs rather than a structured table.",
+      "The 'Course Schedule' section contains empty bullet points (`- \u2022`).",
+      "The 'Email Communications' heading is at the same level as 'Course Contact Policy' but should be a sub-heading."
+    ],
+    "metadata_accuracy": []
+  },
+  "timing_s": 46.09,
+  "proposals": {
+    "new_false_positives": [],
+    "new_boilerplate": [
+      "University Policies",
+      "Attendance Policy",
+      "Student Observances for Religious Holy Days",
+      "Makeup Work Policy",
+      "Academic Integrity Statement and Policy",
+      "Plagiarism Policy",
+      "Americans with Disabilities Act (ADA) Policy",
+      "Title IX and Statement on Limits to Confidentiality",
+      "Statement on Mental Health and Wellness",
+      "Pregnancy Accommodations"
+    ],
+    "text_cleanups": [
+      "- \u2022",
+      "\\n\\n- points deducted for mathematical correctness."
+    ],
+    "reasoning": "The identified sections are common institutional boilerplate found across many university syllabi and do not contain course-specific information, thus they should be stripped entirely. The text cleanups target specific formatting artifacts: '- \u2022' represents an empty bullet point, and '\\n\\n- points deducted for mathematical correctness.' is a stray bullet point breaking the flow of a paragraph, both of which should be removed for cleaner output."
+  }
+}

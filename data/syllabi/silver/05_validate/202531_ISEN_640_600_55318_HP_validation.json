@@ -1,0 +1,54 @@
+{
+  "file_stem": "202531_ISEN_640_600_55318_HP",
+  "findings": {
+    "content_preservation": [
+      "The first learning objective (LO 1) is missing from the 'LEARNING OBJECTIVES' section, as the list starts with '2. LO 2.'.",
+      "The last sentence in the 'GRADE COMPONENTS' section is incomplete, ending abruptly with 'T'."
+    ],
+    "strip_completeness": [],
+    "structural_coherence": [
+      "The numbering in the 'LEARNING OBJECTIVES' section is incorrect, starting with '2. LO 2.' instead of '1. LO 1.'.",
+      "The iCalendar URL in 'COMMUNICATION AND MEETING TIMES' is malformed due to a space within the URL string: 'https://tamu.zoom.us/meeting/tJ0kdeCvrT4vH9DbcPhmgjcFRsWz46iDhqKe/ics?icsToken=DAzbMSVnH7 dcBSilmwAALAAAAHyxN6OXVwNlJAtGzpBeqKlAlmkNWcAxpB9tCBD67AJxQEDZq7KGwqP5LhMo8mTCXZfB uhWckm1JrWgr8DAwMDAwMQ'.",
+      "The invitation URL in 'COMMUNICATION AND MEETING TIMES' is malformed due to a space within the URL string: 'https://tamu.zoom.us/meetings/99929735554/invitations?signature=RjA0JNj4zCIUIUDKno2UbHcNUvTC 2P7T-rdZKq8iTBU'.",
+      "The 'COURSE SCHEDULE' section is presented as plain text rather than a properly formatted markdown table.",
+      "The 'EXAM SCHEDULE' section is presented as plain text rather than a properly formatted markdown table."
+    ],
+    "metadata_accuracy": []
+  },
+  "timing_s": 45.14,
+  "proposals": {
+    "new_false_positives": [
+      "Instructor",
+      "Email",
+      "Office Location & Hours",
+      "Teaching Assistant",
+      "Availability",
+      "Topic",
+      "Time",
+      "Weekly:",
+      "Meeting ID:",
+      "Passcode:",
+      "One tap mobile",
+      "Join by SIP",
+      "Join instructions",
+      "This applies to required undergraduate courses only -this is a technical elective course.",
+      "Some topics may be changed based on the pace of the class.",
+      "The exams will be take home. Students are expected to work individually and may not work together.",
+      "The student is advised to start working on assignments early and submit early. Resubmissions are allowed after the grading is made up till one week or until the solutions are posted. T",
+      "Any disagreements regarding a grade received on any graded material must be discussed within two business days of the return of the graded material. No grade will be changed beyond the two business days limit.",
+      "Grades will be maintained in the Gradebook within Canvas."
+    ],
+    "new_boilerplate": [],
+    "text_cleanups": [
+      {
+        "regex_pattern": "https://tamu.zoom.us/meeting/tJ0kdeCvrT4vH9DbcPhmgjcFRsWz46iDhqKe/ics\\?icsToken=DAzbMSVnH7 dcBSilmwAALAAAAHyxN6OXVwNlJAtGzpBeqKlAlmkNWcAxpB9tCBD67AJxQEDZq7KGwqP5LhMo8mTCXZfB uhWckm1JrWgr8DAwMDAwMQ",
+        "replacement": "https://tamu.zoom.us/meeting/tJ0kdeCvrT4vH9DbcPhmgjcFRsWz46iDhqKe/ics?icsToken=DAzbMSVnH7dcBSilmwAALAAAAHyxN6OXVwNlJAtGzpBeqKlAlmkNWcAxpB9tCBD67AJxQEDZq7KGwqP5LhMo8mTCXZfBuhWckm1JrWgr8DAwMDAwMQ"
+      },
+      {
+        "regex_pattern": "https://tamu.zoom.us/meetings/99929735554/invitations\\?signature=RjA0JNj4zCIUIUDKno2UbHcNUvTC 2P7T-rdZKq8iTBU",
+        "replacement": "https://tamu.zoom.us/meetings/99929735554/invitations?signature=RjA0JNj4zCIUIUDKno2UbHcNUvTC2P7T-rdZKq8iTBU"
+      }
+    ],
+    "reasoning": "The 'new_false_positives' are short labels and descriptive sentences that are not true section headers and should be demoted to body text if incorrectly parsed as headers. No 'new_boilerplate' was identified as university-wide institutional text that should be stripped entirely. The 'text_cleanups' provide specific regex patterns to correct malformed URLs by removing internal spaces, as identified in the issues."
+  }
+}

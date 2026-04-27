@@ -1,0 +1,27 @@
+{
+  "file_stem": "202531_ISEN_689_601_62970_HP",
+  "findings": {
+    "content_preservation": [],
+    "strip_completeness": [],
+    "structural_coherence": [
+      "The content for the 'Textbook and/or Resource Materials' section is not directly under its header; it appears misplaced after the 'Homework assignment' section.",
+      "The headers 'Research report', 'Homework assignment', 'Reflections', and 'Practicum' are all top-level headers ('#') but describe components of the grading policy, suggesting they should be a lower heading level (e.g., '###').",
+      "The text 'Course Syllabus' appears twice as orphaned text within the 'Course Schedule' section."
+    ],
+    "metadata_accuracy": []
+  },
+  "timing_s": 18.5,
+  "proposals": {
+    "new_false_positives": [
+      "Research report:",
+      "Homework assignment:",
+      "Reflections:",
+      "Practicum:"
+    ],
+    "new_boilerplate": [],
+    "text_cleanups": [
+      "Course Syllabus"
+    ],
+    "reasoning": "The headers 'Research report:', 'Homework assignment:', 'Reflections:', and 'Practicum:' are currently top-level headers but describe components of the grading policy. They should be demoted to body text or sub-sections within the 'Grading Policy' rather than standalone top-level sections. The literal string 'Course Syllabus' appears as orphaned text within the 'Course Schedule' and should be removed as it's a redundant artifact."
+  }
+}

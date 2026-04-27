@@ -38,6 +38,14 @@ _PREFIX_FP: list[str] = [
 _REGEX_FP: list[tuple[re.Pattern, str]] = [
     # Numbered list items promoted to headers by Docling (e.g. "1. The time, date...")
     (re.compile(r"^\d+\.\s"), "numbered_list_item"),
+    # Time strings promoted to headers (e.g. "9:35 -10:50 AM (CDT)")
+    (re.compile(r"^\d{1,2}:\d{2}\s*[-–]"), "time_string"),
+    # Room/building lines promoted to headers (e.g. "Room 2026, Emerging Technology Building")
+    (re.compile(r"^room\s+\d", re.IGNORECASE), "room_location"),
+    # Policy statements promoted to headers (e.g. "All quizzes and exams are closed book")
+    (re.compile(r"^all\s+(quizzes|exams|tests|homework)", re.IGNORECASE), "policy_statement"),
+    # Single sentence about absence promoted to header
+    (re.compile(r"^(a|an)\s+absence\s+for\s+", re.IGNORECASE), "policy_statement"),
 ]
 
 # Text patterns to strip from output (not headers — inline artifacts)
@@ -51,6 +59,14 @@ TEXT_CLEANUP_PATTERNS: list[str] = [
 # alphanumeric and contains / or . or = or ? typical of URL paths).
 _URL_SPACE_RE = re.compile(r"(https?://\S+)" r"\s+" r"([A-Za-z0-9][\w./?=&%-]*(?:/|\.[\w]+|[?=&])\S*)")
 
+# Repeated "Course Syllabus" page headers injected by Docling across page breaks.
+# Matches any heading level (# to ######) with optional ":" suffix.
+_PAGE_HEADER_RE = re.compile(r"^\s*#{1,6}\s+Course\s+Syllabus:?\s*$", re.MULTILINE | re.IGNORECASE)
+
+# Spaced-out capital letters from Docling small-caps rendering.
+# Detects runs like "T ITLE IX AND S TATEMENT" (single uppercase letter + space, 3+ times)
+_SPACED_CAPS_RE = re.compile(r"\b((?:[A-Z]\s){3,}[A-Z])\b")
+
 
 def _fix_broken_urls(text: str) -> tuple[str, int]:
     """Remove spaces injected into URLs by PDF line-break artifacts.
@@ -60,6 +76,35 @@ def _fix_broken_urls(text: str) -> tuple[str, int]:
     """
     new_text, count = _URL_SPACE_RE.subn(r"\1\2", text)
     return new_text, count
+
+
+def _collapse_spaced_caps(text: str) -> tuple[str, int]:
+    """Collapse spaced-out capitals like 'T ITLE IX' → 'TITLE IX'."""
+
+    def _collapse(m: re.Match) -> str:
+        return m.group(1).replace(" ", "")
+
+    new_text, count = _SPACED_CAPS_RE.subn(_collapse, text)
+    return new_text, count
+
+
+def _strip_page_headers(text: str) -> tuple[str, int]:
+    """Remove repeated 'Course Syllabus' page-header lines."""
+    # Keep the FIRST occurrence (likely the real title), strip the rest
+    first_found = False
+    lines = text.splitlines()
+    out = []
+    removed = 0
+    for line in lines:
+        if _PAGE_HEADER_RE.match(line):
+            if not first_found:
+                first_found = True
+                out.append(line)
+            else:
+                removed += 1
+        else:
+            out.append(line)
+    return "\n".join(out), removed
 
 
 _HEADER_RE = re.compile(r"^\s*(#{1,6})\s+(.+)$")
@@ -150,6 +195,14 @@ class FalsePositiveFilter:
             # Fix broken URLs (spaces from PDF line-break artifacts)
             out_text, url_fixes = _fix_broken_urls(out_text)
             cleanups_applied += url_fixes
+
+            # Collapse spaced-out capitals (Docling small-caps artifact)
+            out_text, caps_fixes = _collapse_spaced_caps(out_text)
+            cleanups_applied += caps_fixes
+
+            # Strip repeated "Course Syllabus" page headers
+            out_text, page_hdr_fixes = _strip_page_headers(out_text)
+            cleanups_applied += page_hdr_fixes
 
             (output_dir / md_path.name).write_text(out_text, encoding="utf-8")
 
