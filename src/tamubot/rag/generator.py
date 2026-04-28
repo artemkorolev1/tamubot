@@ -4,7 +4,6 @@ Takes reranked retrieval results and generates a grounded, cited response
 using Gemini Flash with function-adaptive system prompts.
 """
 
-
 from langfuse import get_client as _lf_get_client
 from langfuse import observe
 
@@ -25,6 +24,7 @@ from tamubot.rag.utils import OOS_FALLBACK as _OUT_OF_SCOPE_RESPONSE
 # Function-adaptive system prompt assembly
 # ---------------------------------------------------------------------------
 
+
 def build_system_prompt(
     function: str,
     course_ids: list[str] | None = None,
@@ -44,9 +44,8 @@ def build_system_prompt(
     if course_ids and len(course_ids) > 1:
         parts.append(
             "The user is comparing multiple courses. "
-            "Present the comparison in a Markdown table. "
-            "IMMEDIATELY ADD ' |' AFTER EACH HEADING — do not add extra spaces for column alignment. "
-            "Ensure you cover each course mentioned and highlight key differences. "
+            "For each aspect, describe each course separately, then highlight key differences. "
+            "Ensure you cover each course mentioned. "
             "Use [Source N] citations for each piece of information."
         )
 
@@ -63,6 +62,7 @@ def build_system_prompt(
 # ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
+
 
 @observe(as_type="generation", name="pipeline.generator")
 def generate(
@@ -141,16 +141,16 @@ def generate(
         usage_details={
             "input": llm_result.input_tokens or 0,
             "output": llm_result.output_tokens or 0,
-        } if llm_result and llm_result.input_tokens is not None else None,
+        }
+        if llm_result and llm_result.input_tokens is not None
+        else None,
     )
     text = collapse_whitespace(text)
 
     # Prepend data integrity disclaimer when DB chunks are missing
     if not data_integrity and data_gaps:
         gap_lines = "\n".join(f"- {cid} / {cat}" for cid, cat in data_gaps)
-        disclaimer = (
-            f"⚠️ Note: The following data was not found in the syllabus database:\n{gap_lines}\n\n"
-        )
+        disclaimer = f"⚠️ Note: The following data was not found in the syllabus database:\n{gap_lines}\n\n"
         text = disclaimer + text
 
     # Gate 1: Validate citations in response
@@ -181,11 +181,7 @@ def generate_comparison(
     """
     context_xml = format_context_xml(results)
     courses_list = ", ".join(course_ids)
-    user_message = (
-        f"{context_xml}\n\n"
-        f"Question: {question}\n\n"
-        f"Compare the following courses: {courses_list}."
-    )
+    user_message = f"{context_xml}\n\nQuestion: {question}\n\nCompare the following courses: {courses_list}."
     messages = [
         {"role": "system", "content": COMPARISON_SYSTEM},
         {"role": "user", "content": user_message},
@@ -257,9 +253,7 @@ def generate_stream(
     # Prepend data integrity disclaimer before streaming begins
     if not data_integrity and data_gaps:
         gap_lines = "\n".join(f"- {cid} / {cat}" for cid, cat in data_gaps)
-        disclaimer = (
-            f"⚠️ Note: The following data was not found in the syllabus database:\n{gap_lines}\n\n"
-        )
+        disclaimer = f"⚠️ Note: The following data was not found in the syllabus database:\n{gap_lines}\n\n"
         yield disclaimer
 
     context_xml = format_context_xml(results)

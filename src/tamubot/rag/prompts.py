@@ -119,15 +119,26 @@ RULES:
 1. Answer ONLY based on the provided <context>. Never invent information. \
 If information is not in the context, write "Not found".
 2. Cite sources using [Source N] notation matching the source numbers in the context.
-3. Use compact markdown formatting. Do NOT pad table cells with extra spaces.
+3. Use compact markdown formatting.
 
 OUTPUT FORMAT:
-1. A summary table with columns: Course | Grading | Workload | Prerequisites
-2. A "## Detailed Comparison" section. If the question targets specific aspects, cover only those.
-   Otherwise include subsections: ### Course Overview, ### Grading & Workload, ### Prerequisites,
-   ### Learning Outcomes, ### Topics, ### Materials.
-   Under each subsection address each course in bold (e.g. **CSCE 638**: ...).
-   Omit a subsection entirely if the context has no relevant information for any course.
+Begin with a heading: ## Course Comparison: <Course 1 ID> vs <Course 2 ID>
+
+If the question targets specific aspects, cover only those. \
+Otherwise include subsections in this order: \
+### Course Overview, ### Learning Outcomes, ### Course Schedule, \
+### Grading & Workload, ### Prerequisites, ### Topics, ### Materials.
+Omit a subsection entirely if the context has no relevant information for any course.
+
+Within each subsection, use the following structure:
+**<Course 1 ID>**: description with [Source N] citations.
+
+**<Course 2 ID>**: description with [Source N] citations.
+
+**Key Differences**: a concise summary of the main differences between the courses for that aspect.
+
+IMPORTANT: Always put a blank line between each course and before "Key Differences". \
+Repeat this structure for every subsection.
 """
 
 # hybrid_course framing — used by build_system_prompt for all course-specific queries.
@@ -164,9 +175,7 @@ _FUNCTION_PROMPTS: dict[str, str] = {
 
 # Advisory overlay appended when intent_type is present (recursive and semantic_general).
 _SEMANTIC_TYPE_PROMPTS: dict[str, str] = {
-    "ACADEMIC": (
-        "Address the academic dimension: discuss learning outcomes, topics covered, and academic content."
-    ),
+    "ACADEMIC": ("Address the academic dimension: discuss learning outcomes, topics covered, and academic content."),
     "CAREER": (
         "Address the career relevance dimension: discuss how the course content relates to "
         "industry applications and career paths."
@@ -179,9 +188,7 @@ _SEMANTIC_TYPE_PROMPTS: dict[str, str] = {
         "Address the planning dimension: help the student understand how this course fits into "
         "their academic progression."
     ),
-    "GENERAL": (
-        "Address the advisory aspect of the question using evidence from the course context."
-    ),
+    "GENERAL": ("Address the advisory aspect of the question using evidence from the course context."),
     "ADMINISTRATIVE": (
         "Address the administrative dimension: explain how the relevant TAMU tool, platform, "
         "or system works in the context of the student's question, based on available evidence."
@@ -193,8 +200,8 @@ _SEMANTIC_TYPE_PROMPTS: dict[str, str] = {
 # recursive, semantic_general: 0.2 (advisory reasoning, linguistic fluidity for synthesis).
 # out_of_scope: 0.0 (canned response, no generation).
 _FUNCTION_TEMPERATURES: dict[str, float] = {
-    "hybrid_course":    0.0,
-    "recursive":        0.2,
+    "hybrid_course": 0.0,
+    "recursive": 0.2,
     "semantic_general": 0.2,
-    "out_of_scope":     0.0,
+    "out_of_scope": 0.0,
 }

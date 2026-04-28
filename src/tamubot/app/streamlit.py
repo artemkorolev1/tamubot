@@ -1,8 +1,30 @@
+import importlib
 import logging
 import os
+import sys
 import traceback
 
 import streamlit as st
+
+# Force-reload RAG logic modules so Streamlit hot-reload picks up code changes
+# without a full process restart.  Skip stateful infrastructure modules
+# (config, mongo, voyage, observability) to preserve DB connections and caches.
+_SKIP_RELOAD = frozenset(
+    {
+        "tamubot.core.config",
+        "tamubot.rag.tools.mongo",
+        "tamubot.rag.tools.voyage",
+        "tamubot.rag.tools.mem0",
+        "tamubot.rag.observability",
+        "tamubot.rag.observability.tracing",
+        "tamubot.rag.observability.config",
+        "tamubot.rag.observability.evals",
+    }
+)
+
+for name, mod in sorted(sys.modules.items()):
+    if name.startswith("tamubot.rag.") and name not in _SKIP_RELOAD and mod is not None:
+        importlib.reload(mod)
 
 from tamubot.core import config
 from tamubot.rag.observability import create_trace, finalize_trace, prod_config
@@ -10,11 +32,7 @@ from tamubot.rag.observability import create_trace, finalize_trace, prod_config
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tamubot")
 
-st.set_page_config(
-    page_title="TamuBot",
-    page_icon="🤖",
-    layout="wide"
-)
+st.set_page_config(page_title="TamuBot", page_icon="🤖", layout="wide")
 
 st.title("🤖 TamuBot — Texas A&M Academic Assistant")
 st.markdown("Ask questions about courses, syllabi, degree requirements, and university policies.")
@@ -40,6 +58,7 @@ if USE_MONGODB:
     from tamubot.rag.graph.pipeline import run_pipeline_with_memory
     from tamubot.rag.graph.session import SessionManager
     from tamubot.rag.tools.mongo import get_syllabus_urls
+
     _session_manager = SessionManager()
 else:
     from typing import Any, List
@@ -86,6 +105,7 @@ Question: {question}
 """
 
 if not USE_MONGODB:
+
     class VertexRagRetriever(BaseRetriever):
         project_id: str
         location: str
@@ -97,15 +117,17 @@ if not USE_MONGODB:
                 response = rag.retrieval_query(
                     rag_resources=[rag.RagResource(rag_corpus=self.rag_corpus_resource_name)],
                     text=query,
-                    similarity_top_k=5
+                    similarity_top_k=5,
                 )
                 documents = []
-                if hasattr(response, 'contexts') and hasattr(response.contexts, 'contexts'):
+                if hasattr(response, "contexts") and hasattr(response.contexts, "contexts"):
                     for context in response.contexts.contexts:
-                        documents.append(Document(
-                            page_content=context.text,
-                            metadata={"source": context.source_uri, "score": context.score}
-                        ))
+                        documents.append(
+                            Document(
+                                page_content=context.text,
+                                metadata={"source": context.source_uri, "score": context.score},
+                            )
+                        )
                 return documents
             except Exception as e:
                 st.error(f"Error retrieving documents: {e}")
@@ -115,15 +137,12 @@ if not USE_MONGODB:
     def get_rag_chain():
         try:
             llm = ChatVertexAI(
-                model=config.MODEL_NAME,
-                temperature=0.2,
-                project=config.PROJECT_ID,
-                location=config.GENERATION_REGION
+                model=config.MODEL_NAME, temperature=0.2, project=config.PROJECT_ID, location=config.GENERATION_REGION
             )
             retriever = VertexRagRetriever(
                 project_id=config.PROJECT_ID,
                 location=config.RETRIEVAL_REGION,
-                rag_corpus_resource_name=config.RAG_CORPUS_RESOURCE_NAME
+                rag_corpus_resource_name=config.RAG_CORPUS_RESOURCE_NAME,
             )
             template = SYSTEM_PROMPT
             prompt = ChatPromptTemplate.from_template(template)
@@ -173,6 +192,7 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
             # (id(st.session_state) changes each rerun, breaking the checkpointer)
             if "thread_id" not in st.session_state:
                 import uuid as _uuid
+
                 st.session_state.thread_id = str(_uuid.uuid4())
             thread_config = {"configurable": {"thread_id": st.session_state.thread_id}}
 
@@ -181,17 +201,20 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
                 try:
                     from tamubot.rag.tools import mem0 as mem0_registry
                     from tamubot.rag.tools.mem0 import Mem0Manager
+
                     _thread_id = thread_config.get("configurable", {}).get("thread_id", "")
                     st.session_state.mem0_manager = Mem0Manager(_thread_id)
                     mem0_registry.register(_thread_id, st.session_state.mem0_manager)
                 except Exception as _mem0_err:
                     import logging as _log
+
                     _log.getLogger("tamubot").warning(f"mem0 initialization failed (non-fatal): {_mem0_err}")
 
             # --- answer cache check (skip full pipeline on exact-match hit) ---
             if config.SESSION_CACHE_ENABLED:
                 from tamubot.rag.graph.pipeline import get_current_state
                 from tamubot.rag.utils import normalize_query as _norm
+
                 _current = get_current_state(thread_config)
                 _cached_answer = _current.get("answer_cache", {}).get(_norm(prompt))
                 if _cached_answer:
@@ -232,9 +255,7 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
                 except Exception:
                     url_map = {}
                 if url_map:
-                    links = "  ".join(
-                        f"[{cid} Syllabus]({url})" for cid, url in sorted(url_map.items())
-                    )
+                    links = "  ".join(f"[{cid} Syllabus]({url})" for cid, url in sorted(url_map.items()))
                     answer_placeholder.markdown(answer + "\n\n---\n**Syllabi:** " + links)
                     answer += "\n\n---\n**Syllabi:** " + links
 
@@ -253,7 +274,7 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
                         )
                     for i, doc in enumerate(source_docs):
                         label = doc.get("course_id", doc.get("policy_name", "Unknown"))
-                        st.write(f"**Source {i+1}:** {label}")
+                        st.write(f"**Source {i + 1}:** {label}")
                         if doc.get("category"):
                             st.write(f"*Category: {doc['category']}*")
                         content = doc.get("content", doc.get("policy_name", ""))
@@ -276,10 +297,9 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
                 with st.spinner("Generating answer..."):
                     try:
                         vertexai.init(project=config.PROJECT_ID, location=config.GENERATION_REGION)
-                        response = rag_chain.invoke({
-                            "context": "\n\n".join([d.page_content for d in source_docs]),
-                            "question": prompt
-                        })
+                        response = rag_chain.invoke(
+                            {"context": "\n\n".join([d.page_content for d in source_docs]), "question": prompt}
+                        )
                         answer = response.content
                     except Exception as e:
                         st.warning("Generative model unavailable. Showing retrieved documents.")
@@ -293,7 +313,7 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
             if source_docs:
                 with st.expander("View Source Documents", expanded=False):
                     for i, doc in enumerate(source_docs):
-                        st.write(f"**Source {i+1}:** {doc.metadata.get('source', 'Unknown')}")
+                        st.write(f"**Source {i + 1}:** {doc.metadata.get('source', 'Unknown')}")
                         st.write(f"*Score: {doc.metadata.get('score', 'N/A')}*")
                         st.info(doc.page_content)
                         st.write("---")
