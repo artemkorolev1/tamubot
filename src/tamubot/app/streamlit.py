@@ -8,7 +8,9 @@ import streamlit as st
 
 # Force-reload RAG logic modules so Streamlit hot-reload picks up code changes
 # without a full process restart.  Skip stateful infrastructure modules
-# (config, mongo, voyage, observability) to preserve DB connections and caches.
+# (config, mongo, voyage, observability, graph infra) to preserve DB
+# connections, caches, and the in-memory checkpointer that holds conversation
+# history across Streamlit reruns.
 _SKIP_RELOAD = frozenset(
     {
         "tamubot.core.config",
@@ -19,6 +21,9 @@ _SKIP_RELOAD = frozenset(
         "tamubot.rag.observability.tracing",
         "tamubot.rag.observability.config",
         "tamubot.rag.observability.evals",
+        "tamubot.rag.graph.pipeline",
+        "tamubot.rag.graph.builder",
+        "tamubot.rag.graph.checkpointer",
     }
 )
 

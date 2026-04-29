@@ -147,7 +147,10 @@ _HYBRID_COURSE_DEFAULT = (
     "Answer the question directly using the most relevant information from the context. "
     "For broad overview questions, cover the course purpose, key topics, prerequisites, and grading. "
     "Do not pad the answer with aspects the question did not ask about. "
-    "Include the course ID and section."
+    "Start with a level-2 heading (##) for the course ID, section, and title "
+    "(e.g. '## CSCE 670, Section 600: Information Storage and Retrieval'). "
+    "Use level-3 headings (###) for each content section "
+    "(e.g. ### Key Topics, ### Grading Policy, ### Prerequisites)."
 )
 
 # Primary prompt per function — describes the factual framing of the response.
