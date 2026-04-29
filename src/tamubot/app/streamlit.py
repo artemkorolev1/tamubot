@@ -29,6 +29,9 @@ for name, mod in sorted(sys.modules.items()):
 from tamubot.core import config
 from tamubot.rag.observability import create_trace, finalize_trace, prod_config
 
+# Intent types that trigger the advisory orchestrator
+ADVISORY_INTENTS = {"PLANNING", "CAREER"}
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tamubot")
 
@@ -165,14 +168,88 @@ for message in st.session_state.messages:
 
 
 # ---------------------------------------------------------------------------
+# Advisory SCP form
+# ---------------------------------------------------------------------------
+
+
+def _semester_options() -> list[str]:
+    """Generate semester options for the next 2 years."""
+    import datetime
+
+    now = datetime.date.today()
+    options = []
+    for year in range(now.year, now.year + 3):
+        for term in ("Spring", "Summer", "Fall"):
+            options.append(f"{term} {year}")
+    return options
+
+
+def _show_scp_form(pending_query: str, lf_trace, router_result, thread_config):
+    """Render the Student Context Profile form and store results in session_state."""
+    from tamubot.advisory.program_registry import PROGRAM_COURSES
+
+    with st.form("scp_form"):
+        st.subheader("Student Context Profile")
+        program = st.selectbox(
+            "Degree program",
+            options=[""] + list(PROGRAM_COURSES.keys()),
+            index=0,
+            help="Select your degree program",
+        )
+        completed = st.text_input(
+            "Completed courses (comma-separated)",
+            placeholder="e.g. CSCE 121, CSCE 221, MATH 251",
+        )
+        semester = st.selectbox(
+            "Target semester",
+            options=[""] + _semester_options(),
+            index=0,
+        )
+        goal = st.text_input(
+            "Academic goal (optional)",
+            placeholder="e.g. graduate on time, prepare for grad school",
+        )
+        submitted = st.form_submit_button("Submit")
+
+    if submitted:
+        st.session_state.scp_program = program or None
+        st.session_state.scp_completed_courses = (
+            [c.strip().upper() for c in completed.split(",") if c.strip()] if completed else []
+        )
+        st.session_state.scp_target_semester = semester or None
+        st.session_state.scp_goal = goal or None
+        st.session_state.scp_validated = True
+        # Store the pending query so the rerun picks it up
+        st.session_state.scp_pending_query = pending_query
+        st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Advisory: pick up pending query after SCP form submission
+# ---------------------------------------------------------------------------
+
+_advisory_pending = st.session_state.pop("scp_pending_query", None)
+if _advisory_pending and st.session_state.get("scp_validated"):
+    # Re-inject as if the user just typed the query again
+    prompt = _advisory_pending
+    # Don't re-append to messages — the user message is already displayed
+else:
+    prompt = None
+
+# ---------------------------------------------------------------------------
 # Chat input handling
 # ---------------------------------------------------------------------------
 
-if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..."):
+if not prompt:
+    prompt = st.chat_input("Ask about courses, syllabi, or degree requirements...")
+
+if prompt and prompt != _advisory_pending:
+    # New user input — append to chat history and display
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
+if prompt:
     with st.chat_message("assistant"):
         if USE_MONGODB:
             # --- MongoDB 3-stage pipeline: Route → Retrieve+Rerank → Generate ---
@@ -180,12 +257,6 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
             # Create a parent Langfuse trace for this request
             obs = prod_config(session_id=str(id(st.session_state)))
             lf_trace, _trace_id = create_trace(obs, query=prompt)
-
-            source_docs = []
-            router_result = None
-            data_gaps: list = []
-            data_integrity = True
-            conflicted_ids: list = []
 
             # Resolve thread_config early (needed by cache check and pipeline)
             # Use session_state to store thread_id so it's stable across Streamlit reruns
@@ -224,64 +295,127 @@ if prompt := st.chat_input("Ask about courses, syllabi, or degree requirements..
                     st.session_state.messages.append({"role": "assistant", "content": _cached_answer})
                     st.stop()
 
-            answer_tokens: list[str] = []
-            source_docs: list[dict] = []
+            # --- Step 1: Classify query (router only, no retrieval/generation) ---
+            from tamubot.rag.router import classify_query
+
             router_result = None
-            with st.spinner("Routing, retrieving, and generating..."):
+            with st.spinner("Classifying your question..."):
                 try:
-                    result = run_pipeline_with_memory(prompt, trace=lf_trace, thread_config=thread_config)
-                    source_docs, router_result, data_gaps, data_integrity, conflicted_ids, answer_tokens = result
+                    router_result = classify_query(prompt)
                     logger.info(
                         f"Router: function={router_result.function}, mode={router_result.retrieval_mode},"
-                        f" courses={router_result.course_ids}, docs={len(source_docs)}"
+                        f" courses={router_result.course_ids}, intent={router_result.intent_type}"
                     )
                 except Exception as e:
-                    logger.error(f"Retrieval failed: {traceback.format_exc()}")
-                    st.error(f"Retrieval failed: {e}")
+                    logger.error(f"Router failed: {traceback.format_exc()}")
+                    st.error(f"Classification failed: {e}")
 
-            answer = ""
-            answer_placeholder = st.empty()
-            for token in answer_tokens:
-                answer += token
-                answer_placeholder.markdown(answer + "▌")
-            answer_placeholder.markdown(answer)
-            logger.info(f"Generation complete, answer length: {len(answer)}")
+            # --- Step 2: Advisory dispatch (before running any pipeline) ---
+            is_advisory = router_result is not None and router_result.intent_type in ADVISORY_INTENTS
 
-            # Render syllabus links for all retrieved courses
-            if source_docs:
-                course_ids = list({doc["course_id"] for doc in source_docs if doc.get("course_id")})
-                try:
-                    url_map = get_syllabus_urls(course_ids)
-                except Exception:
-                    url_map = {}
-                if url_map:
-                    links = "  ".join(f"[{cid} Syllabus]({url})" for cid, url in sorted(url_map.items()))
-                    answer_placeholder.markdown(answer + "\n\n---\n**Syllabi:** " + links)
-                    answer += "\n\n---\n**Syllabi:** " + links
+            if is_advisory and not st.session_state.get("scp_validated"):
+                # Show SCP collection form — no pipeline runs yet
+                st.info(
+                    "This looks like an academic planning question. "
+                    "Please share some details so I can give you a personalized answer."
+                )
+                finalize_trace(lf_trace, output="[SCP form shown]")
+                _show_scp_form(prompt, lf_trace, router_result, thread_config)
+                st.stop()
 
-            # Close the parent trace and flush all buffered spans
-            finalize_trace(lf_trace, output=answer)
+            if is_advisory and st.session_state.get("scp_validated") and router_result is not None:
+                # Run advisory pipeline with collected SCP — skips the full RAG pipeline
+                from tamubot.advisory.pipeline import run_advisory_pipeline
 
-            if source_docs:
-                with st.expander("View Source Documents", expanded=False):
-                    if router_result:
-                        mode_label = router_result.retrieval_mode
-                        sem = f" | Intent: {router_result.intent_type}" if router_result.intent_type else ""
-                        st.caption(
-                            f"Function: **{router_result.function}** | "
-                            f"Mode: {mode_label}{sem} | "
-                            f"Courses: {', '.join(router_result.course_ids) or 'none'}"
-                        )
-                    for i, doc in enumerate(source_docs):
-                        label = doc.get("course_id", doc.get("policy_name", "Unknown"))
-                        st.write(f"**Source {i + 1}:** {label}")
-                        if doc.get("category"):
-                            st.write(f"*Category: {doc['category']}*")
-                        content = doc.get("content", doc.get("policy_name", ""))
-                        st.info(content[:500] + ("..." if len(content) > 500 else ""))
-                        st.write("---")
+                scp = {
+                    "scp_program": st.session_state.get("scp_program"),
+                    "scp_completed_courses": st.session_state.get("scp_completed_courses", []),
+                    "scp_target_semester": st.session_state.get("scp_target_semester"),
+                    "scp_goal": st.session_state.get("scp_goal"),
+                }
+                rr_dict = {
+                    "function": router_result.function,
+                    "course_ids": router_result.course_ids,
+                    "retrieval_mode": router_result.retrieval_mode,
+                    "intent_type": router_result.intent_type,
+                    "rewritten_query": router_result.rewritten_query,
+                    "recursive_search": router_result.recursive_search,
+                    "requires_retrieval": router_result.requires_retrieval,
+                    "section": router_result.section,
+                }
+                session_id = thread_config.get("configurable", {}).get("thread_id", "")
+                with st.spinner("Generating personalized advisory answer..."):
+                    advisory_answer, advisory_error = run_advisory_pipeline(
+                        query=prompt,
+                        scp=scp,
+                        router_result=rr_dict,
+                        trace=lf_trace,
+                        session_id=session_id,
+                    )
 
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+                answer = advisory_answer or ""
+                if advisory_error:
+                    st.warning(f"Advisory pipeline error: {advisory_error}")
+                answer_placeholder = st.empty()
+                answer_placeholder.markdown(answer)
+                finalize_trace(lf_trace, output=answer)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+
+            else:
+                # --- Step 3: Standard RAG pipeline (non-advisory queries) ---
+                answer_tokens: list[str] = []
+                source_docs: list[dict] = []
+                with st.spinner("Retrieving and generating..."):
+                    try:
+                        result = run_pipeline_with_memory(prompt, trace=lf_trace, thread_config=thread_config)
+                        source_docs, router_result, data_gaps, data_integrity, conflicted_ids, answer_tokens = result
+                    except Exception as e:
+                        logger.error(f"Retrieval failed: {traceback.format_exc()}")
+                        st.error(f"Retrieval failed: {e}")
+
+                answer = ""
+                answer_placeholder = st.empty()
+                for token in answer_tokens:
+                    answer += token
+                    answer_placeholder.markdown(answer + "▌")
+                answer_placeholder.markdown(answer)
+                logger.info(f"Generation complete, answer length: {len(answer)}")
+
+                # Render syllabus links for all retrieved courses
+                if source_docs:
+                    course_ids = list({doc["course_id"] for doc in source_docs if doc.get("course_id")})
+                    try:
+                        url_map = get_syllabus_urls(course_ids)
+                    except Exception:
+                        url_map = {}
+                    if url_map:
+                        links = "  ".join(f"[{cid} Syllabus]({url})" for cid, url in sorted(url_map.items()))
+                        answer_placeholder.markdown(answer + "\n\n---\n**Syllabi:** " + links)
+                        answer += "\n\n---\n**Syllabi:** " + links
+
+                # Close the parent trace and flush all buffered spans
+                finalize_trace(lf_trace, output=answer)
+
+                if source_docs:
+                    with st.expander("View Source Documents", expanded=False):
+                        if router_result:
+                            mode_label = router_result.retrieval_mode
+                            sem = f" | Intent: {router_result.intent_type}" if router_result.intent_type else ""
+                            st.caption(
+                                f"Function: **{router_result.function}** | "
+                                f"Mode: {mode_label}{sem} | "
+                                f"Courses: {', '.join(router_result.course_ids) or 'none'}"
+                            )
+                        for i, doc in enumerate(source_docs):
+                            label = doc.get("course_id", doc.get("policy_name", "Unknown"))
+                            st.write(f"**Source {i + 1}:** {label}")
+                            if doc.get("category"):
+                                st.write(f"*Category: {doc['category']}*")
+                            content = doc.get("content", doc.get("policy_name", ""))
+                            st.info(content[:500] + ("..." if len(content) > 500 else ""))
+                            st.write("---")
+
+                st.session_state.messages.append({"role": "assistant", "content": answer})
 
         else:
             # --- Vertex AI legacy path ---
