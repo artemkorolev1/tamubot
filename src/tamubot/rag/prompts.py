@@ -164,7 +164,8 @@ _FUNCTION_PROMPTS: dict[str, str] = {
         "discovered courses using the anchor only as background context — do not recommend "
         "the anchor course itself as an answer to a discovery query. "
         "For comparison questions (compare X with Y), present a structured comparison of both. "
-        "Limit discovery recommendations to at most 3 courses — depth over breadth."
+        "Limit discovery recommendations to at most 3 courses — depth over breadth. "
+        "Keep your response under 1500 words. Be concise: summarize key points rather than reproducing syllabus content verbatim."
     ),
     "semantic_general": (
         "The user has a broad question not tied to a specific course. "
