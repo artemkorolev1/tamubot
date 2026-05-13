@@ -1,4 +1,5 @@
 """Router node — classifies query and populates routing fields in state."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -37,7 +38,7 @@ def _build_prior_context(history: list) -> Optional[str]:
     if not prior_query:
         return None
 
-    parts = [f"previous query: \"{prior_query}\""]
+    parts = [f'previous query: "{prior_query}"']
     if prior_course_ids:
         parts.append(f"courses: {', '.join(prior_course_ids)}")
     return ", ".join(parts)
@@ -51,6 +52,7 @@ def router_node(state: PipelineState) -> dict:
     Falls back to out_of_scope on any error.
     """
     from tamubot.rag.router import classify_query
+
     raw_query = state.get("query", "")
     query = state.get("rewritten_query") or raw_query
     node_trace = list(state.get("node_trace", []))
@@ -64,7 +66,8 @@ def router_node(state: PipelineState) -> dict:
             node_trace.append("router_cache_hit")
             try:
                 from langfuse import get_client
-                get_client().update_current_observation(metadata={"cache_hit": True})
+
+                get_client().update_current_span(metadata={"cache_hit": True})
             except Exception:
                 pass
             return {
@@ -80,10 +83,7 @@ def router_node(state: PipelineState) -> dict:
 
     # history_inject_node bakes history_context into rewritten_query; skip prior_context
     # when the query is already augmented, otherwise fall back to compact context.
-    prior_context = (
-        None if state.get("rewritten_query")
-        else _build_prior_context(state.get("history", []))
-    )
+    prior_context = None if state.get("rewritten_query") else _build_prior_context(state.get("history", []))
 
     try:
         router_result = classify_query(query, prior_context=prior_context)
@@ -102,7 +102,7 @@ def router_node(state: PipelineState) -> dict:
                     "intent_type": router_result.intent_type,
                     "recursive_search": router_result.recursive_search,
                     "requires_retrieval": router_result.requires_retrieval,
-                }
+                },
             }
 
         return {

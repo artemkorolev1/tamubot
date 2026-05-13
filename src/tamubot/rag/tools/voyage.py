@@ -7,6 +7,7 @@ Exposes:
 
 Canonical location: rag/tools/voyage.py
 """
+
 from __future__ import annotations
 
 import math
@@ -46,7 +47,7 @@ _embed_lock = threading.Lock()
 
 def _embed_query_cached(text: str) -> tuple[float, ...]:
     """Return a cached embedding tuple, fetching from Voyage API if missing.
-    
+
     Uses Double-Checked Locking:
     1. Outer lock-free read (fast path for cache hits)
     2. Lock acquisition on miss
@@ -65,16 +66,16 @@ def _embed_query_cached(text: str) -> tuple[float, ...]:
         if cached is not None:
             # Another thread handled it while we waited
             return cached
-            
+
         client = _get_client()
         result = client.embed([text], model=EMBEDDING_MODEL, input_type="query")
         emb = tuple(result.embeddings[0])
-        
+
         # 4. Insert and evict LRU
         _embed_cache[text] = emb
         if len(_embed_cache) > _EMBED_CACHE_MAXSIZE:
             _embed_cache.popitem(last=False)  # pop oldest
-            
+
         return emb
 
 
@@ -133,6 +134,8 @@ def rerank(query: str, chunks: list[dict], top_k: int, *, apply_knee: bool = Tru
     If config.RERANK_KNEE_ENABLED and apply_knee, additionally applies knee-point filtering.
     Falls back to original order (sliced to top_k) on any Voyage error.
     """
+    from langfuse import get_client as _lf
+
     if not chunks:
         return []
     top_k = min(top_k, len(chunks))
@@ -145,18 +148,67 @@ def rerank(query: str, chunks: list[dict], top_k: int, *, apply_knee: bool = Tru
             chunk = dict(chunks[item.index])
             chunk["score"] = item.relevance_score
             results.append(chunk)
+
+        pre_rerank_count = len(chunks)
+        post_rerank_count = len(results)
+        all_scores = [c["score"] for c in results]
+
         # Fixed score threshold — always active
         min_chunks = config.RERANK_SCORE_MIN_CHUNKS
         filtered = [c for c in results if c.get("score", 0.0) >= config.RERANK_SCORE_THRESHOLD]
+        pre_threshold_count = len(results)
         results = filtered if len(filtered) >= min_chunks else results[:min_chunks]
+        post_threshold_count = len(results)
+
         # Knee-point filter — optional, off by default
-        if config.RERANK_KNEE_ENABLED and apply_knee:
+        knee_applied = config.RERANK_KNEE_ENABLED and apply_knee
+        pre_knee_count = len(results)
+        if knee_applied:
             results = knee_filter(
                 results,
                 min_floor=config.RERANK_KNEE_MIN_CHUNKS,
                 abs_threshold=config.RERANK_KNEE_ABS_THRESHOLD,
                 min_gap_fallback=config.RERANK_KNEE_MIN_GAP_FALLBACK,
             )
+        post_knee_count = len(results)
+
+        # Trace metadata: full reranking breakdown
+        final_scores = [c.get("score", 0.0) for c in results]
+        chunk_summary = [
+            {
+                "course_id": c.get("course_id", ""),
+                "category": c.get("category", ""),
+                "score": round(c.get("score", 0.0), 4),
+                "rrf_source": c.get("rrf_source", "unknown"),
+            }
+            for c in results
+        ]
+        try:
+            _lf().update_current_span(
+                metadata={
+                    "pre_rerank_count": pre_rerank_count,
+                    "post_rerank_count": post_rerank_count,
+                    "scores_all": [round(s, 4) for s in all_scores],
+                    "score_max": round(max(all_scores), 4) if all_scores else 0,
+                    "score_min": round(min(all_scores), 4) if all_scores else 0,
+                    "threshold": {
+                        "value": config.RERANK_SCORE_THRESHOLD,
+                        "pre_count": pre_threshold_count,
+                        "post_count": post_threshold_count,
+                        "min_chunks_floor": min_chunks,
+                    },
+                    "knee": {
+                        "applied": knee_applied,
+                        "pre_count": pre_knee_count,
+                        "post_count": post_knee_count,
+                    },
+                    "final_chunks": chunk_summary,
+                    "final_scores": [round(s, 4) for s in final_scores],
+                }
+            )
+        except Exception:
+            pass
+
         return results
     except Exception:
         return chunks[:top_k]

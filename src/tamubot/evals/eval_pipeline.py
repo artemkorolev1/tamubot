@@ -38,6 +38,7 @@ from tamubot.rag.router import (
 # Test case definitions  — grounded in CSCE 638 / CSCE 670 (Spring 2026)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TestCase:
     query: str
@@ -55,7 +56,6 @@ class TestCase:
 
 
 TEST_SUITE: list[TestCase] = [
-
     # ── metadata_specific ────────────────────────────────────────────────
     # Purely factual, targeting a specific syllabus category.
     TestCase(
@@ -115,7 +115,6 @@ TEST_SUITE: list[TestCase] = [
         expected_specific_categories=["INSTRUCTOR"],
         expected_semantic_intent=False,
     ),
-
     # ── metadata_default ─────────────────────────────────────────────────
     # Factual, no specific category — returns DEFAULT_SUMMARY_CATEGORIES.
     TestCase(
@@ -142,7 +141,6 @@ TEST_SUITE: list[TestCase] = [
         expected_specific_categories=[],
         expected_semantic_intent=False,
     ),
-
     # ── metadata_combined ────────────────────────────────────────────────
     # Factual, specific categories mentioned but not exclusive (specific_only=False).
     TestCase(
@@ -163,7 +161,6 @@ TEST_SUITE: list[TestCase] = [
         expected_semantic_intent=False,
         notes="specific_only=False expected. This is the canonical metadata_combined case.",
     ),
-
     # ── metadata_specific (evaluative with explicit category) ────────────
     # Evaluative/advisory question about a KNOWN course with specific category.
     # recurrent_search=False → metadata path (bypass vector search).
@@ -184,7 +181,6 @@ TEST_SUITE: list[TestCase] = [
         expected_specific_categories=["GRADING"],
         expected_semantic_intent=True,
     ),
-
     # ── metadata_default (evaluative, no specific category) ──────────────
     # Advisory/subjective question about a KNOWN course — metadata bypass.
     TestCase(
@@ -211,7 +207,6 @@ TEST_SUITE: list[TestCase] = [
         expected_specific_categories=[],
         expected_semantic_intent=True,
     ),
-
     # ── metadata_specific (evaluative with explicit category, continued) ──
     TestCase(
         query="Does CSCE 638 have a heavy workload based on the grading structure?",
@@ -231,7 +226,6 @@ TEST_SUITE: list[TestCase] = [
         expected_semantic_intent=True,
         notes="specific_only=True: 'given its learning outcomes' explicitly names the category.",
     ),
-
     # ── recurrent_* — two-stage: anchor course → corpus discovery ────────
     TestCase(
         query="What course should I take with CSCE 638?",
@@ -262,7 +256,6 @@ TEST_SUITE: list[TestCase] = [
         expected_recurrent_search=True,
         notes="specific_only=True: 'given its learning outcomes' is the explicit anchor category.",
     ),
-
     # ── metadata_specific (multi-course comparisons) ──────────────────────
     # Factual comparisons across two courses — same function, parallel fetch.
     TestCase(
@@ -289,7 +282,6 @@ TEST_SUITE: list[TestCase] = [
         expected_specific_categories=["PREREQUISITES"],
         expected_semantic_intent=False,
     ),
-
     # ── metadata_default (multi-course advisory) ──────────────────────────
     # Both courses are known → metadata regardless of semantic_intent.
     TestCase(
@@ -319,7 +311,6 @@ TEST_SUITE: list[TestCase] = [
         expected_semantic_intent=True,
         notes="semantic_type=PLANNING expected",
     ),
-
     # ── semantic_general ─────────────────────────────────────────────────
     # No course ID, advisory/discovery — searches full corpus.
     TestCase(
@@ -362,7 +353,6 @@ TEST_SUITE: list[TestCase] = [
         expected_semantic_intent=True,
         notes="semantic_type=PLANNING expected",
     ),
-
     # ── out_of_scope ─────────────────────────────────────────────────────
     TestCase(
         query="What's the weather in College Station today?",
@@ -396,6 +386,7 @@ TEST_SUITE: list[TestCase] = [
 # Result capture
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class EvalResult:
     # Identity
@@ -425,7 +416,7 @@ class EvalResult:
     # Router — correctness
     function_correct: bool
     course_ids_correct: bool
-    specific_categories_correct: bool   # expected ⊆ extracted
+    specific_categories_correct: bool  # expected ⊆ extracted
 
     # Retrieval
     chunks_retrieved: int
@@ -434,15 +425,15 @@ class EvalResult:
     retrieval_error: str | None
 
     # Generation
-    response_preview: str               # first 400 chars
+    response_preview: str  # first 400 chars
     response_length_chars: int
     has_citations: bool
     citation_count: int
-    generation_skipped: bool            # True for out_of_scope or dry-run
+    generation_skipped: bool  # True for out_of_scope or dry-run
     generation_error: str | None
 
     # Retrieval quality
-    recall_hit: bool | None         # True if source chunk (crn+category) found; None if no source_crn
+    recall_hit: bool | None  # True if source chunk (crn+category) found; None if no source_crn
 
     # Answer quality (RAGAS — only populated when --ragas flag is set)
     ragas_faithfulness: float | None
@@ -463,6 +454,7 @@ def _count_citations(text: str) -> int:
 # ---------------------------------------------------------------------------
 # Run a single test case through the full pipeline
 # ---------------------------------------------------------------------------
+
 
 def run_test(
     tc: TestCase,
@@ -508,7 +500,8 @@ def run_test(
     elif not dry_run and not retrieval_error:
         try:
             response_text = generate(
-                chunks, tc.query,
+                chunks,
+                tc.query,
                 function=rr.function,
                 course_ids=rr.course_ids,
                 intent_type=rr.intent_type,
@@ -523,10 +516,7 @@ def run_test(
     # For the built-in TEST_SUITE (no source_crn), recall_hit is None.
     recall_hit: bool | None = None
     if tc.source_crn:
-        recall_hit = any(
-            c.get("crn") == tc.source_crn and c.get("category") == tc.source_category
-            for c in chunks
-        )
+        recall_hit = any(c.get("crn") == tc.source_crn and c.get("category") == tc.source_category for c in chunks)
 
     # ── RAGAS quality scores (optional — requires --ragas flag) ───────────
     t_ragas_start = time.perf_counter()
@@ -536,6 +526,7 @@ def run_test(
     if do_ragas and not dry_run and chunks and response_text and not generation_error:
         try:
             from tamubot.rag import compute_ragas_metrics
+
             contexts = [c.get("content", "") for c in chunks if c.get("content")]
             scores = compute_ragas_metrics(
                 question=tc.query,
@@ -554,13 +545,9 @@ def run_test(
     unique_courses = sorted({d.get("course_id", "") for d in chunks if d.get("course_id")})
     unique_categories = sorted({d.get("category", "") for d in chunks if d.get("category")})
 
-    cids_correct = (
-        set(tc.expected_course_ids) <= set(rr.course_ids)
-        if tc.expected_course_ids else True
-    )
+    cids_correct = set(tc.expected_course_ids) <= set(rr.course_ids) if tc.expected_course_ids else True
     cats_correct = (
-        set(tc.expected_specific_categories) <= set(rr.specific_categories)
-        if tc.expected_specific_categories else True
+        set(tc.expected_specific_categories) <= set(rr.specific_categories) if tc.expected_specific_categories else True
     )
 
     return EvalResult(
@@ -645,10 +632,9 @@ def _do_retrieval(rr: RouterResult, query: str) -> list[dict]:
     if fn.startswith("recurrent_"):
         from tamubot.rag.generator import generate_eval_search_string
         from tamubot.rag.tools.mongo import fetch_anchor_chunks
-        anchor_chunks, _, _ = fetch_anchor_chunks(course_ids, categories)
-        eval_query = generate_eval_search_string(
-            anchor_chunks, search_query, rr.intent_type or "GENERAL"
-        )
+
+        anchor_chunks, _, _ = fetch_anchor_chunks(course_ids)
+        eval_query = generate_eval_search_string(anchor_chunks, search_query, rr.intent_type or "GENERAL")
         all_results = search.hybrid_search(eval_query, filters=None, k=retrieve_k)
         anchor_ids = set(course_ids)
         discovery_chunks = [c for c in all_results if c.get("course_id") not in anchor_ids]
@@ -657,9 +643,7 @@ def _do_retrieval(rr: RouterResult, query: str) -> list[dict]:
 
     # metadata_* path: exact lookup per course, no reranking
     if len(course_ids) == 1:
-        return deduplicate_chunks(
-            search.search_by_course_categories(course_ids[0], categories)
-        )
+        return deduplicate_chunks(search.search_by_course_categories(course_ids[0], categories))
 
     combined: list[dict] = []
     for cid in course_ids:
@@ -670,6 +654,7 @@ def _do_retrieval(rr: RouterResult, query: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Report generation
 # ---------------------------------------------------------------------------
+
 
 def _pct(val: float) -> str:
     return f"{val:.0%}"
@@ -690,7 +675,10 @@ def write_markdown_report(
     """Generate a comprehensive markdown report for human/Gemini Deep Research analysis."""
 
     functions = [
-        "hybrid_course", "recurrent", "semantic_general", "out_of_scope",
+        "hybrid_course",
+        "recurrent",
+        "semantic_general",
+        "out_of_scope",
     ]
 
     # ── Aggregate stats ────────────────────────────────────────────────
@@ -708,14 +696,10 @@ def write_markdown_report(
 
     # RAGAS (only cases where scores were computed)
     ragas_cases = [r for r in results if r.ragas_faithfulness is not None]
-    avg_faithfulness = (
-        sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases)
-        if ragas_cases else None
-    )
+    avg_faithfulness = sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases) if ragas_cases else None
     ragas_rel_cases = [r for r in results if r.ragas_answer_relevancy is not None]
     avg_relevancy = (
-        sum(r.ragas_answer_relevancy for r in ragas_rel_cases) / len(ragas_rel_cases)
-        if ragas_rel_cases else None
+        sum(r.ragas_answer_relevancy for r in ragas_rel_cases) / len(ragas_rel_cases) if ragas_rel_cases else None
     )
 
     avg_total_ms = sum(r.latency_total_ms for r in results) / total if total else 0
@@ -767,8 +751,9 @@ def write_markdown_report(
 
     # ── Executive summary ─────────────────────────────────────────────
     recall_str = (
-        f"{recall_hits}/{len(recall_cases)} ({_pct(recall_hits/len(recall_cases))})"
-        if recall_cases else "N/A (no source_crn — built-in suite)"
+        f"{recall_hits}/{len(recall_cases)} ({_pct(recall_hits / len(recall_cases))})"
+        if recall_cases
+        else "N/A (no source_crn — built-in suite)"
     )
     faith_str = f"{avg_faithfulness:.3f}" if avg_faithfulness is not None else "not run (omit --ragas)"
     rel_str = f"{avg_relevancy:.3f}" if avg_relevancy is not None else "not run (omit --ragas)"
@@ -777,14 +762,14 @@ def write_markdown_report(
         "## Executive Summary",
         "",
         f"- **Total test cases:** {total}",
-        f"- **Function accuracy:** {fn_correct}/{total} ({_pct(fn_correct/total if total else 0)})",
-        f"- **Course ID extraction accuracy:** {cids_correct}/{total} ({_pct(cids_correct/total if total else 0)})",
-        f"- **Category extraction accuracy:** {cats_correct}/{total} ({_pct(cats_correct/total if total else 0)})",
+        f"- **Function accuracy:** {fn_correct}/{total} ({_pct(fn_correct / total if total else 0)})",
+        f"- **Course ID extraction accuracy:** {cids_correct}/{total} ({_pct(cids_correct / total if total else 0)})",
+        f"- **Category extraction accuracy:** {cats_correct}/{total} ({_pct(cats_correct / total if total else 0)})",
         f"- **Retrieval/generation errors:** {len(with_errors)}",
         f"- **Recall@k (source chunk in results):** {recall_str}",
         f"- **RAGAS Faithfulness (avg):** {faith_str}",
         f"- **RAGAS Answer Relevancy (avg):** {rel_str}",
-        f"- **Responses with citations:** {len(with_citations)}/{len(generated)} ({_pct(len(with_citations)/len(generated) if generated else 0)})",
+        f"- **Responses with citations:** {len(with_citations)}/{len(generated)} ({_pct(len(with_citations) / len(generated) if generated else 0)})",
         f"- **Avg total latency:** {avg_total_ms:.0f} ms",
         f"- **Avg router latency:** {avg_router_ms:.0f} ms",
         f"- **Avg chunks retrieved (post-dedup):** {avg_chunks:.1f}",
@@ -814,8 +799,8 @@ def write_markdown_report(
         rg = [r for r in group if r.recall_hit is not None]
         rk_str = f"{sum(1 for r in rg if r.recall_hit)}/{len(rg)}" if rg else "—"
         lines.append(
-            f"| `{fn}` | {n} | {fc}/{n} ({_pct(fc/n)}) | {cc}/{n} ({_pct(cc/n)}) | "
-            f"{sc}/{n} ({_pct(sc/n)}) | {rk_str} | {ac:.1f} | {al:.0f} | {errs} |"
+            f"| `{fn}` | {n} | {fc}/{n} ({_pct(fc / n)}) | {cc}/{n} ({_pct(cc / n)}) | "
+            f"{sc}/{n} ({_pct(sc / n)}) | {rk_str} | {ac:.1f} | {al:.0f} | {errs} |"
         )
     lines += ["", "---", ""]
 
@@ -994,6 +979,7 @@ def write_markdown_report(
 # CLI entry point
 # ---------------------------------------------------------------------------
 
+
 def _load_golden_set(path: Path) -> list[TestCase]:
     """Load a golden set JSONL (from generate_golden_set.py) as TestCase objects."""
     cases = []
@@ -1003,35 +989,45 @@ def _load_golden_set(path: Path) -> list[TestCase]:
             if not line:
                 continue
             d = json.loads(line)
-            cases.append(TestCase(
-                query=d.get("question", d.get("query", "")),
-                function_expected=d.get("expected_function", ""),
-                description=d.get("stratum", ""),
-                expected_course_ids=d.get("expected_course_ids", []),
-                expected_specific_categories=d.get("expected_specific_categories", []),
-                expected_semantic_intent=d.get("expected_semantic_intent", False),
-                notes=d.get("source_category", ""),
-                source_crn=d.get("source_crn", "") or "",
-                source_category=d.get("source_category", "") or "",
-                reference_answer=d.get("reference_answer", "") or "",
-            ))
+            cases.append(
+                TestCase(
+                    query=d.get("question", d.get("query", "")),
+                    function_expected=d.get("expected_function", ""),
+                    description=d.get("stratum", ""),
+                    expected_course_ids=d.get("expected_course_ids", []),
+                    expected_specific_categories=d.get("expected_specific_categories", []),
+                    expected_semantic_intent=d.get("expected_semantic_intent", False),
+                    notes=d.get("source_category", ""),
+                    source_crn=d.get("source_crn", "") or "",
+                    source_category=d.get("source_category", "") or "",
+                    reference_answer=d.get("reference_answer", "") or "",
+                )
+            )
     return cases
 
 
 def main():
     parser = argparse.ArgumentParser(description="TamuBot pipeline evaluation harness")
     parser.add_argument("--function", help="Run only tests for this function type")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Router classification only — skip retrieval and generation")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Router classification only — skip retrieval and generation"
+    )
     parser.add_argument("--test-id", type=int, help="Run only this specific test ID (1-indexed)")
-    parser.add_argument("--golden-set", metavar="PATH",
-                        help="Path to golden set JSONL (from generate_golden_set.py). "
-                             "Runs those questions instead of the built-in TEST_SUITE.")
-    parser.add_argument("--ragas", action="store_true",
-                        help="Run RAGAS Faithfulness + AnswerRelevancy scoring on each "
-                             "generated response. Adds ~1 Gemini call per question.")
-    parser.add_argument("--output-dir", default="tamu_data/logs",
-                        help="Directory for output files (default: tamu_data/logs)")
+    parser.add_argument(
+        "--golden-set",
+        metavar="PATH",
+        help="Path to golden set JSONL (from generate_golden_set.py). "
+        "Runs those questions instead of the built-in TEST_SUITE.",
+    )
+    parser.add_argument(
+        "--ragas",
+        action="store_true",
+        help="Run RAGAS Faithfulness + AnswerRelevancy scoring on each "
+        "generated response. Adds ~1 Gemini call per question.",
+    )
+    parser.add_argument(
+        "--output-dir", default="tamu_data/logs", help="Directory for output files (default: tamu_data/logs)"
+    )
     args = parser.parse_args()
 
     # Load test suite — golden set JSONL or built-in
@@ -1070,8 +1066,7 @@ def main():
     md_path = output_dir / f"eval_report_{run_ts}.md"
 
     print(f"\nTamuBot Pipeline Evaluation — {run_ts}")
-    print(f"Mode: {'DRY-RUN (router only)' if args.dry_run else 'Full pipeline'}"
-          f"{' + RAGAS' if args.ragas else ''}")
+    print(f"Mode: {'DRY-RUN (router only)' if args.dry_run else 'Full pipeline'}{' + RAGAS' if args.ragas else ''}")
     print(f"Tests: {len(suite)}")
     print(f"Output: {jsonl_path.name} + {md_path.name}")
     print("-" * 60)
@@ -1091,7 +1086,8 @@ def main():
         recall_tag = "" if r.recall_hit is None else (f" recall={'HIT' if r.recall_hit else 'MISS'}")
         ragas_tag = (
             f" faith={r.ragas_faithfulness:.2f} rel={r.ragas_answer_relevancy:.2f}"
-            if r.ragas_faithfulness is not None else ""
+            if r.ragas_faithfulness is not None
+            else ""
         )
         print(
             f"       {tick} fn={r.function_actual} mode={r.retrieval_mode_actual} "
@@ -1105,13 +1101,17 @@ def main():
     rc = [r for r in results if r.recall_hit is not None]
     if rc:
         rh = sum(1 for r in rc if r.recall_hit)
-        print(f"Recall@k:          {rh/len(rc):.0%}  ({rh}/{len(rc)} source chunks found)")
+        print(f"Recall@k:          {rh / len(rc):.0%}  ({rh}/{len(rc)} source chunks found)")
     rf = [r for r in results if r.ragas_faithfulness is not None]
     if rf:
-        print(f"RAGAS Faithfulness:   {sum(r.ragas_faithfulness for r in rf)/len(rf):.3f}  (avg over {len(rf)} cases)")
+        print(
+            f"RAGAS Faithfulness:   {sum(r.ragas_faithfulness for r in rf) / len(rf):.3f}  (avg over {len(rf)} cases)"
+        )
     rr2 = [r for r in results if r.ragas_answer_relevancy is not None]
     if rr2:
-        print(f"RAGAS Ans Relevancy:  {sum(r.ragas_answer_relevancy for r in rr2)/len(rr2):.3f}  (avg over {len(rr2)} cases)")
+        print(
+            f"RAGAS Ans Relevancy:  {sum(r.ragas_answer_relevancy for r in rr2) / len(rr2):.3f}  (avg over {len(rr2)} cases)"
+        )
 
     # Write outputs
     write_jsonl(results, jsonl_path)

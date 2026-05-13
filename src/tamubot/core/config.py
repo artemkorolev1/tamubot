@@ -78,11 +78,14 @@ CATEGORY_CONFIDENCE_THRESHOLD: float = 0.7
 # For multi-course queries these are scaled by n_courses via compute_dynamic_k.
 FUNCTION_RETRIEVAL_CONFIG: dict[str, dict[str, int]] = {
     # Per-course filtered hybrid search (vector + BM25), then cross-course rerank
-    "hybrid_course": {"retrieve_k": 20, "rerank_k": 7},
+    # v4 chunks are ~3x smaller (median 100 tokens) → 2x scaling from v3 values
+    "hybrid_course": {"retrieve_k": 40, "rerank_k": 15},
     # Corpus-wide vector search — not scaled by course count
-    "semantic_general": {"retrieve_k": 30, "rerank_k": 10},
+    "semantic_general": {"retrieve_k": 50, "rerank_k": 20},
     # Two-stage: anchor fetch → corpus-wide discovery
-    "recursive": {"retrieve_k": 15, "rerank_k": 5},
+    "recursive": {"retrieve_k": 30, "rerank_k": 10},
+    # Direct course summary lookup — no search or reranking
+    "course_summary": {"retrieve_k": 0, "rerank_k": 0},
     # No retrieval
     "out_of_scope": {"retrieve_k": 0, "rerank_k": 0},
 }
@@ -91,20 +94,21 @@ FUNCTION_RETRIEVAL_CONFIG: dict[str, dict[str, int]] = {
 PER_COURSE_K = FUNCTION_RETRIEVAL_CONFIG
 
 # Global caps for scaled multi-course retrieval.
-MAX_RETRIEVE_K: int = 60
-MAX_RERANK_K: int = 20
+MAX_RETRIEVE_K: int = 100
+MAX_RERANK_K: int = 35
 
 # Maximum unique discovery courses to recommend in recursive path (after schedule filter).
 RECURSIVE_MAX_RECOMMENDED_COURSES: int = 3
 
-# Stratified selection: chunks per (course_id, category) slot after reranking.
+# Stratified selection: chunks per (course_id, header_path) slot after reranking.
 CHUNKS_PER_SLOT: int = 2
-# Fallback when no specific categories given: top-N per unique course_id.
-STRATIFIED_FALLBACK_PER_COURSE: int = 6
+# Fallback when no specific header_path given: top-N per unique course_id.
+STRATIFIED_FALLBACK_PER_COURSE: int = 12
 
 # --- Reranker score threshold ---
 # Drops chunks below a fixed score after reranking. Always active.
-RERANK_SCORE_THRESHOLD: float = float(os.getenv("RERANK_SCORE_THRESHOLD", "0.35"))
+# Lowered from 0.35 for v4's smaller chunks which get lower absolute reranker scores.
+RERANK_SCORE_THRESHOLD: float = float(os.getenv("RERANK_SCORE_THRESHOLD", "0.25"))
 RERANK_SCORE_MIN_CHUNKS: int = int(os.getenv("RERANK_SCORE_MIN_CHUNKS", "2"))
 
 # --- Reranker knee-point filter ---

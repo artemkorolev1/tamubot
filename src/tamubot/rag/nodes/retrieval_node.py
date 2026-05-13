@@ -1,4 +1,5 @@
 """Retrieval node — handles hybrid_course and semantic_general retrieval passes."""
+
 from __future__ import annotations
 
 import contextvars
@@ -42,7 +43,8 @@ def retrieval_node(state: PipelineState) -> dict:
             node_trace.append("retrieval_cache_hit")
             try:
                 from langfuse import get_client
-                get_client().update_current_observation(metadata={"cache_hit": True})
+
+                get_client().update_current_span(metadata={"cache_hit": True})
             except Exception:
                 pass
             return {"retrieved_chunks": cached_chunks, "node_trace": node_trace}
@@ -68,10 +70,7 @@ def retrieval_node(state: PipelineState) -> dict:
                 #   (e.g. Langfuse @observe updating the current span ID) cannot
                 #   bleed into sibling workers.
                 original_ctx = contextvars.copy_context()
-                worker_ctxs = [
-                    original_ctx.run(contextvars.copy_context)
-                    for _ in course_ids
-                ]
+                worker_ctxs = [original_ctx.run(contextvars.copy_context) for _ in course_ids]
                 futures = {}
                 with ThreadPoolExecutor(max_workers=min(len(course_ids), 8)) as executor:
                     for wctx, cid in zip(worker_ctxs, course_ids):
@@ -86,7 +85,10 @@ def retrieval_node(state: PipelineState) -> dict:
                             logging.warning("retrieval_node: %s", msg)
 
             reranked = voyage_rerank(
-                rewritten_query, all_chunks, top_k=rerank_k, apply_knee=apply_knee,
+                rewritten_query,
+                all_chunks,
+                top_k=rerank_k,
+                apply_knee=apply_knee,
             )
 
             retrieval_cache_update = {}
@@ -107,7 +109,10 @@ def retrieval_node(state: PipelineState) -> dict:
         elif function == "semantic_general":
             chunks = semantic_search(rewritten_query, retrieve_k)
             reranked = voyage_rerank(
-                rewritten_query, chunks, top_k=rerank_k, apply_knee=apply_knee,
+                rewritten_query,
+                chunks,
+                top_k=rerank_k,
+                apply_knee=apply_knee,
             )
 
             retrieval_cache_update = {}
@@ -117,6 +122,21 @@ def retrieval_node(state: PipelineState) -> dict:
                 retrieval_cache_update = {**existing_cache, cache_key: reranked}
 
             return {"retrieved_chunks": reranked, "retrieval_cache": retrieval_cache_update, "node_trace": node_trace}
+
+        elif function == "course_summary":
+            from tamubot.rag.tools.mongo import get_course_summary_chunks
+
+            summary_chunks = get_course_summary_chunks(course_ids)
+            if summary_chunks:
+                node_trace.append("course_summary_retrieval")
+                return {"retrieved_chunks": summary_chunks, "node_trace": node_trace}
+            # Fallback: no summaries found — run hybrid search instead
+            logging.info("retrieval_node: no summaries for %s, falling back to hybrid", course_ids)
+            all_chunks = []
+            for cid in course_ids:
+                all_chunks.extend(hybrid_search(rewritten_query, cid, retrieve_k or 40))
+            reranked = voyage_rerank(rewritten_query, all_chunks, top_k=rerank_k or 15)
+            return {"retrieved_chunks": reranked, "node_trace": node_trace}
 
         else:
             return {"retrieved_chunks": [], "node_trace": node_trace}

@@ -54,6 +54,22 @@ Rule: If a specific course ID is mentioned as a point of comparison, sequence an
 or a contrast for finding others, recursive_search must be true.
 False when the question is about a named course only, or no course ID is mentioned.
 
+USE SUMMARY
+Set use_summary = true when the user asks for a general overview, description, or broad
+comparison of course(s) and does NOT target a specific syllabus section.
+Specific sections include: grading, schedule, attendance, exams, assignments, textbooks,
+prerequisites, office hours, AI policy, late policy, makeup policy, instructor info.
+When in doubt, set false (the system will search detailed chunks).
+
+Examples:
+- "What is ISEN 625 about?" → true (general overview)
+- "Tell me about ISEN 630" → true (general overview)
+- "Compare ISEN 625 and ISEN 630" → true (broad comparison)
+- "What's the grading policy for ISEN 625?" → false (specific section)
+- "When does ISEN 625 meet?" → false (specific detail)
+- "Who teaches ISEN 625?" → false (specific detail)
+- "What are the prerequisites for ISEN 625?" → false (specific section)
+
 QUERY REWRITING
 For recursive queries, rewritten_query is an anchor course lookup ONLY.
 Strip ALL discovery intent — the discovery goal is handled in a later step.
@@ -71,6 +87,7 @@ Output ONLY a JSON object with these fields:
   "section": null,
   "intent_type": null,
   "recursive_search": false,
+  "use_summary": false,
   "rewritten_query": "..."
 }}
 
@@ -175,6 +192,16 @@ _FUNCTION_PROMPTS: dict[str, str] = {
         "If the evidence is insufficient to answer fully, state: "
         "'I don't have enough data to answer this accurately based on the available syllabi.'"
     ),
+    "course_summary": (
+        "The user is asking for a general overview of one or more courses. "
+        "The context contains course summaries with key information like topics, "
+        "grading breakdown, meeting times, and prerequisites. "
+        "Provide a clear, comprehensive overview covering the course purpose, "
+        "key topics, and any notable features. "
+        "If comparing courses, highlight similarities and differences. "
+        "Start with a level-2 heading (##) for the course ID and title. "
+        "Use level-3 headings (###) to organize the overview sections."
+    ),
 }
 
 # Advisory overlay appended when intent_type is present (recursive and semantic_general).
@@ -200,11 +227,12 @@ _SEMANTIC_TYPE_PROMPTS: dict[str, str] = {
 }
 
 # Per-function generation temperature (function-based stochasticity).
-# hybrid_course: 0.0 (deterministic extraction, maximum fidelity to context).
+# hybrid_course, course_summary: 0.0 (deterministic extraction, maximum fidelity to context).
 # recursive, semantic_general: 0.2 (advisory reasoning, linguistic fluidity for synthesis).
 # out_of_scope: 0.0 (canned response, no generation).
 _FUNCTION_TEMPERATURES: dict[str, float] = {
     "hybrid_course": 0.0,
+    "course_summary": 0.0,
     "recursive": 0.2,
     "semantic_general": 0.2,
     "out_of_scope": 0.0,

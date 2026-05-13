@@ -1,4 +1,4 @@
-"""MongoDB tool — all search and fetch operations against chunks_v3 / courses_v3.
+"""MongoDB tool — all search and fetch operations against chunks_v4 / courses_v4.
 
 Exposes:
   hybrid_search(query, course_id, k) -> list[dict]
@@ -6,7 +6,8 @@ Exposes:
   fetch_anchor_chunks(course_ids) -> (list[dict], list[tuple[str,str]], bool)
   get_meeting_times(course_ids) -> dict[str, Any]
   get_syllabus_urls(course_ids) -> dict[str, str]
-  get_missing_sections(course_id) -> list[str]
+  get_course_summaries(course_ids) -> dict[str, str]
+  get_course_summary_chunks(course_ids) -> list[dict]
 
 Canonical location: rag/tools/mongo.py
 """
@@ -22,10 +23,10 @@ from pymongo import MongoClient
 
 from tamubot.core import config
 
-CHUNKS_COLLECTION = os.getenv("CHUNKS_COLLECTION", "chunks_v3")
-COURSES_COLLECTION = os.getenv("COURSES_COLLECTION", "courses_v3")
-VECTOR_INDEX = os.getenv("VECTOR_INDEX", "vector_index_v3")
-TEXT_INDEX = os.getenv("TEXT_INDEX", "text_index_v3")
+CHUNKS_COLLECTION = os.getenv("CHUNKS_COLLECTION", "chunks_v4")
+COURSES_COLLECTION = os.getenv("COURSES_COLLECTION", "courses_v4")
+VECTOR_INDEX = os.getenv("VECTOR_INDEX", "vector_index_v4")
+TEXT_INDEX = os.getenv("TEXT_INDEX", "text_index_v4")
 
 
 _client: Optional[MongoClient] = None
@@ -44,17 +45,19 @@ def _projection() -> dict:
             "course_id": 1,
             "chunk_index": 1,
             "content": 1,
-            "header_text": 1,
             "header_path": 1,
             "anchor": 1,
             "section": 1,
             "term": 1,
             "score": 1,
-            "category": 1,
             "source": 1,
             "page": 1,
             "instructor_name": 1,
             "pipeline_version": 1,
+            "has_table": 1,
+            "flags": 1,
+            "split_reason": 1,
+            "token_count": 1,
         }
     }
 
@@ -65,8 +68,6 @@ def _atlas_filter(course_id: str | None, term: str | None) -> dict | None:
         f["course_id"] = course_id
     if term:
         f["term"] = term
-    if ct := os.getenv("CHUNK_TAG_FILTER"):
-        f["chunk_tag"] = ct
     return f if f else None
 
 
@@ -90,8 +91,6 @@ def _build_text_stage(query: str, k: int, course_id: str | None) -> list[dict]:
     text_filters = []
     if course_id:
         text_filters.append({"equals": {"path": "course_id", "value": course_id}})
-    if ct := os.getenv("CHUNK_TAG_FILTER"):
-        text_filters.append({"equals": {"path": "chunk_tag", "value": ct}})
     if text_filters:
         compound["filter"] = text_filters
     return [
@@ -103,20 +102,36 @@ def _build_text_stage(query: str, k: int, course_id: str | None) -> list[dict]:
 
 
 def _rrf_fuse(result_lists: list[list[dict]], k: int = 60) -> list[dict]:
-    """Reciprocal Rank Fusion over multiple ranked result lists."""
+    """Reciprocal Rank Fusion over multiple ranked result lists.
+
+    Tags each doc with ``rrf_source``: ``"vector_only"``, ``"bm25_only"``, or ``"both"``.
+    Expects exactly two result lists: [vector_results, text_results].
+    """
     scores: dict = {}
     docs: dict = {}
-    for results in result_lists:
+    sources: dict[str, set[str]] = {}
+    source_labels = ["vector", "bm25"]
+    for list_idx, results in enumerate(result_lists):
+        label = source_labels[list_idx] if list_idx < len(source_labels) else f"list_{list_idx}"
         for rank, doc in enumerate(results):
             doc_id = str(doc.get("_id", id(doc)))
             scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
             docs[doc_id] = doc
-    return [docs[did] for did in sorted(scores, key=scores.__getitem__, reverse=True)]
+            sources.setdefault(doc_id, set()).add(label)
+    fused = []
+    for did in sorted(scores, key=scores.__getitem__, reverse=True):
+        doc = docs[did]
+        s = sources.get(did, set())
+        doc["rrf_source"] = "both" if len(s) > 1 else next(iter(s))
+        fused.append(doc)
+    return fused
 
 
 @observe(name="pipeline.retrieval.search.hybrid")
 def hybrid_search(query: str, course_id: str, k: int) -> list[dict]:
     """RRF hybrid search (vector + BM25) filtered to one course."""
+    from langfuse import get_client as _lf
+
     from tamubot.rag.tools.voyage import embed_query
 
     db = _get_db()
@@ -139,12 +154,35 @@ def hybrid_search(query: str, course_id: str, k: int) -> list[dict]:
     results = _rrf_fuse([vector_results, text_results])[:k]
     for r in results:
         r.pop("_id", None)
+
+    # Trace metadata: search source breakdown
+    source_counts = {"vector": 0, "bm25": 0, "both": 0}
+    for r in results:
+        src = r.get("rrf_source", "unknown")
+        if src in source_counts:
+            source_counts[src] += 1
+    try:
+        _lf().update_current_span(
+            metadata={
+                "course_id": course_id,
+                "k": k,
+                "vector_results": len(vector_results),
+                "bm25_results": len(text_results),
+                "fused_results": len(results),
+                "source_breakdown": source_counts,
+            }
+        )
+    except Exception:
+        pass
+
     return results
 
 
 @observe(name="pipeline.retrieval.search.semantic")
 def semantic_search(query: str, k: int) -> list[dict]:
     """Corpus-wide hybrid search (vector + BM25)."""
+    from langfuse import get_client as _lf
+
     from tamubot.rag.tools.voyage import embed_query
 
     db = _get_db()
@@ -166,21 +204,36 @@ def semantic_search(query: str, k: int) -> list[dict]:
     results = _rrf_fuse([vector_results, text_results])[:k]
     for r in results:
         r.pop("_id", None)
+
+    # Trace metadata: search source breakdown
+    source_counts = {"vector": 0, "bm25": 0, "both": 0}
+    for r in results:
+        src = r.get("rrf_source", "unknown")
+        if src in source_counts:
+            source_counts[src] += 1
+    try:
+        _lf().update_current_span(
+            metadata={
+                "k": k,
+                "vector_results": len(vector_results),
+                "bm25_results": len(text_results),
+                "fused_results": len(results),
+                "source_breakdown": source_counts,
+            }
+        )
+    except Exception:
+        pass
+
     return results
 
 
 def fetch_anchor_chunks(
     course_ids: list[str],
-    categories: list[str] | None = None,
 ) -> tuple[list[dict], list[tuple[str, str]], bool]:
-    """Fetch anchor chunks for each course, optionally filtered by category.
-
-    Args:
-        course_ids: List of course IDs to fetch anchor chunks for.
-        categories: Optional list of categories to filter by. If None, fetches all chunks.
+    """Fetch all chunks for each course (v4 has no category field).
 
     Returns (chunks, data_gaps, data_integrity).
-    data_gaps = list of (course_id, section) pairs where anchor chunks are missing.
+    data_gaps = list of (course_id, "anchor") pairs where no chunks were found.
     data_integrity = False if any gaps found.
     """
     db = _get_db()
@@ -188,11 +241,10 @@ def fetch_anchor_chunks(
     data_gaps: list[tuple[str, str]] = []
 
     for course_id in course_ids:
-        match: dict = {"course_id": course_id}
-        if categories:
-            match["category"] = {"$in": categories}
         pipeline = [
-            {"$match": match},
+            {"$match": {"course_id": course_id}},
+            {"$sort": {"chunk_index": 1}},
+            {"$limit": 30},
             _projection(),
         ]
         results = list(db[CHUNKS_COLLECTION].aggregate(pipeline))
@@ -286,9 +338,29 @@ def get_course_summaries(course_ids: list[str]) -> dict[str, str]:
 
 
 def get_missing_sections(course_id: str) -> list[str]:
-    """Return section names missing from course_id chunks."""
+    """Return header_path values present for a course (v4 has no fixed categories)."""
     db = _get_db()
-    present = set(db[CHUNKS_COLLECTION].distinct("section", {"course_id": course_id}))
-    from tamubot.rag.models import VALID_CATEGORIES
+    return sorted(db[CHUNKS_COLLECTION].distinct("header_path", {"course_id": course_id}))
 
-    return [s for s in VALID_CATEGORIES if s not in present]
+
+def get_course_summary_chunks(course_ids: list[str]) -> list[dict]:
+    """Fetch course summaries and format as pseudo-chunks for the retrieval node.
+
+    Returns one pseudo-chunk per course with ``source="course_summary"``
+    so downstream nodes (generator, context assembly) can identify them.
+    """
+    summaries = get_course_summaries(course_ids)
+    chunks: list[dict] = []
+    for cid, summary in summaries.items():
+        chunks.append(
+            {
+                "course_id": cid,
+                "content": summary,
+                "header_path": "Course Overview",
+                "section": "",
+                "source": "course_summary",
+                "chunk_index": 0,
+                "pipeline_version": "v4",
+            }
+        )
+    return chunks

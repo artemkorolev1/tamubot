@@ -27,6 +27,7 @@ def route_after_router(state: PipelineState) -> str:
     elif function == "recursive":
         return "recursive_retrieval"
     else:
+        # hybrid_course, semantic_general, and course_summary all go to retrieval
         return "retrieval"
 
 
@@ -60,6 +61,11 @@ ROUTING_MATRIX: dict[str, RoutingEntry] = {
     "semantic_general": {
         "requires_retrieval": True,
         "retrieval_passes": ["semantic"],
+        "generation_mode": "stream",
+    },
+    "course_summary": {
+        "requires_retrieval": True,
+        "retrieval_passes": ["course_summary"],
         "generation_mode": "stream",
     },
 }

@@ -23,6 +23,7 @@ from tamubot.rag.utils import compute_dynamic_k, normalize_course_id  # noqa: F4
 # Derivation helpers (pure Python, no LLM)
 # ---------------------------------------------------------------------------
 
+
 def _derive_retrieval_mode(
     course_ids: list[str],
     recursive_search: bool,
@@ -44,24 +45,29 @@ def _derive_function(
     course_ids: list[str],
     recursive_search: bool,
     intent_type: Optional[str],
+    use_summary: bool = False,
 ) -> str:
     """Derive the retrieval function name from extracted variables.
 
-    Function matrix (v3 — 4 functions):
-    course_ids  recursive_search  intent_type  → function
-    empty       any               not None     → semantic_general
-    empty       any               None         → out_of_scope
-    present     True              any          → recursive
-    present     False             any          → hybrid_course
+    Function matrix (v4 — 5 functions):
+    course_ids  recursive_search  use_summary  intent_type  → function
+    empty       any               any          not None     → semantic_general
+    empty       any               any          None         → out_of_scope
+    present     True              any          any          → recursive
+    present     False             True         any          → course_summary
+    present     False             False        any          → hybrid_course
     """
     if not course_ids:
         return "semantic_general" if intent_type is not None else "out_of_scope"
-    return "recursive" if recursive_search else "hybrid_course"
+    if recursive_search:
+        return "recursive"
+    return "course_summary" if use_summary else "hybrid_course"
 
 
 # ---------------------------------------------------------------------------
 # RouterResult — extracted variables + derived fields
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class RouterResult:
@@ -71,6 +77,7 @@ class RouterResult:
     course_ids: list[str] = field(default_factory=list)
     intent_type: Optional[str] = None  # None = out_of_scope only
     recursive_search: bool = False
+    use_summary: bool = False
     rewritten_query: str = ""
     section: Optional[str] = None
 
@@ -84,11 +91,10 @@ class RouterResult:
                 self.course_ids,
                 self.recursive_search,
                 self.intent_type,
+                self.use_summary,
             )
         if not self.retrieval_mode:
-            self.retrieval_mode = _derive_retrieval_mode(
-                self.course_ids, self.recursive_search
-            )
+            self.retrieval_mode = _derive_retrieval_mode(self.course_ids, self.recursive_search)
 
     @property
     def requires_retrieval(self) -> bool:
@@ -110,6 +116,7 @@ FUNCTION_CATEGORY_STRATEGIES: dict = {}
 # ---------------------------------------------------------------------------
 # Classification
 # ---------------------------------------------------------------------------
+
 
 @observe(as_type="generation", name="pipeline.router")
 def classify_query(
@@ -156,14 +163,16 @@ def classify_query(
 
     try:
         data = json.loads(raw_text)
-    except (json.JSONDecodeError, ValueError, AttributeError):
+    except json.JSONDecodeError, ValueError, AttributeError:
         result = RouterResult(rewritten_query=query)
         _lf_get_client().update_current_generation(
             output={"parse_error": True, "function": result.function},
             usage_details={
                 "input": llm_result.input_tokens or 0,
                 "output": llm_result.output_tokens or 0,
-            } if llm_result and llm_result.input_tokens is not None else None,
+            }
+            if llm_result and llm_result.input_tokens is not None
+            else None,
         )
         return result
 
@@ -182,6 +191,7 @@ def classify_query(
         course_ids=course_ids,
         intent_type=intent_type,
         recursive_search=bool(data.get("recursive_search", False)),
+        use_summary=bool(data.get("use_summary", False)),
         rewritten_query=data.get("rewritten_query", query),
         section=data.get("section"),
         # function and retrieval_mode auto-derived in __post_init__
@@ -192,7 +202,9 @@ def classify_query(
         usage_details={
             "input": llm_result.input_tokens or 0,
             "output": llm_result.output_tokens or 0,
-        } if llm_result and llm_result.input_tokens is not None else None,
+        }
+        if llm_result and llm_result.input_tokens is not None
+        else None,
         metadata={
             "function": result.function,
             "retrieval_mode": result.retrieval_mode,
@@ -201,7 +213,6 @@ def classify_query(
     )
 
     return result
-
 
 
 def deduplicate_chunks(results: list[dict]) -> list[dict]:

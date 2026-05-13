@@ -353,17 +353,26 @@ if prompt:
                     # Activate the SCP form (rendered at top level) and stop.
                     # Store the query, router result, and trace_id so the form
                     # submission rerun can resume the advisory pipeline.
+                    import time as _time
+
                     st.session_state.scp_form_active = True
                     st.session_state.scp_pending_query = prompt
                     st.session_state.scp_router_result = rr_dict
                     st.session_state.scp_trace_id = _trace_id
+                    st.session_state.scp_form_shown_at = _time.time()
                     if lf_trace is not None:
                         lf_trace.update(output="[SCP form shown — awaiting student profile]")
                     st.rerun()
 
                 if is_advisory and st.session_state.get("scp_validated"):
                     # Run advisory pipeline with collected SCP
+                    import time as _time
+
                     from tamubot.advisory.pipeline import run_advisory_pipeline
+
+                    # Compute user form-fill time (SCP form shown → form submitted)
+                    form_shown_at = st.session_state.get("scp_form_shown_at")
+                    user_form_wait_s = round(_time.time() - form_shown_at, 1) if form_shown_at else None
 
                     scp = {
                         "scp_program": st.session_state.get("scp_program"),
@@ -373,6 +382,7 @@ if prompt:
                     }
                     session_id = thread_config.get("configurable", {}).get("thread_id", "")
                     answer = ""
+                    computation_start = _time.time()
                     try:
                         with st.spinner("Generating personalized advisory answer..."):
                             advisory_answer, advisory_error = run_advisory_pipeline(
@@ -388,11 +398,22 @@ if prompt:
                     except Exception as e:
                         logger.error(f"Advisory pipeline failed: {traceback.format_exc()}")
                         st.error(f"Advisory pipeline failed: {e}")
+                    computation_s = round(_time.time() - computation_start, 1)
 
                     answer_placeholder = st.empty()
                     answer_placeholder.markdown(answer)
                     if lf_trace is not None:
-                        lf_trace.update(output=answer or "[advisory error]")
+                        latency_meta: dict = {
+                            "advisory": True,
+                            "computation_s": computation_s,
+                        }
+                        if user_form_wait_s is not None:
+                            latency_meta["user_form_wait_s"] = user_form_wait_s
+                            latency_meta["latency_note"] = (
+                                f"Total trace latency includes ~{user_form_wait_s}s "
+                                f"of user form-fill time. Actual computation: {computation_s}s."
+                            )
+                        lf_trace.update(output=answer or "[advisory error]", metadata=latency_meta)
                     st.session_state.messages.append({"role": "assistant", "content": answer})
 
                     # Clear SCP form state so the next query starts fresh
@@ -402,6 +423,7 @@ if prompt:
                         "scp_router_result",
                         "scp_trace_id",
                         "scp_validated",
+                        "scp_form_shown_at",
                     ):
                         st.session_state.pop(key, None)
 

@@ -34,11 +34,12 @@ def format_context_xml(results: list[dict]) -> str:
         ordered_results = [results[0]] + results[2:] + [results[1]]
         rank_mapping = [1] + list(range(3, len(results) + 1)) + [2]
 
-    # Prepend course summaries if available
+    # Prepend course summaries if available — skip when chunks ARE summaries (course_summary path)
     from tamubot.rag.tools.mongo import get_course_summaries
 
+    all_summary_chunks = all(doc.get("source") == "course_summary" for doc in results)
     course_ids = list({doc.get("course_id") for doc in results if doc.get("course_id")})
-    summaries = get_course_summaries(course_ids) if course_ids else {}
+    summaries = get_course_summaries(course_ids) if course_ids and not all_summary_chunks else {}
 
     parts = []
     if summaries:
