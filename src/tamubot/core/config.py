@@ -6,33 +6,16 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-# If TAMU_API_KEY is commented out in .env but baked into the container env,
-# dotenv cannot clear it.  Detect this and unset the env var so USE_TAMU_API
-# respects .env intent.
-def _dotenv_has_active_key(key: str, path: str = ".env") -> bool:
-    """Return True if .env contains an uncommented assignment for *key*."""
-    try:
-        with open(path) as f:
-            for line in f:
-                stripped = line.strip()
-                if stripped.startswith("#") or not stripped:
-                    continue
-                if stripped.split("=", 1)[0].strip() == key:
-                    return True
-    except FileNotFoundError:
-        pass
-    return False
-
-if not _dotenv_has_active_key("TAMU_API_KEY"):
-    os.environ.pop("TAMU_API_KEY", None)
+# LLM_PROVIDER switch: "tamu" or "gemini" (default).
+# Set in .env to choose which backend RAG LLM calls use.
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
 
 # --- GCP / Vertex AI (legacy, kept as fallback) ---
 PROJECT_ID = os.getenv("PROJECT_ID", "glossy-surge-486017-g8")
 RETRIEVAL_REGION = os.getenv("RETRIEVAL_REGION", "us-south1")
 GENERATION_REGION = os.getenv("GENERATION_REGION", "us-central1")
 RAG_CORPUS_RESOURCE_NAME = os.getenv(
-    "RAG_CORPUS_RESOURCE_NAME",
-    "projects/glossy-surge-486017-g8/locations/us-south1/ragCorpora/2305843009213693952"
+    "RAG_CORPUS_RESOURCE_NAME", "projects/glossy-surge-486017-g8/locations/us-south1/ragCorpora/2305843009213693952"
 )
 
 # --- MongoDB Atlas ---
@@ -56,9 +39,20 @@ GOOGLE_API_RPM: int = int(os.getenv("GOOGLE_API_RPM", "30"))
 TAMU_API_KEY = os.getenv("TAMU_API_KEY")
 TAMU_BASE_URL = os.getenv("TAMU_BASE_URL", "https://chat-api.tamu.ai/openai")
 TAMU_MODEL = os.getenv("TAMU_MODEL", "protected.gemini-2.5-flash")
-# When set, all RAG LLM calls route through TAMU API instead of direct Google API.
+# Derived from LLM_PROVIDER switch in .env ("tamu" or "gemini").
 # ingestion_pipeline/process_syllabi.py is excluded (uses PDF multimodal input).
-USE_TAMU_API: bool = bool(TAMU_API_KEY)
+USE_TAMU_API: bool = LLM_PROVIDER == "tamu"
+
+# --- LLM guardrails ---
+# Hard cap on output tokens (application-layer; TAMU gateway ignores max_tokens).
+LLM_MAX_OUTPUT_TOKENS: int = int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "2000"))
+# Max retries on transient API errors (429, 503, timeout).
+LLM_MAX_RETRIES: int = int(os.getenv("LLM_MAX_RETRIES", "3"))
+# Input token soft limit — log warning when exceeded, raise above hard limit.
+LLM_INPUT_TOKEN_SOFT_LIMIT: int = int(os.getenv("LLM_INPUT_TOKEN_SOFT_LIMIT", "30000"))
+LLM_INPUT_TOKEN_HARD_LIMIT: int = int(os.getenv("LLM_INPUT_TOKEN_HARD_LIMIT", "60000"))
+# Per-call timeout in seconds (0 = no timeout).
+LLM_TIMEOUT_SECONDS: int = int(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 
 # --- Thinking token budgets for Gemini 2.5 Flash ---
 # hybrid_course (factual): deterministic extraction, no thinking needed
@@ -84,13 +78,13 @@ CATEGORY_CONFIDENCE_THRESHOLD: float = 0.7
 # For multi-course queries these are scaled by n_courses via compute_dynamic_k.
 FUNCTION_RETRIEVAL_CONFIG: dict[str, dict[str, int]] = {
     # Per-course filtered hybrid search (vector + BM25), then cross-course rerank
-    "hybrid_course":    {"retrieve_k": 20, "rerank_k": 7},
+    "hybrid_course": {"retrieve_k": 20, "rerank_k": 7},
     # Corpus-wide vector search — not scaled by course count
     "semantic_general": {"retrieve_k": 30, "rerank_k": 10},
     # Two-stage: anchor fetch → corpus-wide discovery
-    "recursive":        {"retrieve_k": 15, "rerank_k": 5},
+    "recursive": {"retrieve_k": 15, "rerank_k": 5},
     # No retrieval
-    "out_of_scope":     {"retrieve_k": 0, "rerank_k": 0},
+    "out_of_scope": {"retrieve_k": 0, "rerank_k": 0},
 }
 
 # Alias used by router.compute_dynamic_k for per-course scaling.
@@ -133,6 +127,7 @@ LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
 LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
 
+
 # --- Google API rate limiter ---
 class _GoogleRateLimiter:
     """Sliding-window rate limiter: enforces at most `rpm` calls per 60 seconds."""
@@ -171,6 +166,7 @@ def get_genai_client():
     global _genai_client
     if _genai_client is None:
         from google import genai
+
         _genai_client = genai.Client(api_key=GOOGLE_API_KEY)
     return _genai_client
 
@@ -184,6 +180,7 @@ def get_tamu_client():
     global _tamu_client
     if _tamu_client is None:
         from openai import OpenAI
+
         _tamu_client = OpenAI(api_key=TAMU_API_KEY, base_url=TAMU_BASE_URL)
     return _tamu_client
 

@@ -24,52 +24,8 @@ from tamubot.rag.utils import OOS_FALLBACK as _OUT_OF_SCOPE_RESPONSE
 
 _logger = logging.getLogger("tamubot")
 
-# Hard cap on generator output tokens.  The TAMU gateway (Gemini 2.5 Flash
-# via SSE) ignores max_tokens and requires max_tokens>=4096 or the response is
-# empty, so we enforce the limit at the application layer instead.
-_MAX_OUTPUT_TOKENS = 2000
-
-
-def _truncate_to_token_limit(text: str, max_tokens: int = _MAX_OUTPUT_TOKENS) -> tuple[str, bool]:
-    """Truncate *text* to at most *max_tokens* tokens (cl100k_base).
-
-    Returns ``(text, was_truncated)``.  When truncated the cut is moved back
-    to the nearest paragraph / sentence boundary in the second half of the
-    allowed window so the response doesn't end mid-sentence.
-    """
-    try:
-        import tiktoken
-
-        enc = tiktoken.get_encoding("cl100k_base")
-        token_ids = enc.encode(text)
-    except Exception:
-        # Fallback: rough 4-chars-per-token estimate
-        estimated = len(text) // 4
-        if estimated <= max_tokens:
-            return text, False
-        char_limit = max_tokens * 4
-        cut = text[:char_limit]
-        # Try to cut at a clean boundary in the second half
-        half = len(cut) // 2
-        for sep in ("\n\n", "\n", ". "):
-            idx = cut.rfind(sep, half)
-            if idx != -1:
-                cut = cut[: idx + len(sep)]
-                break
-        return cut.rstrip() + "\n\n*[Response truncated — output limit reached]*", True
-
-    if len(token_ids) <= max_tokens:
-        return text, False
-
-    truncated = enc.decode(token_ids[:max_tokens])
-    # Move the cut back to a paragraph / sentence boundary in the second half
-    half = len(truncated) // 2
-    for sep in ("\n\n", "\n", ". "):
-        idx = truncated.rfind(sep, half)
-        if idx != -1:
-            truncated = truncated[: idx + len(sep)]
-            break
-    return truncated.rstrip() + "\n\n*[Response truncated — output limit reached]*", True
+# Output truncation is now handled globally in tools/llm.py via
+# config.LLM_MAX_OUTPUT_TOKENS.  No generator-level cap needed.
 
 
 # ---------------------------------------------------------------------------
@@ -198,10 +154,6 @@ def generate(
         else None,
     )
     text = collapse_whitespace(text)
-
-    text, was_truncated = _truncate_to_token_limit(text)
-    if was_truncated:
-        _logger.warning("generate: output truncated at %d tokens (function=%s)", _MAX_OUTPUT_TOKENS, function)
 
     # Prepend data integrity disclaimer when DB chunks are missing
     if not data_integrity and data_gaps:
@@ -337,41 +289,20 @@ def generate_stream(
         model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
         input=messages,
     )
-    full_text_parts: list[str] = []
+    all_parts: list[str] = []
     usage_out: list = []
-    was_truncated = False
 
-    try:
-        import tiktoken
-
-        enc = tiktoken.get_encoding("cl100k_base")
-    except Exception:
-        enc = None
-
-    token_count = 0
-    for token in stream_llm(
+    # stream_llm now enforces the output token cap internally —
+    # it stops yielding once LLM_MAX_OUTPUT_TOKENS is reached.
+    for chunk in stream_llm(
         messages=messages,
         temperature=_FUNCTION_TEMPERATURES.get(function, 0.1),
         max_tokens=4096,
         thinking_budget=thinking_budget,
         usage_out=usage_out,
     ):
-        if enc is not None:
-            token_count += len(enc.encode(token))
-            if token_count > _MAX_OUTPUT_TOKENS:
-                was_truncated = True
-                break
-        full_text_parts.append(token)
-        yield token
-
-    if was_truncated:
-        _logger.warning(
-            "generate_stream: output truncated at %d tokens (function=%s)",
-            _MAX_OUTPUT_TOKENS,
-            function,
-        )
-        yield "\n\n*[Response truncated — output limit reached]*"
-        full_text_parts.append("\n\n*[Response truncated — output limit reached]*")
+        all_parts.append(chunk)
+        yield chunk
 
     if usage_out:
         _lf_get_client().update_current_generation(
@@ -379,7 +310,7 @@ def generate_stream(
         )
 
     # Post-stream: run Gate 1 citation check
-    complete_text = "".join(full_text_parts)
-    validate_citations_with_trace(complete_text, function)
+    text = "".join(all_parts)
+    validate_citations_with_trace(text, function)
 
     # Gate 2 (groundedness scoring) intentionally disabled — uses LLM on every query.
