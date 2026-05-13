@@ -32,6 +32,36 @@ from tamubot.rag.observability import create_trace, finalize_trace, prod_config
 # Intent types that trigger the advisory orchestrator
 ADVISORY_INTENTS = {"PLANNING", "CAREER"}
 
+
+def _create_or_resume_trace(obs, query, resume_trace_id=None):
+    """Create a Langfuse trace, optionally resuming an existing one.
+
+    When resume_trace_id is provided, the new observation is appended to the
+    existing trace (same trace_id) instead of creating a new one.  This keeps
+    multi-step flows (SCP form → advisory pipeline) in a single trace.
+    """
+    if resume_trace_id:
+        from tamubot.rag.observability.tracing import _active_ctx_managers, get_langfuse
+
+        lf = get_langfuse()
+        if lf is not None:
+            try:
+                ctx = lf.start_as_current_observation(
+                    trace_context={"trace_id": resume_trace_id},
+                    name=obs.trace_name,
+                    input=query,
+                    metadata={**(obs.metadata or {}), "session_id": obs.session_id},
+                    end_on_exit=False,
+                )
+                span = ctx.__enter__()
+                _active_ctx_managers[id(span)] = ctx
+                return span, span.trace_id
+            except Exception as e:
+                logger.warning(f"Trace resume failed, creating new trace: {e}")
+        return create_trace(obs, query=query)
+    return create_trace(obs, query=query)
+
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tamubot")
 
@@ -168,7 +198,7 @@ for message in st.session_state.messages:
 
 
 # ---------------------------------------------------------------------------
-# Advisory SCP form
+# Advisory SCP form — rendered at top level so form submission is always processed
 # ---------------------------------------------------------------------------
 
 
@@ -184,10 +214,18 @@ def _semester_options() -> list[str]:
     return options
 
 
-def _show_scp_form(pending_query: str, lf_trace, router_result, thread_config):
-    """Render the Student Context Profile form and store results in session_state."""
+# The SCP form must be rendered on EVERY rerun while it's active, not just when
+# prompt is set.  Otherwise Streamlit's form-submission rerun can't find the
+# form widget and the submitted data is lost.
+prompt = None  # will be set below by form handler or chat_input
+
+if st.session_state.get("scp_form_active") and not st.session_state.get("scp_validated"):
     from tamubot.advisory.program_registry import PROGRAM_COURSES
 
+    st.info(
+        "This looks like an academic planning question. "
+        "Please share some details so I can give you a personalized answer."
+    )
     with st.form("scp_form"):
         st.subheader("Student Context Profile")
         program = st.selectbox(
@@ -219,31 +257,29 @@ def _show_scp_form(pending_query: str, lf_trace, router_result, thread_config):
         st.session_state.scp_target_semester = semester or None
         st.session_state.scp_goal = goal or None
         st.session_state.scp_validated = True
-        # Store the pending query so the rerun picks it up
-        st.session_state.scp_pending_query = pending_query
-        st.rerun()
-
+        # Re-inject the pending query so the advisory pipeline runs
+        prompt = st.session_state.get("scp_pending_query")
+    else:
+        # Form visible but not yet submitted — stop here
+        st.stop()
 
 # ---------------------------------------------------------------------------
-# Advisory: pick up pending query after SCP form submission
+# Advisory: pick up pending query after SCP form validation
 # ---------------------------------------------------------------------------
 
-_advisory_pending = st.session_state.pop("scp_pending_query", None)
-if _advisory_pending and st.session_state.get("scp_validated"):
-    # Re-inject as if the user just typed the query again
-    prompt = _advisory_pending
-    # Don't re-append to messages — the user message is already displayed
-else:
-    prompt = None
+_advisory_router = st.session_state.get("scp_router_result")
+_advisory_trace_id = st.session_state.get("scp_trace_id")
 
 # ---------------------------------------------------------------------------
 # Chat input handling
 # ---------------------------------------------------------------------------
 
+_is_scp_rerun = prompt is not None  # True when form was just submitted
+
 if not prompt:
     prompt = st.chat_input("Ask about courses, syllabi, or degree requirements...")
 
-if prompt and prompt != _advisory_pending:
+if prompt and not _is_scp_rerun:
     # New user input — append to chat history and display
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -254,9 +290,11 @@ if prompt:
         if USE_MONGODB:
             # --- MongoDB 3-stage pipeline: Route → Retrieve+Rerank → Generate ---
 
-            # Create a parent Langfuse trace for this request
+            # Create a parent Langfuse trace for this request.
+            # On advisory rerun, resume the trace from the first pass so the
+            # whole SCP-collection → pipeline sequence is one trace.
             obs = prod_config(session_id=str(id(st.session_state)))
-            lf_trace, _trace_id = create_trace(obs, query=prompt)
+            lf_trace, _trace_id = _create_or_resume_trace(obs, prompt, resume_trace_id=_advisory_trace_id)
 
             # Resolve thread_config early (needed by cache check and pipeline)
             # Use session_state to store thread_id so it's stable across Streamlit reruns
@@ -295,36 +333,57 @@ if prompt:
                     st.session_state.messages.append({"role": "assistant", "content": _cached_answer})
                     st.stop()
 
-            # --- Step 1: Classify query (router only, no retrieval/generation) ---
+            # --- Step 1: Classify query ---
+            # If we're resuming after SCP form submission, use the stored router
+            # result instead of re-classifying (avoids a second LLM call that
+            # might return a different intent type).
             from tamubot.rag.router import classify_query
 
             router_result = None
-            with st.spinner("Classifying your question..."):
-                try:
-                    router_result = classify_query(prompt)
-                    logger.info(
-                        f"Router: function={router_result.function}, mode={router_result.retrieval_mode},"
-                        f" courses={router_result.course_ids}, intent={router_result.intent_type}"
-                    )
-                except Exception as e:
-                    logger.error(f"Router failed: {traceback.format_exc()}")
-                    st.error(f"Classification failed: {e}")
+            rr_dict = _advisory_router  # None on first pass, dict on SCP rerun
+
+            if rr_dict is not None:
+                # Rerun after SCP form — router result was stored in session_state
+                logger.info("Advisory rerun: using stored router result, skipping re-classification")
+            else:
+                with st.spinner("Classifying your question..."):
+                    try:
+                        router_result = classify_query(prompt)
+                        logger.info(
+                            f"Router: function={router_result.function}, mode={router_result.retrieval_mode},"
+                            f" courses={router_result.course_ids}, intent={router_result.intent_type}"
+                        )
+                        # Pre-serialize to dict for both advisory and standard paths
+                        rr_dict = {
+                            "function": router_result.function,
+                            "course_ids": router_result.course_ids,
+                            "retrieval_mode": router_result.retrieval_mode,
+                            "intent_type": router_result.intent_type,
+                            "rewritten_query": router_result.rewritten_query,
+                            "recursive_search": router_result.recursive_search,
+                            "requires_retrieval": router_result.requires_retrieval,
+                            "section": router_result.section,
+                        }
+                    except Exception as e:
+                        logger.error(f"Router failed: {traceback.format_exc()}")
+                        st.error(f"Classification failed: {e}")
 
             # --- Step 2: Advisory dispatch (before running any pipeline) ---
-            is_advisory = router_result is not None and router_result.intent_type in ADVISORY_INTENTS
+            is_advisory = rr_dict is not None and rr_dict.get("intent_type") in ADVISORY_INTENTS
 
             if is_advisory and not st.session_state.get("scp_validated"):
-                # Show SCP collection form — no pipeline runs yet
-                st.info(
-                    "This looks like an academic planning question. "
-                    "Please share some details so I can give you a personalized answer."
-                )
-                finalize_trace(lf_trace, output="[SCP form shown]")
-                _show_scp_form(prompt, lf_trace, router_result, thread_config)
-                st.stop()
+                # Activate the SCP form (rendered at top level) and stop.
+                # Store the query, router result, and trace_id so the form
+                # submission rerun can resume the advisory pipeline.
+                st.session_state.scp_form_active = True
+                st.session_state.scp_pending_query = prompt
+                st.session_state.scp_router_result = rr_dict
+                st.session_state.scp_trace_id = _trace_id
+                finalize_trace(lf_trace, output="[SCP form shown — awaiting student profile]")
+                st.rerun()
 
-            if is_advisory and st.session_state.get("scp_validated") and router_result is not None:
-                # Run advisory pipeline with collected SCP — skips the full RAG pipeline
+            if is_advisory and st.session_state.get("scp_validated"):
+                # Run advisory pipeline with collected SCP
                 from tamubot.advisory.pipeline import run_advisory_pipeline
 
                 scp = {
@@ -333,33 +392,38 @@ if prompt:
                     "scp_target_semester": st.session_state.get("scp_target_semester"),
                     "scp_goal": st.session_state.get("scp_goal"),
                 }
-                rr_dict = {
-                    "function": router_result.function,
-                    "course_ids": router_result.course_ids,
-                    "retrieval_mode": router_result.retrieval_mode,
-                    "intent_type": router_result.intent_type,
-                    "rewritten_query": router_result.rewritten_query,
-                    "recursive_search": router_result.recursive_search,
-                    "requires_retrieval": router_result.requires_retrieval,
-                    "section": router_result.section,
-                }
                 session_id = thread_config.get("configurable", {}).get("thread_id", "")
-                with st.spinner("Generating personalized advisory answer..."):
-                    advisory_answer, advisory_error = run_advisory_pipeline(
-                        query=prompt,
-                        scp=scp,
-                        router_result=rr_dict,
-                        trace=lf_trace,
-                        session_id=session_id,
-                    )
+                answer = ""
+                try:
+                    with st.spinner("Generating personalized advisory answer..."):
+                        advisory_answer, advisory_error = run_advisory_pipeline(
+                            query=prompt,
+                            scp=scp,
+                            router_result=rr_dict,
+                            trace=lf_trace,
+                            session_id=session_id,
+                        )
+                    answer = advisory_answer or ""
+                    if advisory_error:
+                        st.warning(f"Advisory pipeline error: {advisory_error}")
+                except Exception as e:
+                    logger.error(f"Advisory pipeline failed: {traceback.format_exc()}")
+                    st.error(f"Advisory pipeline failed: {e}")
 
-                answer = advisory_answer or ""
-                if advisory_error:
-                    st.warning(f"Advisory pipeline error: {advisory_error}")
                 answer_placeholder = st.empty()
                 answer_placeholder.markdown(answer)
-                finalize_trace(lf_trace, output=answer)
+                finalize_trace(lf_trace, output=answer or "[advisory error]")
                 st.session_state.messages.append({"role": "assistant", "content": answer})
+
+                # Clear SCP form state so the next query starts fresh
+                for key in (
+                    "scp_form_active",
+                    "scp_pending_query",
+                    "scp_router_result",
+                    "scp_trace_id",
+                    "scp_validated",
+                ):
+                    st.session_state.pop(key, None)
 
             else:
                 # --- Step 3: Standard RAG pipeline (non-advisory queries) ---
