@@ -19,6 +19,66 @@ def _split_paragraphs(text: str) -> list[str]:
     return parts
 
 
+_SENTENCE_RE = re.compile(r"(?<=\. )(?=[A-Z])")
+
+
+def _split_on_whitespace(text: str, max_chars: int) -> list[str]:
+    """Hard split on whitespace boundaries — guaranteed to produce pieces ≤ max_chars."""
+    result = []
+    while len(text) > max_chars:
+        cut = text.rfind(" ", 0, max_chars)
+        if cut <= 0:
+            cut = max_chars
+        result.append(text[:cut].strip())
+        text = text[cut:].strip()
+    if text.strip():
+        result.append(text.strip())
+    return result
+
+
+def _split_long_text(text: str, max_tok: int) -> list[str]:
+    """Split a single oversized text block into pieces under max_tok."""
+    max_chars = max_tok * 4
+
+    # Try line boundaries first
+    lines = [ln for ln in text.split("\n") if ln.strip()]
+    if len(lines) > 1:
+        packed = _pack_parts(lines, max_chars)
+        # Re-split any individual packed chunk still over max_chars
+        # (e.g. a single line that is itself huge)
+        result = []
+        for chunk in packed:
+            if len(chunk) > max_chars:
+                result.extend(_split_on_whitespace(chunk, max_chars))
+            else:
+                result.append(chunk)
+        return result
+
+    # Try sentence boundaries
+    sentences = _SENTENCE_RE.split(text)
+    if len(sentences) > 1:
+        return _pack_parts(sentences, max_chars)
+
+    # Last resort: split on whitespace near max_chars boundary
+    return _split_on_whitespace(text, max_chars)
+
+
+def _pack_parts(parts: list[str], max_chars: int) -> list[str]:
+    """Greedily pack parts into blocks under max_chars."""
+    result: list[str] = []
+    buf: list[str] = []
+    buf_len = 0
+    for part in parts:
+        if buf_len + len(part) > max_chars and buf:
+            result.append("\n".join(buf))
+            buf, buf_len = [], 0
+        buf.append(part)
+        buf_len += len(part)
+    if buf:
+        result.append("\n".join(buf))
+    return result
+
+
 # ── Section tree ─────────────────────────────────────────────────────────────
 
 
@@ -171,6 +231,17 @@ def _paragraph_fallback(
 
     for para in paragraphs:
         ptok = _tokens_approx(para)
+        if ptok > max_tok:
+            # Flush buffer first
+            if current_parts:
+                _emit_chunk("\n\n".join(current_parts), header_path, "paragraph-fallback", chunks)
+                current_parts = []
+                current_tok = 0
+            # Split the oversized paragraph
+            for sub in _split_long_text(para, max_tok):
+                _emit_chunk(sub, header_path, "long-paragraph-split", chunks)
+            log["long_paragraph_split"] = log.get("long_paragraph_split", 0) + 1
+            continue
         if current_tok + ptok > max_tok and current_parts:
             _emit_chunk("\n\n".join(current_parts), header_path, "paragraph-fallback", chunks)
             current_parts = []
@@ -184,20 +255,25 @@ def _paragraph_fallback(
     log["paragraph_fallback"] += 1
 
 
-def _merge_small(chunks: list[dict], min_tok: int) -> tuple[list[dict], int]:
+def _merge_small(chunks: list[dict], min_tok: int, max_tok: int = 600) -> tuple[list[dict], int]:
     if not chunks:
         return chunks, 0
     merged: list[dict] = []
     merge_count = 0
 
     for chunk in chunks:
-        if merged and chunk["token_count"] < min_tok and merged[-1]["header_path"] == chunk["header_path"]:
+        if not merged:
+            merged.append(chunk)
+            continue
+        combined_tok = merged[-1]["token_count"] + chunk["token_count"]
+        can_merge = combined_tok <= max_tok
+        if can_merge and chunk["token_count"] < min_tok and merged[-1]["header_path"] == chunk["header_path"]:
             merged[-1]["content"] += "\n\n" + chunk["content"]
             merged[-1]["token_count"] = _tokens_approx(merged[-1]["content"])
             merged[-1]["has_table"] = merged[-1]["has_table"] or chunk["has_table"]
             merged[-1]["split_reason"] = "merged"
             merge_count += 1
-        elif merged and merged[-1]["token_count"] < min_tok:
+        elif can_merge and merged[-1]["token_count"] < min_tok:
             merged[-1]["content"] += "\n\n" + chunk["content"]
             merged[-1]["token_count"] = _tokens_approx(merged[-1]["content"])
             merged[-1]["has_table"] = merged[-1]["has_table"] or chunk["has_table"]
@@ -237,7 +313,7 @@ def chunk_markdown(
         for child in root.children:
             _walk(child, [child.header], max_chunk_tokens, min_chunk_tokens, chunks, log)
 
-    chunks, merge_count = _merge_small(chunks, min_chunk_tokens)
+    chunks, merge_count = _merge_small(chunks, min_chunk_tokens, max_chunk_tokens)
     return chunks
 
 
@@ -246,7 +322,7 @@ def chunk_with_log(markdown: str, **kwargs) -> tuple[list[dict], dict]:
     max_tok = kwargs.get("max_chunk_tokens", 600)
     min_tok = kwargs.get("min_chunk_tokens", 50)
 
-    log = {"kept_as_is": 0, "split": 0, "paragraph_fallback": 0, "merged": 0}
+    log = {"kept_as_is": 0, "split": 0, "paragraph_fallback": 0, "long_paragraph_split": 0, "merged": 0}
     chunks: list[dict] = []
 
     total_sections = _count_sections(root)
@@ -263,7 +339,7 @@ def chunk_with_log(markdown: str, **kwargs) -> tuple[list[dict], dict]:
         for child in root.children:
             _walk(child, [child.header], max_tok, min_tok, chunks, log)
 
-    chunks, merge_count = _merge_small(chunks, min_tok)
+    chunks, merge_count = _merge_small(chunks, min_tok, max_tok)
     log["merged"] = merge_count
     log["total_sections"] = total_sections
 
@@ -275,3 +351,177 @@ def _count_sections(node: SectionNode) -> int:
     for child in node.children:
         count += _count_sections(child)
     return count
+
+
+# ── Semantic chunking ───────────────────────────────────────────────────────
+
+# Headers whose content is already captured in course_metadata — drop as chunks
+_METADATA_HEADERS_LOWER = {
+    "course information",
+    "instructor details",
+    "instructor information",
+    "course details",
+    "course prerequisites",
+    "preferred contact method",
+    "meeting times:",
+    "socials",
+}
+
+_TITLE_HEADER_RE = re.compile(r"^[A-Z]{3,4}\s+\d{3}\s+(Syllabus|Course\s+Syllabus)$", re.IGNORECASE)
+_SYLLABUS_TITLE_RE = re.compile(r"^Course\s+Syllabus:\s+[A-Z]{3,4}\s+\d{3}\b", re.IGNORECASE)
+
+# Strip leading section numbers like "1.1 ", "2.3.1 " before matching
+_LEADING_SECTION_NUM_RE = re.compile(r"^\d+(?:\.\d+)*\s+")
+
+
+def _is_metadata_section(header: str) -> bool:
+    """Check if a section header corresponds to metadata already extracted."""
+    h = header.strip()
+    # Strip leading section numbers (e.g. "1.1 Course Information" → "Course Information")
+    h_norm = _LEADING_SECTION_NUM_RE.sub("", h)
+    if h_norm.lower() in _METADATA_HEADERS_LOWER:
+        return True
+    if _TITLE_HEADER_RE.match(h) or _TITLE_HEADER_RE.match(h_norm):
+        return True
+    if _SYLLABUS_TITLE_RE.match(h) or _SYLLABUS_TITLE_RE.match(h_norm):
+        return True
+    return False
+
+
+def chunk_semantic(
+    markdown: str,
+    flag_threshold: int = 500,
+    min_chunk_tokens: int = 15,
+) -> tuple[list[dict], dict]:
+    """Semantic chunking: one chunk per top-level section, no max size cap.
+
+    - Sections matching metadata headers are dropped (already in course_metadata).
+    - Chunks under *min_chunk_tokens* are merged into the previous chunk.
+    - Chunks over *flag_threshold* are flagged but **not** split.
+    - Subsections stay with their parent (semantic unity).
+    """
+    root = _parse_sections(markdown)
+    chunks: list[dict] = []
+    log: dict = {
+        "total_sections": _count_sections(root),
+        "kept": 0,
+        "dropped_metadata": 0,
+        "dropped_tiny": 0,
+        "merged_tiny": 0,
+        "flagged_oversized": 0,
+    }
+
+    def _emit(text: str, hp: str, header: str) -> None:
+        tok = _tokens_approx(text)
+        if tok < min_chunk_tokens:
+            # Try to merge into previous chunk instead of dropping
+            if chunks:
+                chunks[-1]["content"] += "\n\n" + text
+                chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
+                chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(text)
+                log["merged_tiny"] += 1
+            else:
+                log["dropped_tiny"] += 1
+            return
+        flags: list[str] = []
+        if tok > flag_threshold:
+            flags.append("OVERSIZED")
+            log["flagged_oversized"] += 1
+        if _has_table(text):
+            flags.append("HAS_TABLE")
+        if not header:
+            flags.append("NO_HEADER")
+        chunks.append(
+            {
+                "chunk_index": len(chunks),
+                "content": text,
+                "header_path": hp,
+                "token_count": tok,
+                "has_table": _has_table(text),
+                "flags": flags,
+                "split_reason": "semantic",
+            }
+        )
+        log["kept"] += 1
+
+    def _process_node(node: SectionNode, ancestors: list[str]) -> None:
+        hp = _header_path(ancestors)
+
+        if node.header and _is_metadata_section(node.header):
+            log["dropped_metadata"] += 1
+            # Still recurse into children — they may be real content sections
+            # nested under a metadata/title header
+            for child in node.children:
+                _process_node(child, ancestors + [child.header])
+            return
+
+        text = _node_text(node, include_children=True).strip()
+        tok = _tokens_approx(text)
+
+        if tok < min_chunk_tokens:
+            # Merge into previous chunk instead of dropping
+            if chunks:
+                chunks[-1]["content"] += "\n\n" + text
+                chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
+                chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(text)
+                log["merged_tiny"] += 1
+            else:
+                log["dropped_tiny"] += 1
+            return
+
+        # If oversized and has children, recurse into subsections
+        if tok > flag_threshold and node.children:
+            # Emit the node's own body (without children) if substantial
+            own_text = _node_text(node, include_children=False).strip()
+            if _tokens_approx(own_text) >= min_chunk_tokens:
+                _emit(own_text, hp, node.header)
+            elif _tokens_approx(own_text) > 0 and chunks:
+                # Merge tiny parent body into previous chunk
+                chunks[-1]["content"] += "\n\n" + own_text
+                chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
+                log["merged_tiny"] += 1
+            # Recurse into each child
+            for child in node.children:
+                _process_node(child, ancestors + [child.header])
+            return
+
+        # Safety cap: if a leaf section is extremely large (>5000 tok),
+        # split with paragraph/line fallback to avoid unusable giant chunks
+        if tok > 5000 and not node.children:
+            for sub in _split_long_text(text, flag_threshold * 4):
+                _emit(sub.strip(), hp, node.header)
+            return
+
+        _emit(text, hp, node.header)
+        return
+
+    # Root body (text before any header)
+    if root.body.strip():
+        tok = _tokens_approx(root.body.strip())
+        if tok >= min_chunk_tokens:
+            flags: list[str] = []
+            if tok > flag_threshold:
+                flags.append("OVERSIZED")
+                log["flagged_oversized"] += 1
+            chunks.append(
+                {
+                    "chunk_index": 0,
+                    "content": root.body.strip(),
+                    "header_path": "",
+                    "token_count": tok,
+                    "has_table": _has_table(root.body),
+                    "flags": flags,
+                    "split_reason": "semantic",
+                }
+            )
+            log["kept"] += 1
+
+    # Each top-level child → one semantic chunk
+    for child in root.children:
+        _process_node(child, [child.header])
+
+    # Re-index
+    for i, c in enumerate(chunks):
+        c["chunk_index"] = i
+
+    return chunks, log

@@ -1,0 +1,177 @@
+{
+  "source_file": "202621_ISEN_630_700_29817_v010",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 630",
+    "section": "700",
+    "term": "Summer 2026",
+    "crn": "29817",
+    "instructor": {
+      "name": "Thomas Ferris",
+      "email": "tferris@tamu.edu",
+      "office": "4081 ETB",
+      "office_hours": "Thursday 3 - 5"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/baau6objv/Summer-2026-College-Station-ISEN-630-700-%2829817%29?mode=view"
+  },
+  "course_summary": "ISEN 630 | Human Operator in Complex Systems | Summer 2026\nInstructor: Thomas Ferris | tferris@tamu.edu\nGrading: Assignments [40%], Exams [50%], Semester project report [10%] — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: 59% and lower\nTopics: NIOSH lifting equation, Reason's model of human error, Lambert's Law, MIL-STD-1472G section 5.2, MIL-STD-1472G section 5.4, MIL-STD-147",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 14,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## ISEN630 Syllabus\n\nSection 700 (29817) Human Operator in Complex Systems Summer 2026 - College Station",
+      "header_path": "ISEN630 Syllabus",
+      "token_count": 26,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Catalog Description\n\nHuman Operator in Complex Systems. (3-0). Credit 3. Basic understanding of the theory and practice of human factors engineering; topics presented within the framework of humans as functioning systems and their requirements when incorporated in hardware and software systems.",
+      "header_path": "Catalog Description",
+      "token_count": 74,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Additional Course Details\n\nThis  asynchronously-delivered  (i.e.,  review  materials  and  complete  assessments online, on your own time) graduate course is an overview of the discipline of human factors  engineering,  covering  topics  of  human  cognition  (perception,  attention, information processing), and human physical properties (anthropometry, physiology, biomechanical capabilities, and injury risk), and emphasizing the implications for the design of human-centered work systems. Theory and methods will be balanced with examples  drawn  from  familiar  work  domains,  including  manufacturing,  medicine, aerospace,  ground  transportation,  and  computer  interaction.  Students  will  apply course principles to design problems and a semester-long research project will allow them to explore a relevant human factors engineering topic of interest.",
+      "header_path": "Additional Course Details",
+      "token_count": 217,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- demonstrate an understanding of the unique factors effecting human performance in sociotechnical systems,\n\n- apply human factors theory to the design or selection of system elements to support human performance and safety,\n\n- apply theory to calculate the severity of hazards due to exposure to visual, auditory, vibratory, and other environmental stimuli and identify redesign solutions for mitigating the hazards,\n\n- apply theory to determine ideal display, control, and physical layout characteristics for supporting an operator's cognitive and physical performance,\n\n- demonstrate communication skills in a semester-long writing assignment, and\n\n- demonstrate applied knowledge of course concepts in identifying humansystems interaction problems with an existing technology, and in proposing redesign solutions.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 236,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Recommended\n\nDesigning for People: An Introduction to Human Factors Engineering, Third Edition.\n\nAuthors: Lee, J.D., Wickens, C.D., Liu, Y., & Ng Boyle, L.\n\n## Grading Policy",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 58,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "### Grade determination\n\n40% Assignments (homework and online quizzes) 50% Exams: midterm (25%) and final exam (25%) 10% Semester project report\n\nGrades will be calculated according to total points earned. The points can be curved based on class average and may be lower than the following standard (out of a total of 100 percentage points).\n\nA: 90-100% B: 80-89% C: 70-79% D: 60-69% F: 59% and lower",
+      "header_path": "Grading Policy > Grade determination",
+      "token_count": 100,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "### Assignments\n\nThere will be approximately one Assignment (homework or quiz) released per lecture topic. These are designed to give you practice in applying methods, principles, and ideas  learned  in  the  course.  Some  but  not  all  of  the  assignments  will  be  graded. Generally,  assignments  will  be  posted  at  the  beginning  of  each  week  (Monday  or Tuesday), after that week's lecture material has been posted. All assignments will be completed  and/or  submitted  via  Canvas.  Due  dates  for  each  assignment  will  be given  when  they  are  issued,  but  typically  and  will  be  due  1  week  after  they  are posted. Unless otherwise specified, students are encouraged to work together with classmates as you complete written homework assignments (not quizzes), but every person must turn in an assignment with work shown clearly for each problem. The total  homework/quiz  grade  will  be  based  on  total  points,  not  on  the  average  of percentage grades for each entry, and this total points score will contribute to 40% of the final grade for this course.\n\nGenerally, homework and quizzes that are submitted after the due date/time will not receive any credit. Exceptions can be made at the discretion of the instructor, in accordance  with  university-excused  absence  rules.  In all of  these  cases, documentation of the circumstances will be required.",
+      "header_path": "Grading Policy > Assignments",
+      "token_count": 349,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 7,
+      "content": "### Exams\n\nThere will be two exams, each worth 25% of the overall course grade. Each exam will  be  hosted  in  Canvas,  and  you  will  be  asked  to  Zoom-record  yourselves  while taking the exam (Dr. Ferris will walk through the process of doing this if you haven't done it before). The exams will be timed (75 minutes apiece) and both will be open book/note/online resources, but must be completed individually. The exams will be made available over a period of several days and can be taken at the time that is most convenient for  you.  Collaboration  on  exams  with  any  other  human  is  strictly forbidden and is considered a serious honor code violation (see Academic Integrity and Misconduct Policy section below for ISEN-mandated consequences).\n\nThe format for each exam will primarily be multiple choice, true/false, or short answer, and will include a small number of problems that will require written work, which should be scanned and submitted via Canvas separately upon completing the timed exam. The exams will emphasize material discussed in lecture and practiced in  the  homework; material exclusively in the text will  not  be  tested  but  may  aid  in providing background information.\n\nExam dates are tentatively set to be taken during Week 6 and after Week 10. Exam dates will be flexible only in accordance with university-excused absence rules (Student Rule 7), and documentation of the reasons for the excuse is required in all cases.",
+      "header_path": "Grading Policy > Exams",
+      "token_count": 367,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 8,
+      "content": "### Research report\n\nEach student will work individually to prepare an in-depth research paper on some\n\ntopic relevant to the course, due close to the end of the semester (dates TBD). A proposal for this paper will be due around the 3 rd week of class, so that I can judge\n\nthe relevance and depth of the topic and provide advice/guidance. Your completed report  will  be  critically  reviewed  by  other  students  (peer-reviews),  and  you  will similarly  review  others'  reports.  The  Research  report  and  related  review  work  is worth 10% of the overall grade, and the quality of your report as well as reviews will be assessed. Further details on this report will be given early in the semester.",
+      "header_path": "Grading Policy > Research report",
+      "token_count": 177,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 9,
+      "content": "### Re-grading Policy\n\nStudents have 1 week after grades are released for a homework, quiz, or exam to submit a re-grade request in writing. This request must not exceed 1 page (11 point font, single spacing), and  must  clearly indicate the  relevant  problem(s)  and justification for why you think re-grading is warranted. Note that a requested re-grade may result in further point deductions if new errors are discovered.",
+      "header_path": "Grading Policy > Re-grading Policy",
+      "token_count": 106,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 10,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 11,
+      "content": "## Course Specific Late Work Policy\n\nDr. Ferris does not allow anything to be submitted late without a University-excused absence. Items that are submitted after the posted due date/time will not receive any credit. Exceptions can be made in accordance with university rules (https://studentrules.tamu.edu/rule07/). In these cases, documentation of the circumstances will be required.\n\n## Course Schedule\n\n### Schedule of Topics",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 107,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 12,
+      "content": "#### Schedule of Topics\n\n| Approximate Week | Topic | Lessons | Text/source material and references |\n|---|---|---|---|\n| | **0: Course Introduction** | 0.1 Course intro<br>0.2 Course highlights | None |\n| **Week 1** | **1: Introduction to HFE** | 1.1 Definitions and history<br>1.2 General guidelines for design and practice<br>1.3 Intro to HFE methods<br>1.4 Collecting task data<br>1.5 Case study | Chapter 1, 2, 3<br>Canvas: Military Standards |\n| **Week 2** | **2: Vision** | 2.1 Basics of sight and eye anatomy<br>2.2 The retina, rods and cones, light adaptation<br>2.3 Refraction and visual correction<br>2.4 Visual acuity, limits of detection and identification<br>2.5 Contrast and readable text<br>2.6 Color vision and color-anomalous vision<br>2.7 Size and depth cues | Chapter 4 |\n| **Week 3** | **3: Illumination in the workplace** | 3.1 Basic photometry<br>3.2 Calculating illuminance and Lambert's Law<br>3.3 Luminance and reflectance<br>3.4 Design for proper illumination | Chapter 4 |\n| | Semester project introduction | | |\n| **Week 4** | **4: Displays** | 4.1 Types of displays<br>4.2 Human-centered display design principles<br>4.3 Color coding and the psychology of color | Chapter 8<br>MIL-STD-1472G section 5.2 |\n| | **5: Controls and Dynamics** | 5.1 Case study<br>5.2 Basic control types<br>5.3 Design of controls | Chapter 9<br>SAE Standard J1139 |\n| | **6: Documentation and Warnings** | 6.1 Written information processing<br>6.2 Design for readability<br>6.3 Changing behavior with warnings<br>6.4 Warning design | Chapter 8<br>MIL-STD-1472G section 5.4 |\n| **Week 5** | **7: Hearing and Noise** | 7.1 Basics of hearing and ear anatomy<br>7.2 Measuring sound<br>7.3 Sound perception<br>7.4 Auditory displays<br>7.5 Hearing loss and noise control | Chapter 5 |\n| **Week 6** | **8: Supporting Cognitive Functions** | 8.1 Attention basics<br>8.2 Design for attention<br>8.3 Memory basics<br>8.4 Memory encoding and retrieval<br>8.5 Design for memory<br>8.6 Mental workload and multitasking<br>8.7 Stress effects, design to remediate stress | Chapters 6 and 7 |\n| | **9: Human Error** | 9.1 Reason's model of human error<br>9.2 Design-induced error<br>9.3 Case study<br>9.4 Violations<br>9.5 Error management and design for error | Canvas Human Error package |\n| | Midterm exam on Topics 1 - 9 | | |\n| **Week 7** | **10: Motor Skills & Control** | 10.1 Classification of motor movements<br>10.2 Tracking and control loops<br>10.3 Reaction time and response time<br>10.4 Predictive models of reaction time<br>10.5 Predictive models of movement time<br>10.6 Descriptive models | Chapter 9 |\n| **Week 8** | **11: Anthropometry** | 11.1 Human dimensional variability<br>11.2 Anthropometric design<br>11.3 Statistical and heuristic anthropometric calculations | Chapter 12<br>Canvas Anthropometry package |\n| | **12: Workspace Design** | 12.1 Physical considerations<br>12.2 Visual and cognitive considerations | |\n| **Week 9** | **13: Work Physiology** | 13.1 Muscle function and metabolic cycle<br>13.2 Respiratory and circulatory systems<br>13.3 Physical workload measurement | Chapter 14 |\n| | **14: Biomechanics** | 14.1 Manual material handling and occupational biomechanics<br>14.2 Static planar biomechanical models<br>14.3 Lifting assessment methods<br>14.4 NIOSH lifting equation | Chapter 13 |\n| **Week 10** | **15: Environmental Stressors** | 15.1 Motion stressors<br>15.2 Air quality stressors and ventilation<br>15.3 Thermal stressors | Chapter 15<br>MIL-STD-1472G section 5.5 |\n| | **16: Cumulative Trauma Disorders** | 16.1 CTD definitions, statistics, and risk factors<br>16.2 CTDs of the fingers<br>16.3 CTDs of the hand and wrist<br>16.4 CTDs of the elbow and shoulder<br>16.5 CTDs of the neck and back<br>16.6 Tool selection and ergonomic design to reduce CTD risk | Chapter 13 |\n| | Final exam focusing on Topics 10 - 16 | | |",
+      "header_path": "Course Schedule > Schedule of Topics > Schedule of Topics",
+      "token_count": 966,
+      "has_table": true,
+      "flags": [
+        "OVERSIZED",
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 13,
+      "content": "## Additional Course Information\n\n### Re-grading Policy :\n\nStudents have 1 week after grades are released for a homework, quiz, or exam to submit a re-grade request via email to Dr. Ferris. This request must not exceed 1 page (11 point font, single spacing), and must clearly indicate the relevant problem(s) and justification for why you think re-grading is warranted. Note that a requested regrade may result in further point deductions if new errors are discovered.",
+      "header_path": "Additional Course Information",
+      "token_count": 117,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 9
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:56.591866"
+}

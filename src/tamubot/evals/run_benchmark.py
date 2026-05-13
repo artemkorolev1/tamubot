@@ -52,15 +52,13 @@ from tamubot.core import config
 from tamubot.evals.golden_set import append_run_column as _append_run_column
 from tamubot.evals.golden_set import load as _load_golden_set
 from tamubot.rag import RouterResult
-from tamubot.rag.generator import generate_stream
 from tamubot.rag.graph.pipeline import run_pipeline as run_pipeline_v4
 from tamubot.rag.observability import (
     EvalInputs,
     benchmark_config,
-    create_trace,
-    finalize_trace,
     get_langfuse,
     run_evals,
+    trace_context,
 )
 
 REPORTS_DIR = Path("tamu_data/evals/reports")
@@ -138,33 +136,34 @@ def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: s
     source_course_id = str(item.get("source_course_id") or "")
     expected_fn = str(item.get("expected_function", ""))
 
-    # Langfuse trace per question via observability config
     obs = benchmark_config(experiment_name=experiment_name, ragas=do_ragas)
     obs.metadata.update({"question_id": question_id, "expected_function": expected_fn})
-    lf_trace, trace_id = create_trace(obs, query=query)
-    lf_span = lf_trace  # backward compat with pipeline trace= parameter
 
     t0 = time.perf_counter()
     error: Optional[str] = None
     chunks: list[dict] = []
     answer = ""
     rr = RouterResult(rewritten_query=query)
-    data_gaps: list = []
-    data_integrity = True
-    conflicted_ids: list = []
-
-    # Router + Retrieval (v4 graph)
     timing_ms: dict = {}
-    try:
-        chunks, rr_result, data_gaps, data_integrity, conflicted_ids, answer, timing_ms = run_pipeline_v4(
-            query, trace=lf_span, return_timing=True
-        )
-        if rr_result is not None:
-            rr = rr_result
-        else:
-            error = "retrieval: router_result is None (pipeline did not complete)"
-    except Exception as e:
-        error = f"retrieval: {e}"
+    trace_id: Optional[str] = None
+
+    with trace_context(obs, query=query) as (lf_trace, trace_id):
+        # Full pipeline: router → retrieval → generation (single graph invocation)
+        try:
+            chunks, rr_result, _data_gaps, _data_integrity, _conflicted, answer, timing_ms = run_pipeline_v4(
+                query, return_timing=True
+            )
+            if rr_result is not None:
+                rr = rr_result
+            else:
+                error = "retrieval: router_result is None (pipeline did not complete)"
+        except Exception as e:
+            error = f"pipeline: {e}"
+
+        # Set trace output before context manager exits
+        if lf_trace is not None:
+            lf_trace.update(output=answer[:500])
+
     pipeline_ms = round((time.perf_counter() - t0) * 1000, 1)
 
     # Per-node timing extraction
@@ -172,33 +171,14 @@ def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: s
     router_ms = timing_ms.get("router_node")
     retrieval_ms = timing_ms.get("retrieval_node")
     generator_node_ms = timing_ms.get("generator_node")
+    generator_ms = generator_node_ms or 0.0
     anchor_ms = timing_ms.get("anchor_node") if is_recurrent else None
     eval_search_ms = timing_ms.get("eval_search_node") if is_recurrent else None
     schedule_filter_ms = timing_ms.get("schedule_filter_node") if is_recurrent else None
     merge_ms = timing_ms.get("merge_node") if is_recurrent else None
-
-    # Generation
-    t_gen = time.perf_counter()
-    if not error:
-        try:
-            stream = generate_stream(
-                results=chunks,
-                question=query,
-                function=rr.function,
-                course_ids=rr.course_ids,
-                intent_type=rr.intent_type,
-                data_gaps=data_gaps,
-                data_integrity=data_integrity,
-                conflicted_course_ids=conflicted_ids,
-            )
-            answer = "".join(stream)
-        except Exception as e:
-            error = f"generation: {e}"
-    generator_ms = round((time.perf_counter() - t_gen) * 1000, 1)
     total_ms = round((time.perf_counter() - t0) * 1000, 1)
 
-    # Langfuse: close trace and post avg chunk relevance score
-    finalize_trace(lf_trace, output=answer[:500])
+    # Post avg chunk relevance score to Langfuse
     lf = get_langfuse()
     if lf and trace_id:
         try:

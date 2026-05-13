@@ -1,0 +1,127 @@
+{
+  "source_file": "202611_ISEN_634_600_59275_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 634",
+    "section": "600",
+    "term": "Spring 2026",
+    "crn": "59275",
+    "instructor": {
+      "name": "Dr. Maryam Zahabi",
+      "email": "mzahabi@tamu.edu",
+      "office": "ETB 4044",
+      "office_hours": "2:00 PM - 4:00 PM, Mondays or by appointment"
+    },
+    "teaching_assistants": null,
+    "meeting_times": "MW 04:10 PM-05:25 PM",
+    "location": "ZACH 361",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 634 | Human Performance Modeling | Spring 2026\nInstructor: Dr. Maryam Zahabi | mzahabi@tamu.edu\nMeets: MW 04:10 PM-05:25 PM | ZACH 361\nGrading: Exam [25%], Homework [25%], Article Presentation [17%], Term Project [33%] — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: 59% and lower\nTopics: NASA-TLX (Task Load Index), Driving activity load index (DALI), Keystroke-level model",
+  "headers": [
+    {
+      "text": "Syllabus",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Course Description",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "[1] Information Processing Theory:",
+      "level": 4,
+      "page": 2
+    },
+    {
+      "text": "[2] Situation Awareness:",
+      "level": 4,
+      "page": 2
+    },
+    {
+      "text": "[3] Mental Workload:",
+      "level": 4,
+      "page": 2
+    },
+    {
+      "text": "[4] Task Analysis:",
+      "level": 4,
+      "page": 2
+    },
+    {
+      "text": "[5] User Modeling:",
+      "level": 4,
+      "page": 3
+    },
+    {
+      "text": "[6] Advanced Computational Cognitive Modeling Techniques:",
+      "level": 4,
+      "page": 3
+    },
+    {
+      "text": "Grading Policy",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Exams",
+      "level": 4,
+      "page": 4
+    },
+    {
+      "text": "Homework",
+      "level": 4,
+      "page": 4
+    },
+    {
+      "text": "Article Presentation",
+      "level": 4,
+      "page": 4
+    },
+    {
+      "text": "Term Project",
+      "level": 4,
+      "page": 4
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Course Schedule",
+      "level": 3,
+      "page": 5
+    }
+  ]
+}

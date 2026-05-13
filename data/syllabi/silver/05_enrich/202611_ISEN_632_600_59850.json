@@ -1,0 +1,172 @@
+{
+  "source_file": "202611_ISEN_632_600_59850",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 632",
+    "section": "600",
+    "term": "Spring 2026",
+    "crn": "59850",
+    "instructor": {
+      "name": "Nancy Currie-Gregg",
+      "email": "currie-gregg@tamu.edu",
+      "office": "ETB 4080, ZACH 510C",
+      "office_hours": "Monday: 12:00-1:00p, ETB 4080 | Wednesday: 5:00-6:00p (online)"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 11:10AM - 12:25PM",
+    "location": "ZACH 260",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 632 / AERO 636 | Human Factors Engineering for Aerospace Designs | Spring 2026\nInstructor: Nancy Currie-Gregg | currie-gregg@tamu.edu\nMeets: TR 11:10AM-12:25PM | ZACH 260\nGrading: Lecture activities [10%], Quizzes [35%], Homework [25%], Project [30%] — A = 89.5-100%; B = 79.5-89.4%; C = 69.5-79.4%; D = 59.5-69.4%; F = ≤ 59.4%\nTopics: Extravehicular activity (EVA)-unique design considerations, Spaceflight-associated neurovestibular effects, Microgravity effects on health and performance, Neurovestibular effects, spatial disorientation, Anthropometric considerations for spacecraft, Habitability considerations for long-duration space missions, Human-system interface design for Extravehicular activity (EVA), Aerospace HSI design/mitigation needs, Acceleration mitigations, Safe haven design, crew injuries, Dynamic accelerations, Sustained accelerations, vibrations, High altitude, radiation, Visual effects, illusions, Vestibular effects, Human reliability measures, human error mitigation strategies, human error management, Aerospace vehicle interface design, displays, controls, Human-Systems Engr requirements, design concept of operations, HSI design requirements, Preliminary design approach, Prototype, Prototype report, Project presentation, human sensory attributes, human motor attributes, human cognitive attributes, human performance in the operation of aviation and space systems, principle physiological concerns, principle psychophysiological concerns, spaceflight environments, human-system design optimization, human-system design improvement, published literature, proposed mitigations, countermeasures, human-system integration challenges, aerospace applications, physical workload, cognitive workload, attention, situation awareness, mission performance, human-system integration requirements, Aerospace health and human performance risks, Aerospace environments, Physical stressors, cognitive stressors, Aerospace human-system design process, safety considerations, Anthropometric considerations for aircraft, fatigue, situational awareness, Physical workload evaluation, physiological measures, subjective measures, Human performance evaluations, usability evaluations, Human Factors Engineering for Aerospace Designs, Physiological issues, psychophysiological issues, aviation environments, human cognitive performance, human physical performance, survey methods, human workload evaluations, human-systems design principles, aerospace design project\nTools: MS Teams, Canvas\nPrerequisites: Graduate classification or approval of instructor",
+  "headers": [
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Preferred Contact Method",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Webpage: https://safe.engr.tamu.edu Biography",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Socials",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Grading Policy",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Course evaluation methods",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "Grading Scale (based on weighted total score):",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "Lecture Activities",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "Quizzes",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "Homework",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "Course Project",
+      "level": 4,
+      "page": 6
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 7
+    },
+    {
+      "text": "Course Specific Late Work Policy",
+      "level": 2,
+      "page": 7
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 7
+    },
+    {
+      "text": "Course topics:",
+      "level": 3,
+      "page": 7
+    },
+    {
+      "text": "Detailed course schedule",
+      "level": 3,
+      "page": 7
+    },
+    {
+      "text": "Homework assignments",
+      "level": 3,
+      "page": 9
+    },
+    {
+      "text": "Project deliverables",
+      "level": 3,
+      "page": 10
+    },
+    {
+      "text": "Quiz schedule",
+      "level": 3,
+      "page": 10
+    },
+    {
+      "text": "Additional Course Information",
+      "level": 2,
+      "page": 10
+    },
+    {
+      "text": "Discussion forums",
+      "level": 3,
+      "page": 11
+    },
+    {
+      "text": "Re-grading Policy",
+      "level": 3,
+      "page": 11
+    }
+  ]
+}

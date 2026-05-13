@@ -1,0 +1,104 @@
+{
+  "source_file": "202641_ISEN_658_600_50176",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 658",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "50176",
+    "instructor": {
+      "name": "Dinakar Sagapuram",
+      "email": "dinakar@tamu.edu",
+      "office": "ETB 4068",
+      "office_hours": "Every Thursday 9:30-10:30 am, ETB 4068"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 08:00AM-09:15AM (08/24/2026 - 12/10/2026)",
+    "location": "ZACH 345",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/52g32mirz/Fall-2026-College-Station-ISEN-658-600-%2850176%29?mode=view"
+  },
+  "course_summary": "ISEN 658 Principles of Manufacturing Processes | Fall 2026\nInstructor: Dinakar Sagapuram | dinakar@tamu.edu\nMeets: TR 08:00AM-09:15AM | ZACH 345\nGrading: Exam 1 [25%], Exam 2 [25%], Exam 3 [25%], Final Project [25%] — A: 90%-100%, B: 80%-89.9%, C: 70%-79.9%, D: 60%-69.9%, F: < 60 %\nTopics: tension test, stress tensor, principal stresses, yield criteria, plastic flow rules, nucleation, growth, cast microstructures, phase diagrams, equilibrium freezing, non-equilibrium freezing, constitutional undercooling, interface stability, 1D analysis, bulk heat treatment, Stationary heat sources, surface heat treatment, Moving heat sources, welding, laser-based processing, Contact temperatures, heat partitioning, Machining temperatures, Finite Element Method (FEM), FEM implementation, FEM applications, Finite element modeling of machining, physical principles of manufacturing processes, analytical techniques, numerical techniques, industrial manufacturing applications, case studies, solid mechanics, plastic deformation, deformation processes, cutting processes, fluid flow, rheology, polymer processing, casting, thermal effects, transient heat transfer problems, tribology, additive manufacturing processes, materials and process selection, product design, material behavior, manufacturing process mechanics, theoretical methods, physical phenomena, process performance, efficiency, product attributes, product performance, Mechanical behavior of materials, elasticity, plasticity, Deformation and forming processes, effect of friction, Solidification of metals, Solidification of alloys, Heat transfer and conduction, mathematics, science, engineering, manufacturing processes, processing\nTools: ABAQUS, course website",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 7,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nPrinciples of Manufacturing Processes. (3-0). Credit 3. Focus on understanding the physical principles of manufacturing processes using theory, analytical and numerical techniques; application of physics-based theory to specific industrial manufacturing applications and case studies; includes solid mechanics and plastic deformation with application to deformation and cutting processes; application of fluid flow and rheology in polymer processing and casting; analysis of thermal effects and transient heat transfer problems in tribology, cutting and additive manufacturing processes.",
+      "header_path": "Catalog Description",
+      "token_count": 153,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- Apply knowledge of mathematics, science and engineering to solve problems related to manufacturing processes\n\n- Identify factors involved in materials and process selection in the context of product design\n\n- Describe fundamentals of material behavior and its role in processing\n\n- Analyze manufacturing process mechanics through theoretical and analytical methods\n\n- Analyze physical phenomena in manufacturing processes and identify their effects on process performance, efficiency, and product attributes and performance\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 163,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: No required textbook\n\nThis class has no required textbook. All the relevant material will be posted on the course website.",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 45,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\n- Exam 1: 25%, Exam 2: 25%, Exam 3: 25%, Final Project: 25%\n\n- Homeworks will be assigned but not graded\n\n- Grading Criterion: A for 90%-100%, B for 80%-89.9%, C for 70%-79.9%, D for 60%-69.9% and F for &lt; 60 %",
+      "header_path": "Grading Policy",
+      "token_count": 58,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Course Specific Late Work Policy\n\nIf an exam is missed, you must have a written and authorized excuse that meets university excused absence requirements to qualify for a make-up exam. Wherever possible, students should inform me before the exam. If not possible, the students must notify me by the end of the second working day after missing an exam or quiz. Otherwise, they forfeit their rights to a make-up.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 103,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Schedule\n\n### Course schedule\n\nTopics\n\nTimeline\n\nCourse overview\n\nMechanical behavior of materials I\n\n(tension test, elasticity, plasticity)\n\nMechanical behavior II (stress tensor,\n\nprincipal stresses)\n\nWeek 1\n\n\nTopics\n\nTimeline\n\nMechanical behavior III (yield criteria)\n\nMechanical behavior IV (plastic flow\n\nrules)\n\nWeek 2\n\nDeformation and forming processes\n\n- I & II\n\nWeek 3\n\nDeformation and forming processes\n\n- III (effect of friction)\n\nSolidification of metals - I\n\n(introduction)\n\nWeek 4\n\nSolidification of metals - II\n\n(nucleation, growth, cast\n\nmicrostructures)\n\nSolidification of alloys - I (phase\n\ndiagrams)\n\nWeek 5\n\nExam 1\n\nSolidification of alloys - II\n\n(equilibrium/non-equilibrium freezing)\n\nWeek 6\n\nSolidification of alloys - III & IV\n\n(constitutional undercooling,\n\ninterface stability)\n\nWeek 7\n\nNo class on Tuesday, Fall Break\n\nHeat transfer and conduction - I\n\n(introduction)\n\nWeek 8\n\n\nTopics\n\nTimeline\n\nHeat transfer and conduction - II\n\n(1D analysis, application to casting\n\nand bulk heat treatment)\n\nExam 2\n\nWeek 9\n\nStationary heat sources (application\n\nto surface heat treatment)\n\nMoving heat sources - I\n\nWeek 10\n\nMoving heat sources - II (application\n\nto welding, laser-based processing\n\nand additive manufacturing)\n\nContact temperatures and heat\n\npartitioning\n\nWeek 11\n\nMachining temperatures\n\nIntroduction to Finite Element\n\nMethod (FEM) - I\n\nWeek 12\n\nIntroduction to FEM - II\n\nFEM implementation using ABAQUS\n\nWeek 13\n\nFEM applications - I; Exam 3\n\nNo class on Thursday, Thanksgiving\n\nBreak\n\nWeek 14\n\nFEM applications - II\n\nFinite element modeling of machining\n\nWeek 15",
+      "header_path": "Course Schedule",
+      "token_count": 402,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:57.877941"
+}

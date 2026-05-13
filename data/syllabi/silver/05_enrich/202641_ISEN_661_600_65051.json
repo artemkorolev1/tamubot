@@ -1,0 +1,82 @@
+{
+  "source_file": "202641_ISEN_661_600_65051",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 661",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "65051",
+    "instructor": {
+      "name": "Sergiy Butenko",
+      "email": "butenko@tamu.edu",
+      "office": "4037 ETB",
+      "office_hours": "TBA"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 09:35AM - 10:50AM",
+    "location": "ZACH 345",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/s8ris84f0/Fall-2026-College-Station-ISEN-661-600-%2865051%29?mode=view"
+  },
+  "course_summary": "ISEN 661 | Network-Based Planning and Scheduling Systems | Fall 2026\nInstructor: Sergiy Butenko | butenko@tamu.edu\nMeets: TR | 09:35AM-10:50AM | ZACH 345\nGrading: Lecture quizzes [10%], Homework assignments [15%], Exams [75%] — A: [90,100], B: [80,90), C: [70,80), D: [60,70), F: [0,60)\nTopics: out-of-kilter algorithm, pure and generalized network specializations of the primal simplex method, multi-commodity networks, Minimum spanning tree problem, Maximum clique, independent sets, clique relaxations, NP- hard problems, network science, emerging research directions, mathematical modeling, network optimization theory, network optimization algorithms, algorithms of network flow models, Shortest paths, Maximum flows, Minimum-cost flows, Assignments, matchings, networks, graph theory basics, design and analysis of algorithms, Fundamental theory\nPrerequisites: ISEN 620 or 622",
+  "headers": [
+    {
+      "text": "ISEN 661 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 3
+    }
+  ]
+}

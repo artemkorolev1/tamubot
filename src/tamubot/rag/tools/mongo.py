@@ -45,11 +45,16 @@ def _projection() -> dict:
             "chunk_index": 1,
             "content": 1,
             "header_text": 1,
+            "header_path": 1,
             "anchor": 1,
             "section": 1,
             "term": 1,
             "score": 1,
             "category": 1,
+            "source": 1,
+            "page": 1,
+            "instructor_name": 1,
+            "pipeline_version": 1,
         }
     }
 
@@ -255,6 +260,29 @@ def get_syllabus_urls(course_ids: list[str]) -> dict[str, str]:
     if not course_ids:
         return {}
     return dict(_get_syllabus_urls_cached(tuple(sorted(set(course_ids)))))
+
+
+@lru_cache(maxsize=128)
+def _get_course_summaries_cached(course_ids: tuple[str, ...]) -> dict[str, str]:
+    db = _get_db()
+    result: dict[str, str] = {}
+    if not course_ids:
+        return result
+    docs = db[COURSES_COLLECTION].find(
+        {"course_id": {"$in": list(course_ids)}, "course_summary": {"$exists": True, "$ne": None}},
+        {"course_id": 1, "course_summary": 1, "_id": 0},
+    )
+    for doc in docs:
+        if doc.get("course_summary"):
+            result[doc["course_id"]] = doc["course_summary"]
+    return result
+
+
+def get_course_summaries(course_ids: list[str]) -> dict[str, str]:
+    """Return {course_id: course_summary} for courses that have summaries."""
+    if not course_ids:
+        return {}
+    return dict(_get_course_summaries_cached(tuple(sorted(set(course_ids)))))
 
 
 def get_missing_sections(course_id: str) -> list[str]:

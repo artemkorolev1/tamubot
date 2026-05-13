@@ -15,20 +15,31 @@
       "Section 'Pregnancy Accommodations' is boilerplate and should be removed"
     ],
     "structural_coherence": [
-      "The description for 'Axler, S. (2015) Linear Algebra Done Right' under 'Textbook and/or Resource Materials' is formatted as a separate bullet point (`-`) instead of being part of the numbered list item.",
-      "The description for 'Iozzi, A. (2020) Multilinear Algebra and Applications' under 'Textbook and/or Resource Materials' is formatted as a separate bullet point (`-`) instead of being part of the numbered list item.",
-      "Heading levels are excessively deep and inconsistent throughout the document, often jumping multiple levels (e.g., from H1 to H4, or H4 to H6) and not following a logical hierarchy.",
-      "The 'Assessments' heading is at the same level as 'Grading Policy' but should be a sub-heading.",
-      "The 'Homework' description under 'Assessments' contains a stray bullet point (`- points deducted for mathematical correctness.`) that breaks the flow of the paragraph.",
-      "The grading scale under 'Grading' is presented as a list of key-value pairs rather than a structured table.",
-      "The 'Course Schedule' section contains empty bullet points (`- \u2022`).",
-      "The 'Email Communications' heading is at the same level as 'Course Contact Policy' but should be a sub-heading."
+      "The line '- This is the linear algebra text you are most strongly recommended to acquire' appears as a new bullet point but should be a sub-item of '1. Axler, S. (2015) Linear Algebra Done Right' in 'Textbook and/or Resource Materials'",
+      "The line '- https://www2.math.ethz.ch/education/bachelor/lectures/fs2016/other/mla/ma.pdf' appears as a new bullet point but should be a sub-item of '3. Iozzi, A. (2020) Multilinear Algebra and Applications' in 'Textbook and/or Resource Materials'",
+      "Heading levels for 'Linear Algebra', 'Real Analysis' and their sub-items within 'Planned Topics' are inconsistent and jump too many levels (e.g., from h4 to h6, h6 to h7, h7 to h8, h8 to h9)",
+      "Heading 'Course Prerequisites' is at an excessively deep level (h10)",
+      "Heading 'Special Course Designation' is at an excessively deep level (h10)",
+      "Heading 'Course Learning Outcomes' is at an excessively deep level (h10)",
+      "Heading 'Grading Policy' is at an excessively deep level (h10)",
+      "Heading 'Assessments' is at an excessively deep level (h11)",
+      "The line '- points deducted for mathematical correctness. You will be required to type your solutions using LaTeX.' appears as a new bullet point but seems to be a continuation of the previous paragraph under 'Homework' in 'Assessments'",
+      "Heading 'Grading' is at an excessively deep level (h12)",
+      "Heading 'Late Work Policy' is at an excessively deep level (h12)",
+      "Heading 'Course Schedule' is at an excessively deep level (h12)",
+      "The 'Assignment Due Date:' section in 'Course Schedule' is not formatted as a proper heading",
+      "Malformed bullet point '\u00b7' before 'November 26 - Reading day, no classes' in 'Important Dates'",
+      "Heading 'Important Dates' is at an excessively deep level (h12)",
+      "Heading 'Course Contact Policy' is at an excessively deep level (h12)",
+      "Heading 'Email Communications' is at the same level as its parent 'Course Contact Policy', it should be a deeper level"
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 46.09,
+  "timing_s": 37.48,
   "proposals": {
-    "new_false_positives": [],
+    "new_false_positives": [
+      "Assignment Due Date:"
+    ],
     "new_boilerplate": [
       "University Policies",
       "Attendance Policy",
@@ -42,9 +53,11 @@
       "Pregnancy Accommodations"
     ],
     "text_cleanups": [
-      "- \u2022",
-      "\\n\\n- points deducted for mathematical correctness."
+      "\\n- This is the linear algebra text you are most strongly recommended to acquire",
+      "\\n- https://www2.math.ethz.ch/education/bachelor/lectures/fs2016/other/mla/ma.pdf",
+      "\\n- points deducted for mathematical correctness. You will be required to type your solutions using LaTeX.",
+      "\u00b7"
     ],
-    "reasoning": "The identified sections are common institutional boilerplate found across many university syllabi and do not contain course-specific information, thus they should be stripped entirely. The text cleanups target specific formatting artifacts: '- \u2022' represents an empty bullet point, and '\\n\\n- points deducted for mathematical correctness.' is a stray bullet point breaking the flow of a paragraph, both of which should be removed for cleaner output."
+    "reasoning": "The 'Assignment Due Date:' was incorrectly identified as a header but functions as a sub-label or part of a list. The listed boilerplate sections are standard institutional policies found verbatim across many university syllabi. The text cleanups address bullet points that should be continuations of previous text or sub-items, and a malformed bullet character that needs standardization. For the first three text_cleanups, the proposed fix is to replace the literal string (including the leading newline and bullet) with just the text, effectively merging it with the preceding content. For the last text_cleanup, the '\u00b7' character should be replaced with a standard bullet point character like '-'"
   }
 }

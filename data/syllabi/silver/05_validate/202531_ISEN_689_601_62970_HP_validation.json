@@ -4,13 +4,12 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The content for the 'Textbook and/or Resource Materials' section is not directly under its header; it appears misplaced after the 'Homework assignment' section.",
-      "The headers 'Research report', 'Homework assignment', 'Reflections', and 'Practicum' are all top-level headers ('#') but describe components of the grading policy, suggesting they should be a lower heading level (e.g., '###').",
-      "The text 'Course Syllabus' appears twice as orphaned text within the 'Course Schedule' section."
+      "The textbook and resource material details ('Design for Health: Applications of Human Factors Sethumadhavan, A., Sasangohar, F. (2020). Academic Press.', '- Text is optional but highly recommended', '- All other course materials will be hosted on Canvas') are incorrectly placed within the 'Homework assignment:' section, instead of under 'Textbook and/or Resource Materials'.",
+      "The sections 'Research report:', 'Homework assignment:', 'Reflections:', and 'Practicum:' are all marked as top-level headers (H1) but should be sub-sections (H2 or H3) under 'Grading Policy' or as standalone H2 sections, given their content describes components of the grading."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 18.5,
+  "timing_s": 299.07,
   "proposals": {
     "new_false_positives": [
       "Research report:",
@@ -20,8 +19,8 @@
     ],
     "new_boilerplate": [],
     "text_cleanups": [
-      "Course Syllabus"
+      "<!-- image removed - decorative logo -->"
     ],
-    "reasoning": "The headers 'Research report:', 'Homework assignment:', 'Reflections:', and 'Practicum:' are currently top-level headers but describe components of the grading policy. They should be demoted to body text or sub-sections within the 'Grading Policy' rather than standalone top-level sections. The literal string 'Course Syllabus' appears as orphaned text within the 'Course Schedule' and should be removed as it's a redundant artifact."
+    "reasoning": "The sections 'Research report:', 'Homework assignment:', 'Reflections:', and 'Practicum:' are currently parsed as top-level headers (H1). However, they are short labels describing components of the 'Grading Policy' and should be demoted to sub-sections or body text within that section, making their current H1 status a false positive for a major section header. The string '<!-- image removed - decorative logo -->' is an HTML comment and an artifact from the parsing process that should be removed. The issue regarding the misplaced textbook details is a content placement issue and does not fit the definitions of the provided categories for proposing fixes."
   }
 }

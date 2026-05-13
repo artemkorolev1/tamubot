@@ -1,0 +1,150 @@
+{
+  "source_file": "202541_ISEN_620_700_14035",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 620",
+    "section": "700",
+    "term": "Fall 2025",
+    "crn": "14035",
+    "instructor": {
+      "name": "Sergiy Butenko",
+      "email": "butenko@tamu.edu",
+      "office": "ETB 4037",
+      "office_hours": "TR 10:00-11:00 AM or by appointment"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Asynchronous (08/25/2025 - 12/16/2025)",
+    "location": "ONLINE",
+    "format": "online",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/3ku5mv1jc/Fall-2025-College-Station-ISEN-620-700-%2814035%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): MATH 304 or MATH 311."
+  },
+  "course_summary": "ISEN 620 | Survey of Optimization | Fall 2025\nInstructor: Sergiy Butenko | butenko@tamu.edu\nMeets: Asynchronous | ONLINE\nGrading: Exams [80%], Homework Quizzes [15%], Lecture Quizzes [5%] — A: [90,100], B: [80,90), C: [70,80), D: [60,70), F: [0,60)\nTopics: Karush-Kuhn-Tucker Conditions, Conjugate Direction Methods, Newton's Method, Steepest Descent Method, Line Search, Root Finding, Second Order Optimality Conditions, FONC for Equality Constraints, FONC for Unconstrained Problems, Simplex Method in Matrix Form, Complementary Slackness, LP Duality, Sensitivity Analysis, Graphical Method, Simplex Method: Termination, Simplex Method: Initialization, Analysis of the Simplex Method, Simplex Method, IP Modeling, LP Modeling, LP Assumptions, Introduction to Optimization Software, deterministic linear optimization, deterministic nonlinear optimization, linear programming, unconstrained nonlinear optimization, constrained nonlinear optimization, classical optimality conditions, numerical algorithms, linear programming theory, nonlinear programming theory, linear programming algorithms, nonlinear programming algorithms, linear optimization models formulation, nonlinear optimization models formulation, real-world problems, small-scale optimization problems, large-scale problems, theory, numerical methods, optimization\nTools: AMPL, Excel, Solver add-on, Canvas, Zoom, GroupMe, YouTube, Google Drive\nPrerequisites: MATH 304 or MATH 311",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 11,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Course Description\n\nThis  is  an  introductory  course  discussing  theory  and  numerical  methods  for deterministic  linear  and  nonlinear  optimization.  Topics  to  be  discussed  include linear  programming,  unconstrained  and  constrained  nonlinear  optimization, including classical optimality conditions and numerical algorithms.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Description",
+      "token_count": 95,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- Analyze and apply linear and nonlinear programming theory and algorithms.\n\n- Formulate linear and nonlinear optimization models from real-world problems.\n\n- Solve small-scale optimization problems by hand and utilize optimization software to solve large-scale problems.",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 90,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Required\n\nCourse Handbook\n\nURL for Resource:\n\nhttps://drive.google.com/file/d/1KOF0V8vKpe1CiqwJAJ249Ubqrsqv-IXw/view?usp=sharing\n\nAn image of a book cover titled \"NUMERICAL METHODS AND OPTIMIZATION AN INTRODUCTION\" by Sergiy Butenko and Panos M. Pardalos. The cover features a dark background with a stylized geometric pattern in green and yellow.\n\nThis material Is: Recommended\n\nNumerical Methods and Optimization\n\nISBN:\n\n9781466577770\n\nAuthors:\n\nSergiy Butenko, Panos M. Pardalos\n\nPublisher:\n\nCRC Press\n\nPublication Date:\n\n2014-03-11\n\nNotes:\n\nThe course manual with all the materials required for successful completion of the course is provided. In addition, it is recommended (but not required) to have at least one reference text covering linear and nonlinear optimization, such as Numerical Methods and Optimization: An Introduction by Butenko and Pardalos, ISBN: 978-1466577770 or Linear and Nonlinear Optimization by Griva, Nash and Sofer, ISBN 978-0-898716-61-0. Additional references: Introduction to Mathematical Programming by Winston and Venkataramanan, Fourth Edition, Duxbury; Linear Programming and Network Flows by Bazarra, Jarvis and Sherali, Second Edition, Wiley; An Introduction to Optimization by Chong and Zak, Second Edition, Wiley.",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 328,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Additional Instructional Materials\n\nThis Material is: Required\n\nSoftware and Computing Resources\n\nNotes:\n\nThe course is computing-intensive. The required advanced optimization software (AMPL) will be made available for download on Canvas (for Windows, Mac, and Linux). You must ensure access to a computer that runs AMPL and Excel (or a compatible spreadsheet application with Solver add-on).",
+      "header_path": "Additional Instructional Materials",
+      "token_count": 99,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Grading Policy\n\nAll  graded  assignments  will  be  open  book/notes  and  must  be  completed  via Canvas.  It  is  crucial  that  all  the  graded  work  is  completed  on  your  own,  in accordance  with  the  Aggie  Honor  Code  and  the  rules  specified  for  each assignment.  Any  violations  of  academic  integrity  rules  will result  in  severe penalties,  such  as  F ∗ for  the  course  and  report  to  the  honor  council.  A preliminary,  automatically  generated  grade  will  appear  on  Canvas  immediately upon submission of your work,  however,  this  grade  may  not  be  final,  as  some assignments will require submitting additional materials (such as a scan of your work and/or computer codes) for grading.\n\nThere will be the total of 40 graded assignments, described next.\n\n-  4  Exams  -  20%  each.  The  exams  will  be  open  book/notes.  Each  exam  will  be proctored  to  maintain  scholastic  integrity  of  the  program.  The  instructor  will provide  Zoom  proctoring.  If  the  exam  dates/times  specified  in  the  detailed schedule  below  do  not  work  for  you,  you  should  notify  the  instructor  no  later than  Friday  preceding  the  first  exam,  so  that  alternative  arrangements  can  be made.\n\n-  11  Homework  Quizzes  -  15%.  The  homework  quizzes  will  be  conducted  via Canvas,  no  proctor  is  required.  The  quizzes  will  be  based  on  the  practice problems,  solutions  to  which  are  provided  in  the  course  handbook  ('Solution Manual' chapter). The quizzes will be timed, but you will have the flexibility to take them  any  time  before  the  midnight  of  the  quiz  date  specified  in  the  course schedule.\n\n- 25 Lecture Quizzes - 5%. Lecture quizzes are based on the videos of lectures and should be taken according to the schedule at page 6.\n\nThe final letter grades will be calculated using the formula\n\nweighted  average  =  0.05(lec  quiz  average)+0.15(hw  quiz  average)+0.8(exam average)\n\nand will  be  assigned  as  follows.  A:  [90,100],  B:  [80,90),  C:  [70,80),  D:  [60,70),  F: [0,60).\n\nOptional Final Exam will be offered as a chance to improve your final grade. The exam  will  consist  of  the  problems  of  the  same  types  as  the  four  exams  given during the semester. You will be able to choose which problems to solve. You will have  two  hours  to  complete  the  exam,  and  the  score  for  each  problem  you attempt will replace the score you obtained for the problem of the same type in the original exam (whenever the new score is higher).",
+      "header_path": "Grading Policy",
+      "token_count": 641,
+      "has_table": false,
+      "flags": [
+        "OVERSIZED"
+      ],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Specific Late Work Policy\n\nWhile you are expected to follow the schedule above for best learning outcomes, the due dates are not strictly enforced. Late submissions will not be penalized, as long as they are completed before the exam covering the corresponding material. If an exam is missed, you must contact the instructor as soon as possible with a written authorized excuse. Make up exams will be given in accordance with University Rules (see Rule 7 at http://student-rules.tamu.edu).",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 125,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 7,
+      "content": "## Course Schedule\n\n| Week | Date | Topic | Deliverable |\n| :--- | :--- | :---------------------------------------- | :---------------------- |\n|      |      | **Part 1: LP Basics**                     |                         |\n| 1    | T 8/26 | Lec. 1: Introduction                      | Lec 1 quiz              |\n|      | R 8/28 | Lec. 2: Introduction to Optimization Software | Lec 2 quiz              |\n| 2    | T 9/2  | Lec. 3: LP Modeling                       | Lec 3 quiz              |\n|      | R 9/4  | Lec. 4: LP Assumptions and Graphical Method | Lec 4 quiz              |\n| 3    | T 9/9  | Homework quiz #1 due                      | Hw quiz 1               |\n|      | T 9/9  | Lec. 5: Simplex Method: An Introduction   | Lec 5 quiz              |\n|      | R 9/11 | Lec. 6: Simplex Method: Termination & Initialization | Lec 6 quiz              |\n| 4    | T 9/16 | Homework quiz #2 due                      | Hw quiz 2               |\n|      | T 9/16 | Lec. 7: Analysis of the Simplex Method    | Lec 7 quiz              |\n|      | R 9/18 | Homework quiz #3 due                      | Hw quiz 3               |\n|      | R 9/18 | Exam 1 (6:00–7:30 PM Zoom)                | Exam 1                  |\n| 5    |      | **Part 2: Duality and Sensitivity Analysis, IP Modeling** |                         |\n|      | T 9/23 | Lec. 8: LP Duality: Introduction          | Lec 8 quiz              |\n|      | R 9/25 | Lec. 9: Complementary Slackness           | Lec 9 quiz              |\n\n| Week | Date | Topic | Deliverable |\n| :--- | :--- | :---------------------------------------- | :---------------------- |\n| 6    | T 9/30 | Lec. 10: Simplex Method in Matrix Form    | Lec 10 quiz             |\n|      | R 10/2 | Homework quiz #4 due                      | Hw quiz 4               |\n|      | R 10/2 | Lec. 11: Sensitivity Analysis             | Lec 11 quiz             |\n| 7    | T 10/7 | Lec. 12: Sensitivity Analysis             | Lec 12 quiz             |\n|      | R 10/9 | Homework quiz #5 due                      | Hw quiz 5               |\n|      | R 10/9 | Lec. 13: IP Modeling                      | Lec 13 quiz             |\n| No Class | T 10/14 | Fall Break                                | Deep breath             |\n| 8    | R 10/16 | Lec. 14: IP Modeling                      | Lec 14 quiz             |\n|      | M 10/20 | Homework quiz #6 due                      | Hw quiz 6               |\n|      | T 10/21 | Exam 2 (6:00–7:30 PM Zoom)                | Exam 2                  |\n| 9    | R 10/23 | Lec. 15: Nonlinear Opt.: Preliminaries    | Lec 15 quiz             |\n|      |      | **Part 3: Unconstrained Optimization**    |                         |\n|      | T 10/28 | Lec. 16: FONC for Unconstrained Problems  | Lec 16 quiz             |\n| 10   | R 10/30 | Lec. 17: Second Order Optimality Conditions | Lec 17 quiz             |\n|      | T 11/4 | Homework quiz #7 due                      | Hw quiz 7               |\n|      | T 11/4 | Lec. 18: Root Finding & Line Search       | Lec 18 quiz             |\n| 11   | R 11/6 | Lec. 19: Steepest Descent Method          | Lec 19 quiz             |\n|      | M 11/10 | Homework quiz #8 due                      | Hw quiz 8               |\n|      | T 11/11 | Exam 3 (6:00–7:30 PM Zoom)                | Exam 3                  |\n| 12   | R 11/13 | Lec. 20: Newton's Method                  | Lec 20 quiz             |\n|      | T 11/18 | Lec. 21: Conjugate Direction Methods      | Lec 21 quiz             |\n|      | R 11/20 | Homework quiz #9 due                      | Hw quiz 9               |\n|      | R 11/20 | Lec. 22: FONC for Equality Constraints    | Lec 22 quiz             |\n| 13   |      | **Part 4: Constrained Optimization**      |                         |\n|      | T 11/25 | Lec. 23: Karush-Kuhn-Tucker Conditions    | Lec 23 quiz             |\n| No Class | R 11/27 | Thanksgiving Holiday                      | Celebrate!              |\n| 14   | T 12/2 | Homework quiz #10 due                     | Hw quiz 10              |\n|      | T 12/2 | Lec. 24: Second Order Optimality Conditions | Lec 24 quiz             |\n|      | W 12/3 | Homework quiz #11 due                     | Hw quiz 11              |\n|      | R 12/4 | Exam 4 (6:00–8:00 PM Zoom)                | Exam 4                  |\n\n| Week | Date | Topic | Deliverable |\n| :--- | :--- | :---------------------------------------- | :---------- |\n| 15   | T 12/16 | Optional Final Exam (1:00–3:00 PM / 6:00–7:30 PM Zoom) | Final Exam  |\n\n## Additional Course Information",
+      "header_path": "Course Schedule",
+      "token_count": 1129,
+      "has_table": true,
+      "flags": [
+        "OVERSIZED",
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 8,
+      "content": "### Course Format and Expectations\n\nSection 700: The distance learning version of the course does not involve regular class meetings, however, individual or group meetings with the instructor can be arranged  by  appointment.  You  are  expected  to  complete  graded  assignments (lecture  quizzes,  homework  quizzes,  and  exams)  according  to  the  schedule outlined in 'Course Topics and Schedule' section of this document (page 6). Each chapter of the course handbook covers one lecture, with the material provided in the  form  of  text  and  pointers  to  pre-recorded  videos  of  lectures  available  on YouTube and Google Drive.",
+      "header_path": "Additional Course Information > Course Format and Expectations",
+      "token_count": 160,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 9,
+      "content": "### Expected Time Commitment\n\nThe course is structured in a way that requires timely attention to the material in order to succeed. You are expected to allocate a similar amount of time to the course as you would with a regular 3-credit on-campus course. More specifically, you are expected to spend around 4.5 hours 1 per week attending the lectures or reviewing  the  videos  of  lectures  (the  actual  video  files  are  shorter,  taking  into account  the  time  for  activities,  such  as  taking  notes,  during  which  you  would pause the video). In addition to the lecture time, you are expected to spend at least  9  hours  per  week on homework assignments, such as reading the course manual,  solving  problems,  and  implementing  and  running  optimization  models. You  should  be  prepared  to  dedicate  sufficient  time  in  order  to  master  the material at the level that will benefit your professional career.",
+      "header_path": "Additional Course Information > Expected Time Commitment",
+      "token_count": 233,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 10,
+      "content": "### Communication\n\nThe following means of communication will be used during the course: Canvas, GroupMe, email, Zoom. The course website will be maintained through Canvas. This site will contain all the required course materials, including the lecture notes, slides,  software  packages  used,  homework  assignments,  quizzes,  exams,  and grades. Please check the web site daily - you are expected to be aware of any information posted on it within 24 hours. You will need to use your TAMU NetId to  log  in.  In  addition,  the  course-related  discussions  will  be  facilitated  using  a GroupMe chat. You are strongly encouraged to join the course group (the link and the QR code are provided above). Communication via GroupMe provides the quickest way of getting your questions concerning the course answered.\n\nAll  major  announcements  concerning  the  course  will  be  communicated  to  the class  via  email  (in  addition  to  announcements  on  Canvas  and  GroupMe). Zoom will be used for proctoring the exams as well as office hours. You will be required to log in Zoom with your Net ID and use video for exams. The exam sessions will be recorded.\n\n1 An academic hour is 50 minutes.",
+      "header_path": "Additional Course Information > Communication",
+      "token_count": 300,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:55.131736"
+}

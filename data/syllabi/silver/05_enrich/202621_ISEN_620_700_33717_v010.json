@@ -1,0 +1,117 @@
+{
+  "source_file": "202621_ISEN_620_700_33717_v010",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 620",
+    "section": "700",
+    "term": "Summer 2026",
+    "crn": "33717",
+    "instructor": {
+      "name": "Sergiy Butenko",
+      "email": "butenko@tamu.edu",
+      "office": "ETB 4037",
+      "office_hours": "TR 10:00-11:00 AM or by appointment"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Asynchronous, 05/26/2026 - 08/04/2026",
+    "location": "Online",
+    "format": "online",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/n5hxx1l9r/Summer-2026-College-Station-ISEN-620-700-%2833717%29?mode=view"
+  },
+  "course_summary": "ISEN 620 | Survey of Optimization | Summer 2026\nInstructor: Sergiy Butenko | butenko@tamu.edu\nMeets: Asynchronous | Online\nGrading: Exams [80%], Homework Quizzes [15%], Lecture Quizzes [5%] — A: [90,100], B: [80,90), C: [70,80), D: [60,70), F: [0,60)\nTopics: K-K-T conditions, Karush-Kuhn-Tucker Conditions, Lagrange conditions, Simplex Method in Matrix Form, Complementary Slackness, Steepest Descent Method, Newton's Method, Conjugate Direction Methods, Root Finding, Line Search, FONC for Unconstrained Problems, FONC for Equality Constraints, Second Order Optimality Conditions, Graphical Method, Simplex Method: Termination, Simplex Method: Initialization, Analysis of the Simplex Method, LP Duality, Sensitivity Analysis, IP Modeling, LP Modeling, LP Assumptions, Introduction to Optimization Software, linear programming theory, nonlinear programming theory, linear programming algorithms, nonlinear programming algorithms, linear optimization models, nonlinear optimization models, small-scale optimization problems, large-scale problems, deterministic linear optimization, nonlinear optimization, linear programming, unconstrained-nonlinear optimization, constrained-nonlinear optimization, numerical algorithms\nTools: AMPL, Excel, Canvas, Zoom, GroupMe, YouTube, Google Drive\nPrerequisites: MATH 304 or MATH 311",
+  "headers": [
+    {
+      "text": "ISEN620 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Meeting Times:",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Additional Instructional Materials",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Course Specific Late Work Policy",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Course Schedule",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Course Format and Expectations",
+      "level": 3,
+      "page": 7
+    },
+    {
+      "text": "Expected Time Commitment",
+      "level": 3,
+      "page": 7
+    },
+    {
+      "text": "Communication",
+      "level": 3,
+      "page": 7
+    }
+  ]
+}

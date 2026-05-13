@@ -18,3 +18,5 @@ make test | lint | typecheck | format | probe | probe-full
 - **Config**: always `from tamubot.core import config` — never `os.getenv()` directly.
 - **Skills**: discovery uses `~/.claude/skills/<name>/SKILL.md`, not project-level `.claude/skills/*.md`. If a skill doesn't appear, check for broken symlinks — fix from Windows PowerShell, not inside the container.
 
+## LLM API usage
+If not specifically asked, dont use api calls which exceed 10 cals, ask if unsure

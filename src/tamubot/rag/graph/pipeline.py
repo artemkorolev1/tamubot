@@ -1,10 +1,11 @@
 """RAG pipeline entry point.
 
-Tracing: The OTEL context is set by ``create_trace()`` (rag/observability/tracing.py)
+Tracing: The OTEL context is set by ``trace_context()`` (rag/observability/tracing.py)
 before the pipeline runs.  Individual functions decorated with ``@observe`` (router,
 retrieval helpers, generator) automatically nest under that root trace via OTEL
 context propagation — no LangChain ``CallbackHandler`` needed.
 """
+
 from __future__ import annotations
 
 import logging
@@ -44,6 +45,7 @@ def _get_eval_graph():
     global _eval_graph
     if _eval_graph is None:
         from tamubot.rag.graph.builder import build_graph_eval
+
         _eval_graph = build_graph_eval()
     return _eval_graph
 
@@ -52,7 +54,7 @@ def _make_invoke_kwargs(trace, thread_config: Optional[dict] = None) -> dict:
     """Build kwargs for graph.invoke(): config from thread_config only.
 
     The ``trace`` parameter is accepted for API compatibility but no longer
-    used — tracing is handled by the OTEL context set in ``create_trace()``.
+    used — tracing is handled by the OTEL context set in ``trace_context()``.
     """
     config: dict = {}
     if thread_config:
@@ -65,8 +67,9 @@ def _build_router_result(result: dict):
     """Reconstruct a RouterResult from state fields for backward compat with app.py."""
     if "router_result" in result and result["router_result"] is not None:
         return result["router_result"]
-        
+
     from tamubot.rag.router import RouterResult
+
     return RouterResult(
         course_ids=result.get("course_ids", []),
         intent_type=result.get("intent_type"),
@@ -118,7 +121,7 @@ def run_pipeline_eval(
 ) -> tuple[list[dict], Any, dict]:
     """Run router + retrieval only (no generator). For eval use.
 
-    Tracing is handled by the OTEL context set in create_trace().
+    Tracing is handled by the OTEL context set in trace_context().
     Session cache is disabled via SESSION_CACHE_ENABLED env var at eval time.
 
     Returns:
@@ -153,6 +156,7 @@ def run_pipeline_with_memory(
     global _memory_graph
     if _memory_graph is None:
         from tamubot.rag.graph.checkpointer import make_checkpointer
+
         checkpointer = make_checkpointer()
         _memory_graph = build_graph_with_memory(checkpointer=checkpointer)
 

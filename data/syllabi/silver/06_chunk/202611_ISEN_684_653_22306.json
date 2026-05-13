@@ -1,0 +1,85 @@
+{
+  "source_file": "202611_ISEN_684_653_22306",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "internship",
+  "course_metadata": {
+    "course_id": "ISEN 684",
+    "section": "653",
+    "term": "Spring 2026",
+    "crn": "22306",
+    "instructor": {
+      "name": "Joseph Geunes",
+      "email": "geunes@tamu.edu",
+      "office": "ETB 4024",
+      "office_hours": "N/A"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "1 TO 16",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/xvtm05t8q/Spring-2026-College-Station-ISEN-684-653-%2822306%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): Approval of committee chair and department head."
+  },
+  "course_summary": "ISEN 684 | Professional Internship\nInstructor: Joseph Geunes | geunes@tamu.edu\nInstructor: Deborah Starnes | dstarnes@tamu.edu\nGrading: final internship report [S/U]\nTopics: on-the-job training, practicing engineers, professional objectives, internship report, Professional Internship\nPrerequisites: Approval of committee chair and department head",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 5,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nProfessional Internship. Credit 1 or more each semester. On-the-job training under supervision of practicing engineers in settings appropriate to professional objectives. May be repeated for credit. Prerequisite: Approval of committee chair and department head.",
+      "header_path": "Catalog Description",
+      "token_count": 71,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 32,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: No required textbook\n\nNo textbook needed.",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 24,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\nThis course is graded S/U based on a final internship report submitted before the end of the semester.",
+      "header_path": "Grading Policy",
+      "token_count": 30,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).\n\n## Course Schedule\n\nThe schedule is set by the employer.",
+      "header_path": "Late Work Policy",
+      "token_count": 58,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:56.286592"
+}

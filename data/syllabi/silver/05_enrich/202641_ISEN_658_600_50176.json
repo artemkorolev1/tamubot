@@ -1,0 +1,82 @@
+{
+  "source_file": "202641_ISEN_658_600_50176",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 658",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "50176",
+    "instructor": {
+      "name": "Dinakar Sagapuram",
+      "email": "dinakar@tamu.edu",
+      "office": "ETB 4068",
+      "office_hours": "Every Thursday 9:30-10:30 am, ETB 4068"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 08:00AM-09:15AM (08/24/2026 - 12/10/2026)",
+    "location": "ZACH 345",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/52g32mirz/Fall-2026-College-Station-ISEN-658-600-%2850176%29?mode=view"
+  },
+  "course_summary": "ISEN 658 Principles of Manufacturing Processes | Fall 2026\nInstructor: Dinakar Sagapuram | dinakar@tamu.edu\nMeets: TR 08:00AM-09:15AM | ZACH 345\nGrading: Exam 1 [25%], Exam 2 [25%], Exam 3 [25%], Final Project [25%] — A: 90%-100%, B: 80%-89.9%, C: 70%-79.9%, D: 60%-69.9%, F: < 60 %\nTopics: tension test, stress tensor, principal stresses, yield criteria, plastic flow rules, nucleation, growth, cast microstructures, phase diagrams, equilibrium freezing, non-equilibrium freezing, constitutional undercooling, interface stability, 1D analysis, bulk heat treatment, Stationary heat sources, surface heat treatment, Moving heat sources, welding, laser-based processing, Contact temperatures, heat partitioning, Machining temperatures, Finite Element Method (FEM), FEM implementation, FEM applications, Finite element modeling of machining, physical principles of manufacturing processes, analytical techniques, numerical techniques, industrial manufacturing applications, case studies, solid mechanics, plastic deformation, deformation processes, cutting processes, fluid flow, rheology, polymer processing, casting, thermal effects, transient heat transfer problems, tribology, additive manufacturing processes, materials and process selection, product design, material behavior, manufacturing process mechanics, theoretical methods, physical phenomena, process performance, efficiency, product attributes, product performance, Mechanical behavior of materials, elasticity, plasticity, Deformation and forming processes, effect of friction, Solidification of metals, Solidification of alloys, Heat transfer and conduction, mathematics, science, engineering, manufacturing processes, processing\nTools: ABAQUS, course website",
+  "headers": [
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Specific Late Work Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course schedule",
+      "level": 3,
+      "page": 3
+    }
+  ]
+}

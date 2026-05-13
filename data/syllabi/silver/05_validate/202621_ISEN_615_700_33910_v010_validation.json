@@ -4,22 +4,10 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "Duplicate entry 'Credit Hours: 3' under 'Course Information'.",
-      "The 'Textbook and/or Resource Materials' section header is present but empty; the textbook details are incorrectly placed under 'Course Schedule - Week 1'.",
-      "The 'Week 7' entry in the 'Course Schedule' is duplicated."
+      "Duplicate 'Credit Hours: 3' entry immediately following the first 'Credit Hours: 3' entry."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 17.27,
-  "proposals": {
-    "new_false_positives": [
-      "ISEN615 Syllabus",
-      "Section 700 (33910) Production and Inventory Control Summer 2026 - College Station"
-    ],
-    "new_boilerplate": [
-      "Special Course Designation"
-    ],
-    "text_cleanups": [],
-    "reasoning": "The entries under 'new_false_positives' are course title and course metadata, which are not true section headers and should be treated as body text. 'Special Course Designation' is proposed as boilerplate because sections like this, especially when their content is consistently 'None' or similar, often represent institutional placeholders that are not course-specific and can be stripped. There are no obvious text cleanup patterns (like HTML comments or encoding errors) in the provided document."
-  }
+  "timing_s": 12.8,
+  "proposals": {}
 }

@@ -126,11 +126,16 @@ class HierarchyFilter:
         input_dir: Path,
         output_dir: Path,
         config: dict[str, Any] | None = None,
+        report_path: Path | None = None,
     ) -> FilterResult:
         config = config or {}
         input_dir = Path(input_dir)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        if report_path is None:
+            from tamubot.ingestion.report_writer import get_report
+
+            report_path = get_report()
 
         result = FilterResult()
         md_files = sorted(input_dir.glob("*.md"))
@@ -154,14 +159,14 @@ class HierarchyFilter:
 
             corrected = False
 
-            if len(distinct_levels) >= 2 or not headers:
-                # Already has hierarchy or no headers — pass-through
+            if not headers:
+                # No headers — pass-through
                 shutil.copy2(md_path, output_dir / md_path.name)
             else:
-                # Flat: all headers at one level — attempt correction
-                flat_level = next(iter(distinct_levels))
-                # Base level for numbering inference: use the flat level as depth-0
-                base_level = flat_level
+                # Apply known-section and numbering correction to all files.
+                # For flat files (one distinct level), use that as base_level.
+                # For multi-level files, use 2 (standard ## base).
+                base_level = next(iter(distinct_levels)) if len(distinct_levels) == 1 else 2
 
                 out_lines = list(lines)
                 for line_idx, _old_level, header_text in headers:
@@ -198,6 +203,17 @@ class HierarchyFilter:
                     "header_count": len(headers),
                 }
             )
+
+            if report_path:
+                from tamubot.ingestion.report_writer import update_hierarchy
+
+                update_hierarchy(
+                    report_path,
+                    md_path.stem,
+                    corrected,
+                    level_dist_before,
+                    level_dist_after,
+                )
 
         result.metrics = {
             "files_corrected": result.modified_count,

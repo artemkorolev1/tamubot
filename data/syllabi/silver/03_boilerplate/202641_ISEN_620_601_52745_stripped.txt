@@ -22,9 +22,9 @@ Canvas Resources are also linked on the home page of every Canvas course.
 #### University Policies
 This section outlines the university-level policies that must be included in each course syllabus. The TAMU Faculty Advisory Council established the wording of these policies.
 
-[TAMU_POLICY] Academic Integrity Statement and Policy (level 4, 714 chars)
+[TAMU_POLICY] Academic Integrity Statement and Policy (level 4, 708 chars)
 #### Academic Integrity Statement and Policy
-'An Aggie does not lie, cheat or steal, or tolerate those who do.'
+'An Aggie does not lie, cheat or steal, or tolerate who do.'
 'Texas A&M University students are responsible for authenticating all work submitted to an instructor. If asked, students must be able to produce proof that the item submitted is indeed the work of that student. Students must keep appropriate records at all times. The inability to authenticate one's work, should the instructor request it, may be sufficient grounds to initiate an academic misconduct case' (Section 20.1.2.3, Student Rule 20).
 You can learn more about the Aggie Honor System Office Rules and Procedures, academic integrity, and your rights and responsibilities at aggiehonor.tamu.edu.
 
@@ -69,11 +69,11 @@ If you are experiencing difficulties with your approved accommodations, contact 
 Texas A&M provides reasonable accommodations to students due to pregnancy and/or related conditions, such as childbirth, recovery, and lactation. Students should contact the University's Pregnancy Coordinator as soon as they become aware of the need for accommodation. Depending on the circumstances, accommodations could include extended time to complete assignments or exams, changes in course sequence, or modifications to the physical classroom environment.
 Texas A&M will also allow a voluntary leave of absence, ensure the availability of lactation space, and maintain grievance procedures to provide for the prompt and equitable resolution of complaints of sex discrimination. For information regarding pregnancy accommodations, email TIX.Pregnancy@tamu.edu.
 
-[TAMU_POLICY] Statement on Mental Health and Wellness (level 4, 946 chars)
+[TAMU_POLICY] Statement on Mental Health and Wellness (level 4, 943 chars)
 #### Statement on Mental Health and Wellness
 Texas A&M University recognizes that mental health and wellness are critical factors influencing a student's academic success and overall wellbeing. Students are encouraged to engage in healthy self-care practices by utilizing the resources and services available through University Health Services. The TELUS Health Student Support app provides access to professional counseling in multiple languages anytime, anywhere by phone or chat, and the 988 Suicide & Crisis Lifeline offers 24-hour emergency support at 988 or 988lifeline.org.
 Texas A&M College Station
-Students needing a listening ear can contact University Health Services at 979.458.4584. Call 911 or visit your nearest emergency room if you are currently experiencing a life-threatening situation or if your safety is at risk. 24-hour emergency help is also available through the 988 Suicide & Crisis Lifeline (988) or at 988lifeline.org.
+Students needing a listening ear can contact University Health Services at 979.458.4584. Call 911 or visit your nearest emergency room if you are currently experiencing a life-threatening situation or your safety is at risk. 24-hour emergency help is also available through the 988 Suicide & Crisis Lifeline (988) or at 988lifeline.org.
 
 [TAMU_POLICY] Statement on the Family Educational Rights and Privacy Act (FERPA) (level 4, 1421 chars)
 #### Statement on the Family Educational Rights and Privacy Act (FERPA)

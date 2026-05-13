@@ -2,37 +2,15 @@
   "file_stem": "202641_ISEN_691_609_18671",
   "findings": {
     "content_preservation": [
-      "The list of Course Learning Outcomes is missing after the introductory sentence."
+      "The actual learning outcomes are missing from the 'Course Learning Outcomes' section.",
+      "The 'Grading Policy' section contains placeholder text 'Description of items in the grading.' instead of a proper description."
     ],
     "strip_completeness": [],
     "structural_coherence": [
-      "The line 'Credit Hours: 1 TO 23' is duplicated.",
-      "The header '### Grading Policy' appears twice consecutively.",
-      "List items under 'Grading Policy' have an extraneous hyphen at the beginning (e.g., '- -Weekly participation: 15%')."
+      "Duplicate header '### Grading Policy' immediately follows '## Grading Policy'."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 17.0,
-  "proposals": {
-    "new_false_positives": [],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      {
-        "pattern": "\\nCredit Hours:\\n1 TO 23",
-        "replacement": "",
-        "flags": ""
-      },
-      {
-        "pattern": "\\n### Grading Policy",
-        "replacement": "",
-        "flags": ""
-      },
-      {
-        "pattern": "- -",
-        "replacement": "- ",
-        "flags": ""
-      }
-    ],
-    "reasoning": "The 'Credit Hours' block and '### Grading Policy' header are duplicated and should be removed to clean up the document. The extraneous hyphen in list items under 'Grading Policy' should be removed for correct formatting. No new false positives or boilerplate sections were identified based on the provided markdown and rules."
-  }
+  "timing_s": 7.09,
+  "proposals": {}
 }

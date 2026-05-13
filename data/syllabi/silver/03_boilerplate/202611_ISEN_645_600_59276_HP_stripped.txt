@@ -3,7 +3,7 @@
 
 All documents used in this course are copyrighted. Here, "documents" means all materials generated for this class, including, but not limited to, syllabi, exams, problem sets, slide sets, and all materials appearing on the class web site or sent to you via email. Because these materials are copyrighted, you do not have the right to copy any of them for any purpose other than your own personal academic use unless I grant permission. In particular, course materials may not be given or sold to any for-profit enterprise.
 
-[TAMU_POLICY] 6 UNIVERSITY POLICIES (level 1, 11553 chars)
+[TAMU_POLICY] 6 UNIVERSITY POLICIES (level 1, 11735 chars)
 # 6 UNIVERSITY POLICIES
 ## 6.1 ATTENDANCE POLICY
 
@@ -11,15 +11,14 @@ The university views class attendance and participation as an individual student
 
 Please refer to Student Rule 7 in its entirety for information about excused absences, including definitions, and related documentation and timelines.
 
-With respect to medical issues, students may use the Explanatory Statement for Absence from Class form in lieu of a medical confirmation. Students must submit the Explanatory Statement for Absence from Class within two business days after the last date of absence.  This includes absence because the student is too ill to attend class to take an exam.  (See paragraph below regarding 'Personal Illness and Quarantine'.)
+With respect to medical issues, students may use the Explanatory Statement for Absence from Class form in lieu of a medical confirmation. Students must submit the Explanatory Statement for Absence from Class within two business days after the last date of absence. This includes absence because the student is too ill to attend class to take an exam. (See paragraph below regarding 'Personal Illness and Quarantine'.)
 
-Also, please note that the rule regarding job interviews is as follows: 'Mandatory interviews for permanent, full-time employment or full-time internships (including those that are part of a cooperative education program) that have a duration of at least 10 weeks, provided that such interviews are related to the student's academic program and provided that the interviews are fixed date by employer policy and cannot be rescheduled. A student may not request excused absences for employment or internship interviews for more than one scheduled class meeting in one academic term.'  Also, 'Documentation from the employer must be provided 5 business days in advance.'
+Also, please note that the rule regarding job interviews is as follows: 'Mandatory interviews for permanent, full-time employment or full-time internships (including those that are part of a cooperative education program) that have a duration of at least 10 weeks, provided that such interviews are related to the student's academic program and provided that the interviews are fixed date by employer policy and cannot be rescheduled. A student may not request excused absences for employment or internship interviews for more than one scheduled class meeting in one academic term.' Also, 'Documentation from the employer must be provided 5 business days in advance.'
 
-In this class, I only need official documentation regarding an excused absence if the absence is during an exam time.  For other times, documentation is not needed.
+In this class, I only need official documentation regarding an excused absence if the absence is during an exam time. For other times, documentation is not needed.
 
 Course Syllabus
-
-
+<!-- image removed: Texas A&M University logo -->
 
 ## 6.2 MAKEUP WORK POLICY
 
@@ -39,15 +38,14 @@ Students who request an excused absence are expected to uphold the Aggie Honor C
 
 You can learn more about the Aggie Honor System Office Rules and Procedures, academic integrity, and your rights and responsibilities at aggiehonor.tamu.edu.
 
-The Industrial and Systems Engineering Department has adopted a 'no tolerance' position with respect to violations of the Aggie Honor Code.  In this course, I will request the Aggie Honor Office to assign a grade of F* for any violation of the Aggie Honor Code, no matter how minimal the violation may be.  (The Honor Council Rules and Procedures can be found at http://aggiehonor.tamu.edu.)
+The Industrial and Systems Engineering Department has adopted a 'no tolerance' position with respect to violations of the Aggie Honor Code. In this course, I will request the Aggie Honor Office to assign a grade of F* for any violation of the Aggie Honor Code, no matter how minimal the violation may be. (The Honor Council Rules and Procedures can be found at http://aggiehonor.tamu.edu.)
 
 NOTICE OF NONDISCRIMINATION:
 
 Texas A&M University is committed to providing safe and non-discriminatory learning, living, and work environments for all members of the University community. The University provides equal opportunity to all employees, students, applicants for employment or admission, and the public regardless of race, color, sex (including pregnancy and related conditions), religion, national origin, age, disability, genetic information, or veteran status. Texas A&M University will promptly, thoroughly, and fairly investigate and resolve all complaints of discrimination, harassment (including sexual harassment), complicity and related retaliation based on a protected class in accordance with System Regulation 08.01.01, University Rule 08.01.01.M1, Standard Administrative Procedure (SAP) 08.01.01.M1.01, and applicable federal and state laws. In accordance with Title IX and its implementing regulations, Texas A&M does not discriminate on the basis of sex in any educational program or activity, including admissions and employment. The following person has been designated to handle inquiries and
 
 Course Syllabus
-
-
+<!-- image removed: Texas A&M University logo -->
 
 Course Syllabus
 
@@ -67,15 +65,15 @@ Texas A&M University is committed to providing equitable access to learning oppo
 
 To request academic accommodations, contact the designated ADA office based on your location:
 
-- Texas A&M University, College of Nursing, College of Dentistry, Irma Lerma Rangel College of Pharmacy College Station, College of Medicine, School of Public Health, Institute of Biosciences and Technology, EnMed Program, Bush School in Washington DC, Mays Business School CityCentre, TAMU Engineering Academies, Texas A&M University Higher Education Center at McAllen  and Texas A&M University at Galveston should contact Disability Resources at (979) 845-1637 or disability@tamu.edu.
+- Texas A&M University, College of Nursing, College of Dentistry, Irma Lerma Rangel College of Pharmacy College Station, College of Medicine, School of Public Health, Institute of Biosciences and Technology, EnMed Program, Bush School in Washington DC, Mays Business School CityCentre, TAMU Engineering Academies, Texas A&M University Higher Education Center at McAllen and Texas A&M University at Galveston should contact Disability Resources at (979) 845-1637 or disability@tamu.edu.
 
 6.6 PREGNANCY ACCOMMODATIONS
 
-
+<!-- image removed: Texas A&M University logo -->
 
 Course Syllabus
 
-Texas A&M provides reasonable accommodations to students due to pregnancy and/or related conditions, such as childbirth, recovery and lactation.  Students should contact the University's Pregnancy Coordinator as soon as they become aware of the need for accommodation.  Depending on the circumstances, accommodations could include extended time to complete assignments or exams, changes in course sequence, or modifications to the physical classroom environment.  Texas A&M will also allow a voluntary leave of absence, ensure the availability of lactation space, and maintain grievance procedures to provide for the prompt and equitable resolution of complaints of sex discrimination.   For information regarding pregnancy accommodations, email TIX.Pregnancy@tamu.edu.
+Texas A&M provides reasonable accommodations to students due to pregnancy and/or related conditions, such as childbirth, recovery and lactation. Students should contact the University's Pregnancy Coordinator as soon as they become aware of the need for accommodation. Depending on the circumstances, accommodations could include extended time to complete assignments or exams, changes in course sequence, or modifications to the physical classroom environment. Texas A&M will also allow a voluntary leave of absence, ensure the availability of lactation space, and maintain grievance procedures to provide for the prompt and equitable resolution of complaints of sex discrimination. For information regarding pregnancy accommodations, email TIX.Pregnancy@tamu.edu.
 
 6.7 STATEMENT ON THE FAMILY EDUCATIONAL RIGHTS AND PRIVACY ACT (FERPA)
 
@@ -91,7 +89,7 @@ Texas A&M College Station
 
 Students needing a listening ear can contact University Health Services (979.458.4584) 24-hour emergency help is also available through the 988 Suicide & Crisis Lifeline (988) or at 988lifeline.org.
 
-
+<!-- image removed: Texas A&M University logo -->
 
 ## 6.9 Artificial Intelligence (AI) Usage
 

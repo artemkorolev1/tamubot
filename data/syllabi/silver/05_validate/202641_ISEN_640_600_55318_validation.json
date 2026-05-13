@@ -4,35 +4,10 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "Heading '### Grading Policy' is incorrectly nested under '## Course Learning Outcomes'. It should likely be a top-level '##' heading.",
-      "Heading '### Late Work Policy' is incorrectly nested under '## Course Learning Outcomes'. It should likely be a top-level '##' heading.",
-      "Heading '### Course Schedule' is incorrectly nested under '## Course Learning Outcomes'. It should likely be a top-level '##' heading."
+      "The 'Course Schedule' content is not formatted as a table, losing its intended tabular structure for 'Week', 'Topic', and 'Reading' columns."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 17.98,
-  "proposals": {
-    "new_false_positives": [
-      "Section 600 (55318) Systems Thinking and Analysis Fall 2026 - College Station",
-      "Meeting Times:",
-      "Meeting Type:",
-      "Meeting Days:",
-      "Start Time:",
-      "End Time:",
-      "Start Date:",
-      "End Date:",
-      "Meeting Location:",
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "None",
-      "No required textbook",
-      "No Textbook Needed"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [],
-    "reasoning": "The identified 'new_false_positives' are short labels, descriptive text, or content that have been incorrectly identified as headers by the parser. They should be demoted to body text as they do not represent distinct sections or sub-sections. No university-wide boilerplate sections or text cleanups were identified in this document based on the provided rules."
-  }
+  "timing_s": 8.49,
+  "proposals": {}
 }

@@ -1,28 +1,14 @@
 {
   "file_stem": "202611_ISEN_665_600_59566",
   "findings": {
-    "content_preservation": [
-      "The detailed weekly/daily course schedule content is missing from the 'Course Schedule' section."
-    ],
+    "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "Heading levels for 'Grading Policy', 'Late Work Policy', 'Course Schedule', and 'Additional Course Information' are H2, but they should be H1 as they are top-level sections.",
-      "The line '2MAY . Grades for graduating students are due by 6MAY.' in the 'Course Schedule' section is an orphaned line, indicating a missing schedule table or list."
+      "Table in Course Schedule has a row `| | | | | 20% | 20% | 30% | 30% | |` which appears to be grading weights, incorrectly placed as a row in the schedule table.",
+      "The text '2MAY . Grades for graduating students are due by 6MAY.' is loose text after the Course Schedule table, not under a heading or within a paragraph."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 18.94,
-  "proposals": {
-    "new_false_positives": [
-      "Preferred Contact Method",
-      "Special Course Designation",
-      "Recommended :"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "&gt;",
-      "5 th"
-    ],
-    "reasoning": "new_false_positives: These are short labels or sub-points that do not introduce substantial new sections and are better integrated into the preceding body text or as simple labels. new_boilerplate: No sections were identified as institutional boilerplate that appears verbatim across ALL syllabi. text_cleanups: '&gt;' is an HTML entity that should be replaced with '>'; '5 th' is a formatting error that should be corrected to '5th'."
-  }
+  "timing_s": 9.07,
+  "proposals": {}
 }

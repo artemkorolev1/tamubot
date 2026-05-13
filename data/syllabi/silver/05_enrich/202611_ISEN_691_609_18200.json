@@ -1,0 +1,107 @@
+{
+  "source_file": "202611_ISEN_691_609_18200",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "research",
+  "course_metadata": {
+    "course_id": "ISEN 691",
+    "section": "609",
+    "term": "Spring 2026",
+    "crn": "18200",
+    "instructor": {
+      "name": "Thomas Ferris",
+      "email": "tferris@tamu.edu",
+      "office": "4081 ETB",
+      "office_hours": "Thursday 3 - 5"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": "HF&CS lab",
+    "format": "in-person",
+    "credit_hours": "1 TO 23",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/ghcpay52q/Spring-2026-College-Station-ISEN-691-609-%2818200%29?mode=view"
+  },
+  "course_summary": "ISEN 691 | Research | Spring 2026\nInstructor: Thomas Ferris | tferris@tamu.edu\nMeets: coordinated meetings each week in the HF&CS lab; larger project meetings (held at separate times most weeks)\nGrading: Midterm deliverable [30%], Final deliverable [50%], Weekly meeting attendance and updates [20%] — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: <60%\nTopics: Rubberhand project, HF&CS lab, experimental protocol design, IRB approval, human-subjects study, results compilation, technical report writing, human subjects data collection, peer-reviewed journal outlets, statistical testing, human perception mechanisms, human performance effects induction, peer-reviewed publication submission, recruitment planning, Midterm results presentation, statistical analyses, journal article drafting, Introduction material, Methods material, Results material, Discussion material, final report refinement, final report revision, literature collection, literature review, data collection, data analysis, lab presentations, progress updates, project meetings, interdisciplinary collaborators, testing, research project, industrial engineering field, research",
+  "headers": [
+    {
+      "text": "ISEN 691 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Additional Course Details",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Grading Policy",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Grading Scale",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Expected Outcomes/Deliverables",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Grading Appeals:",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "schedule of topics",
+      "level": 3,
+      "page": 4
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "source_file": "202641_ISEN_622_600_19843",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 622",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "19843",
+    "instructor": {
+      "name": "Sergiy Butenko",
+      "email": "butenko@tamu.edu",
+      "office": "4037 ETB",
+      "office_hours": "TBA"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 11:10AM - 12:25PM",
+    "location": "ZACH 345",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/5nmcmnny8/Fall-2026-College-Station-ISEN-622-600-%2819843%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): MATH 304."
+  },
+  "course_summary": "ISEN 622 | Linear Programming | Fall 2026\nInstructor: Sergiy Butenko | butenko@tamu.edu\nMeets: TR 11:10AM-12:25PM | ZACH 345\nGrading: Lecture quizzes [10%], Homework assignments [15%], Three in-class exams [25%], Three in-class exams [25%], Three in-class exams [25%] — A: [90,100], B: [80,90), C: [70,80), D: [60,70), F: [0,60)\nTopics: Gomory Cut, Farkas' Lemma, KKT Conditions, The Primal-Dual Simplex Method, Dantzig-Wolfe Decomposition, Two-Stage Stochastic LP, Modeling Either/Or Conditions, Parametric Linear Programming, Complementary slackness, Simplex Method in the Matrix Form, Analysis of the Simplex Method, Simplex Method: Initialization, Simplex Method: Iteration and Termination, Simplex Method: An Introduction, revised simplex method, dual simplex methods, bounded variables, column generation, decomposition, Integer Programming Modeling, integer programming, Representation of Polyhedra, Properties of Polyhedra, polyhedral sets, convex sets, cones, duality theory, sensitivity analysis, LP Modeling, Graphical Method, linear optimization models, small-scale LPs, large-scale LPs, simplex method, linear programming, theory, algorithms, mathematics\nTools: optimization software\nPrerequisites: MATH 304",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 6,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nLinear Programming. (3-0). Credit 3. Development of the mathematics and algorithms associated with linear programming; convex sets and cones, polyhedral sets, duality theory, sensitivity analysis, simplex, revised simplex and dual simplex methods; also covered are bounded variables, column generation, decomposition, integer programming; computer assignment. Prerequisite: MATH 304.",
+      "header_path": "Catalog Description",
+      "token_count": 102,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- develop and apply linear programming (LP) theory and algorithms;\n\n- formulate linear optimization models;\n\n- solve small-scale LPs by hand and large-scale LPs using optimization software.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 79,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Required\n\nISEN 622 Course Handbook\n\nAuthors: Sergiy Butenko\n\nURL for Resource: https://drive.google.com/file/d/13qVYKm\\_5vPzPGScfrdH4jhPD9BFOyRfg/view?usp=sharing",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 55,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\n- Lecture quizzes: 10% of the final grade.\n\n- Homework assignments: 15%.\n\n- Three in-class exams: 25% each.\n\nThe final letter grades will be calculated using the formula\n\nweighted average = 0.1(lec quiz average)+0.15(hw quiz average)+0.75(exam average)\n\nand will be assigned as follows. A: [90,100], B: [80,90), C: [70,80), D: [60,70), F: [0,60).\n\nOptional Final Exam will be offered as a chance to improve your final grade. The exam will consist of the problems of the same types as the three exams given during the semester. You will be able to choose which problems to solve. You will have two hours to complete the exam, and the score for each problem you attempt will replace the score you obtained for the problem of the same type in the original exam (whenever the new score is higher).",
+      "header_path": "Grading Policy",
+      "token_count": 203,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Course Schedule\n\nT 8/25 Lec.1: Introduction\n\nR 8/27 Lec. 2: Introduction to Optimization Software\n\nT 9/1 Lec. 3: LP Modeling\n\nR 9/3 Lec. 4: Graphical Method\n\nT 9/8 Homework #1 due date\n\nT 9/8 Lec. 5: Simplex Method: An Introduction\n\nR 9/10 Lec. 6: Simplex Method: Iteration and Termination\n\nT 9/15 Lec. 7: Simplex Method: Initialization\n\nR 9/17 Lec. 8: Analysis of the Simplex Method\n\nT 9/22 Homework #2 due date\n\nT 9/22 Lec. 9: Properties of Polyhedra\n\nR 9/24 Lec. 10: Representation of Polyhedra\n\nT 9/29 Exam #1\n\nR 10/1 Lec. 11: LP Duality: Introduction\n\nT 10/6 Homework #3 due date\n\nT 10/6 Lec. 12: Complementary slackness\n\nR 10/8 Lec. 13: Simplex Method in the Matrix Form\n\nT 10/13 Lec. 14: Sensitivity analysis\n\nR 10/15 Lec. 15: Sensitivity analysis\n\nT 10/20 Homework #4 due date\n\nT 10/20 Lec. 16: Gomory Cut\n\nR 10/22 Lec. 17: Parametric Linear Programming\n\nT 10/27 Exam #2\n\nR 10/29 Lec. 18: Farkas' Lemma and KKT Conditions\n\nT 11/3 Homework #5 due date\n\nT 11/3 Lec. 19: The Primal-Dual Simplex Method\n\nR 11/5 Lec. 20: Column Generation\n\nT 11/10 Lec. 21: Dantzig-Wolfe Decomposition\n\nR 11/12 Lec. 22: Dantzig-Wolfe Decomposition\n\nT 11/17 Homework #6 due date\n\nT 11/17 Lec. 23: Integer Programming Modeling\n\nR 11/19 Lec. 24: Modeling Either/Or Conditions\n\nT 11/24 Lec. 25: Two-Stage Stochastic LP\n\nR 12/3 Homework #7 due date\n\nR 12/3 Exam #3",
+      "header_path": "Course Schedule",
+      "token_count": 337,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:57.277565"
+}

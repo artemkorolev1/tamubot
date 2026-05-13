@@ -312,13 +312,18 @@ def step_filter(
     return output_dir
 
 
-def step_validate(input_dir: Path, version: str) -> Path:
+def step_validate(input_dir: Path, version: str, version_label: str | None = None) -> Path:
     """Run LLM validation on filtered markdown files."""
     from tamubot.ingestion.validators.llm_validator import validate_directory
 
     output_dir = SILVER_DIRS["validate"]
     print("  Running LLM validation (4 checks per file)...")
-    results = validate_directory(input_dir, None, output_dir)
+    results = validate_directory(
+        input_dir,
+        None,
+        output_dir,
+        version_label=version_label,
+    )
 
     logger = StepLogger(LOGS_ROOT / "validate_log")
     for r in results:
@@ -339,6 +344,46 @@ def step_validate(input_dir: Path, version: str) -> Path:
     return output_dir
 
 
+def _load_enrichment(enrichment_dir: Path, stem: str) -> dict:
+    """Load enrichment JSON for a file stem, return empty dict if missing."""
+    path = enrichment_dir / f"{stem}.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+_LEADING_NUM_RE = re.compile(r"^\d+(?:\.\d+)*\s+")
+
+
+def _build_page_lookup(enrichment: dict) -> dict[str, int]:
+    """Build a lowercase header-text → page mapping from enrichment headers."""
+    lookup: dict[str, int] = {}
+    for h in enrichment.get("headers", []):
+        text = h.get("text", "").strip().lower()
+        page = h.get("page")
+        if text and page is not None:
+            lookup[text] = page
+            # Also index without leading section numbers
+            stripped = _LEADING_NUM_RE.sub("", text)
+            if stripped != text:
+                lookup[stripped] = page
+    return lookup
+
+
+def _resolve_page(chunk: dict, page_lookup: dict[str, int]) -> int | None:
+    """Find the page number for a chunk by matching its header against enrichment."""
+    hp = chunk.get("header_path", "")
+    if not hp:
+        return None
+    # The chunk's own header is the last segment of header_path
+    own_header = hp.split(" > ")[-1].strip().lower()
+    page = page_lookup.get(own_header)
+    if page is None:
+        # Try stripping leading numbers
+        page = page_lookup.get(_LEADING_NUM_RE.sub("", own_header))
+    return page
+
+
 def step_chunk(
     input_dir: Path,
     version: str,
@@ -346,49 +391,116 @@ def step_chunk(
     min_chunk_tokens: int,
     split_level: int,
 ) -> Path:
-    """Chunk filtered markdown files and extract metadata."""
-    from tamubot.ingestion.chunker_v4 import chunk_with_log
+    """Semantic chunking: one chunk per section, enriched with course metadata.
+
+    Produces ingestion-ready JSON documents in 06_chunk/.
+    """
+    from tamubot.ingestion.chunk_report import generate_chunk_report
+    from tamubot.ingestion.chunker_v4 import (
+        chunk_semantic,
+    )
 
     output_dir = SILVER_DIRS["chunk"]
+    enrichment_dir = SILVER_ROOT / "05_enrich"
     logger = StepLogger(LOGS_ROOT / "chunk_log")
 
     md_files = sorted(input_dir.glob("*.md"))
-    print(f"  Chunking {len(md_files)} files...")
+    print(f"  Chunking {len(md_files)} files (semantic mode)...")
+
+    errors: list[dict] = []
 
     for md_file in md_files:
-        markdown = md_file.read_text(encoding="utf-8")
-        chunks, log_info = chunk_with_log(
-            markdown,
-            max_chunk_tokens=max_chunk_tokens,
-            min_chunk_tokens=min_chunk_tokens,
-            split_level=split_level,
-        )
-
         stem = md_file.stem
-        out_path = output_dir / f"{stem}.json"
-        out_data = {
-            "source_file": stem,
-            "pipeline_version": "v4",
-            "chunk_config": {
-                "max_chunk_tokens": max_chunk_tokens,
-                "min_chunk_tokens": min_chunk_tokens,
-                "split_level": split_level,
-            },
-            "chunks": chunks,
-            "_parsed_at": datetime.now().isoformat(),
-        }
-        out_path.write_text(json.dumps(out_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        try:
+            markdown = md_file.read_text(encoding="utf-8")
+            chunks, log_info = chunk_semantic(
+                markdown,
+                flag_threshold=max_chunk_tokens,
+                min_chunk_tokens=min_chunk_tokens,
+            )
 
-        logger.log(
-            {
-                "version": version,
-                "file": stem,
-                "chunk_count": len(chunks),
-                **log_info,
-                "timestamp": datetime.now().isoformat(),
+            # Load enrichment metadata and annotate chunks with page numbers
+            enrichment = _load_enrichment(enrichment_dir, stem)
+            page_lookup = _build_page_lookup(enrichment)
+            for chunk in chunks:
+                chunk["page"] = _resolve_page(chunk, page_lookup)
+                # Root body (preamble before any header) is always page 1
+                if chunk["page"] is None and not chunk["header_path"]:
+                    chunk["page"] = 1
+
+            # Extract prerequisites from markdown and add to metadata
+            course_metadata = enrichment.get("course_metadata", {})
+            prereq_match = re.search(
+                r"^#{1,6}\s+(?:\d+(?:\.\d+)*\s+)?Course\s+Prerequisites\s*\n+(.*?)(?=\n#{1,6}\s|\Z)",
+                markdown,
+                re.MULTILINE | re.DOTALL,
+            )
+            if prereq_match:
+                course_metadata["prerequisites"] = prereq_match.group(1).strip()
+
+            out_data = {
+                "source_file": stem,
+                "pipeline_version": "v4",
+                "source": enrichment.get("source", ""),
+                "course_type": enrichment.get("course_type", ""),
+                "course_metadata": course_metadata,
+                "course_summary": enrichment.get("course_summary", ""),
+                "chunk_config": {
+                    "strategy": "semantic",
+                    "flag_threshold": max_chunk_tokens,
+                    "min_chunk_tokens": min_chunk_tokens,
+                },
+                "total_chunks": len(chunks),
+                "chunks": chunks,
+                "_parsed_at": datetime.now().isoformat(),
             }
-        )
-        print(f"    {stem}: {len(chunks)} chunks")
+
+            out_path = output_dir / f"{stem}.json"
+            out_path.write_text(json.dumps(out_data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+            flagged = sum(1 for c in chunks if c["flags"])
+            enriched = "+" if enrichment else "-"
+            print(f"    {stem}: {len(chunks)} chunks, {flagged} flagged, enrichment={enriched}")
+
+            logger.log(
+                {
+                    "version": version,
+                    "file": stem,
+                    "chunk_count": len(chunks),
+                    "has_enrichment": bool(enrichment),
+                    **log_info,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+
+        except Exception as exc:
+            errors.append({"file": stem, "error": str(exc)})
+            print(f"    ERROR {stem}: {exc}")
+            logger.log(
+                {
+                    "version": version,
+                    "file": stem,
+                    "chunk_count": 0,
+                    "error": str(exc),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+
+    if errors:
+        print(f"\n  {len(errors)} errors:")
+        for e in errors:
+            print(f"    {e['file']}: {e['error']}")
+
+    # Generate chunking report
+    report_path = output_dir / "chunk_report.xlsx"
+    generate_chunk_report(
+        input_dir=input_dir,
+        enrichment_dir=enrichment_dir,
+        output_path=report_path,
+        flag_threshold=max_chunk_tokens,
+        min_chunk_tokens=min_chunk_tokens,
+        file_stems=[f.stem for f in md_files],
+    )
 
     return output_dir
 

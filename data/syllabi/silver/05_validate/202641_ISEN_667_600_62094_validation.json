@@ -2,52 +2,35 @@
   "file_stem": "202641_ISEN_667_600_62094",
   "findings": {
     "content_preservation": [
-      "Course Schedule section is missing actual weekly/daily schedule of topics, readings, and assignments."
+      "Detailed course schedule (dates, topics, assignments) is missing from the 'Course Schedule' section."
     ],
-    "strip_completeness": [
-      "The list of university-excused absences (starting with '1. Participation in an activity...') within the 'Makeup Policy' section is boilerplate and should be removed.",
-      "The Title IX statement regarding pregnancy-related absences (starting with 'e. In accordance with Title IX...') within the 'Makeup Policy' section is boilerplate and should be removed."
-    ],
-    "structural_coherence": [
-      "Redundant 'Credit Hours: 3' entry after 'Course Description and Topics' section.",
-      "Redundant instructor contact information (Email, Office Location, Phone) listed twice under 'Instructor Details'.",
-      "Orphaned header 'Office Hours' with no content.",
-      "Redundant header '### Course Learning Outcomes' directly under '## Course Learning Outcomes'.",
-      "Inconsistent heading levels for 'Chapter' sections under 'Course Learning Outcomes'; 'Chapter 1:' is '####' while 'Chapter 2:', 'Chapter 4:', 'Chapter 5:', 'Chapter 6:', 'Chapter 7:', 'Chapter 8:', 'Chapter 9:', 'Chapter 12:' are '##', and 'Chapter 13:', 'Chapter 16:', 'Chapter 19:' are '###'. All should be consistent, likely '####'.",
-      "Statement 'All quizzes and exams are closed book and closed notes' is formatted as a heading '###' but is a policy statement, not a section title.",
-      "Heading '#### Course Specific Late Work Policy' is at the same level as its parent '#### Late Work Policy'; it should be a sub-heading (e.g., '#####').",
-      "Heading '##### Makeup Policy:' under 'Course Specific Late Work Policy' is at an incorrect level; it should be a sub-heading of 'Course Specific Late Work Policy' (e.g., '######').",
-      "List items 'a.', 'b.', 'c.', 'd.' under 'Makeup Policy' are incorrectly formatted as headings '####'.",
-      "List item 'e.' under 'Makeup Policy' is incorrectly formatted as a top-level heading '#'.",
-      "Duplicate section '## Course Specific Makeup Work Policy' with content identical to the 'Makeup Policy' subsection under 'Course Specific Late Work Policy'."
-    ],
+    "strip_completeness": [],
+    "structural_coherence": [],
     "metadata_accuracy": [
-      "ISBN '978-1-264-IS809-6' is malformed, containing non-numeric characters 'IS'.",
-      "Publication Date '9th Edition (2024)' is not a valid date format; it includes edition information."
+      "ISBN for the required textbook is malformed: '978-1-264-IS809-6'."
     ]
   },
-  "timing_s": 37.8,
+  "timing_s": 22.91,
   "proposals": {
     "new_false_positives": [
-      "Office Hours",
-      "All quizzes and exams are closed book and closed notes",
-      "a. An absence for a non-acute medical service does not constitute an excused absence.",
-      "b. Required participation in military duties.",
-      "c. Mandatory admission interviews for professional or graduate school that cannot be rescheduled.",
-      "d. Mandatory participation as a student-athlete in NCAA-sanctioned competition."
+      "Section 600 (62094) Engineering Economy Fall 2026 - College Station",
+      "Credit Hours: 3",
+      "None",
+      "This material Is: Required",
+      "ISBN: 978-1-264-IS809-6",
+      "Authors: Leland Blank and Anthony Tarquin",
+      "Publisher: McGraw Hill",
+      "Publication Date: 9th Edition (2024)",
+      "Course Grade:",
+      "Exam Dates:",
+      "Makeup Policy:",
+      "Tue/Thurs 8:00 - 9:15 AM",
+      "Zachry Engineering Building, Room 211"
     ],
-    "new_boilerplate": [
-      "1. Participation in an activity that is required for a class and appears on the university authorized activity list at https://stuactonline.tamu.edu/app/sponsauth/index\n2. Death or major illness in a student's immediate family.\n3. Illness of a dependent family member.\n4. Participation in legal proceedings or administrative procedures that require a student's presence.\n5. Religious holy day. NOTE: Prior notification is NOT required.\n6. Injury or illness that is too severe or contagious for the student to attend class. a) Injury or illness of three or more class days: Student will provide a medical confirmation note from his or her medical provider within one week of the last date of the absence (see Student Rules 7.1.6.1)\n7. Injury or illness of less than three class days: Student will provide one or both of these (at instructor's discretion), within one week of the last date of the absence:\n- (i.)Texas A&M University Explanatory Statement for Absence from Class form available at http://attendance.tamu.edu\n- (ii.) Confirmation of visit to a health care professional affirming date and time of visit.",
-      "e. In accordance with Title IX of the Educational Amendments of 1972, Texas A&M University shall treat pregnancy (childbirth, false pregnancy, termination of pregnancy and recovery therefrom) and related conditions as a justification for an excused absence for so long a period of time as is deemed medically necessary by the student's physician. Requests for excused absence related to pregnancy should be directed to the instructor."
-    ],
+    "new_boilerplate": [],
     "text_cleanups": [
-      "Credit Hours:\n\n3",
-      "Email:\n\nhamid.parsaei@tamu.edu\n\nOffice Location:\n\nETB 4068A\n\nPhone:\n\n979-458-2353",
-      "### Course Learning Outcomes",
-      "978-1-264-IS809-6",
-      "9th Edition (2024)",
-      "## Course Specific Makeup Work Policy\n\n### Makeup Policy:\n\n                            If an absence is excused, the instructor will either provide the student with an opportunity to make up an exam or other work that contributes to the final grade or provide a satisfactory alternative by a date agreed upon by the student and instructor. If the instructor has a regularly scheduled makeup exam, students are expected to attend unless they have a university-approved excuse.\n                            The makeup work must be completed in a timeframe not to exceed 30 calendar days from the last day of the initial absence ."
+      "IS"
     ],
-    "reasoning": "The proposed fixes address issues such as orphaned headers, policy statements incorrectly formatted as headers, institutional boilerplate text that should be removed, redundant information, and malformed data entries. Headers that are not true section titles or are merely list items should be demoted to body text. Institutional boilerplate, like the detailed list of excused absences and the Title IX statement, should be stripped as it's common across all syllabi. Redundant instructor contact info, duplicate sections, and malformed ISBN/publication date entries are specific text cleanups."
+    "reasoning": "The proposed 'new_false_positives' are short labels, course metadata, or location/time details that were likely incorrectly identified as section headers by the parser and should be demoted to body text. There are no sections identified as institutional boilerplate that should be entirely stripped. The 'text_cleanups' entry 'IS' is to address the malformed ISBN '978-1-264-IS809-6' by removing the erroneous 'IS' string."
   }
 }

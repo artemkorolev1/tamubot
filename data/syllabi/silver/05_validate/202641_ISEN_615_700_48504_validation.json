@@ -3,23 +3,42 @@
   "findings": {
     "content_preservation": [],
     "strip_completeness": [],
-    "structural_coherence": [
-      "The entry 'Credit Hours: 3' is duplicated under the 'Course Information' section.",
-      "The header '## Textbook and/or Resource Materials' is orphaned, as it has no content directly beneath it.",
-      "Textbook information (e.g., 'Production and Operations Analytics', ISBN, Authors) is incorrectly placed under the 'Course Schedule' section instead of the 'Textbook and/or Resource Materials' section."
-    ],
-    "metadata_accuracy": []
+    "structural_coherence": [],
+    "metadata_accuracy": [
+      "The 'Grading Policy' section contains an inconsistency: it states that the overall course grade will be based on 'four remaining exam grades at 30% weight each', which sums to 120% of the exam portion, rather than 100%. It also creates confusion by referring to 'five exams' after initially stating there will be 'four exams' (three regular + one optional comprehensive final)."
+    ]
   },
-  "timing_s": 21.35,
+  "timing_s": 27.66,
   "proposals": {
-    "new_false_positives": [],
-    "new_boilerplate": [
-      "Late Work Policy"
+    "new_false_positives": [
+      "Section 700 (48504) Production and Inventory Control Fall 2026 - College Station",
+      "Credit Hours: 3",
+      "Alaa Elwany",
+      "Email: elwany@tamu.edu",
+      "Office Location: ETB 4045",
+      "Phone: 9794582365",
+      "Office Hours",
+      "Tuesdays 10:00 - 11:00 am",
+      "Preferred Contact Method",
+      "Email",
+      "This material Is: Optional",
+      "Production and Operations Analytics",
+      "ISBN: 9781478646303",
+      "Authors: Steven Nahmias, Tava Lennon Olsen",
+      "Publisher: Waveland Press",
+      "Publication Date: 2020-10-01",
+      "Edition: 8th",
+      "Assignments (Home Works or other): 10%",
+      "Exams: 90%",
+      "There will be four exams :",
+      "A: [90,100] B: [80-90) C: [70,80) D: [50,70) F: [0,50)",
+      "Wk 1: HW 1",
+      "Exams Schedule:",
+      "Exam 1: 9/24/26",
+      "All items in the schedule above are subject to change. Any changes will be communicated by the instructor 1 week a priori."
     ],
-    "text_cleanups": [
-      "Credit Hours:\\n3",
-      "\\xa0"
-    ],
-    "reasoning": "The 'Late Work Policy' section, specifically its content referencing 'Student Rule 7', indicates it is likely institutional boilerplate that appears verbatim across all syllabi. The duplicated 'Credit Hours: 3' entry can be resolved by removing the literal string 'Credit Hours:\\n3' (the second instance). The non-breaking space '\\xa0' found in the grading scale is a common formatting artifact that should be cleaned up."
+    "new_boilerplate": [],
+    "text_cleanups": [],
+    "reasoning": "The proposed false positives are either specific data points (e.g., credit hours, ISBN, contact details, grade ranges), sub-labels within a larger section (e.g., 'Office Hours', 'Preferred Contact Method', 'Exams Schedule:'), or individual items within a list (e.g., homework assignments, exam dates). These are not intended to be top-level section headers in a syllabus. No institutional boilerplate or text cleanup patterns were confidently identified in the provided document."
   }
 }

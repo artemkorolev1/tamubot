@@ -1,0 +1,112 @@
+{
+  "source_file": "202531_ISEN_689_601_62970_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "special_topics",
+  "course_metadata": {
+    "course_id": "ISEN 689",
+    "section": "601",
+    "term": "?31 2025",
+    "crn": "62970",
+    "instructor": {
+      "name": "Farzan Sasangohar, PhD",
+      "email": "sasangohar@tamu.edu",
+      "office": "ETB 4079",
+      "office_hours": "by appointment (online or in-person)."
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Tue/Thu 2:20-3:35 PM",
+    "location": "ETB 1013",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 689 / ISEN 489 | Human Factors in Healthcare\nInstructor: Farzan Sasangohar | sasangohar@tamu.edu\nMeets: Tue/Thu 2:20-3:35 PM | ETB 1013\nGrading: Research report (individual) [40%], Homework assignments (individual) [30%], Reflections (individual) [20%], Practicum (team) [10%] — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: 59% and lower\nTopics: Design for X (DfX) methodology, healthcare human-systems engineering, human factors and ergonomics (HFE), human factors engineering methods, scoping review, narrative review, Artificial Intelligence (AI) text generators, natural language processing tools, chatbots, audio generators, computer code generators, video generators, image generators, healthcare ecosystem design, Human Factors applications, critical and emergent issues in healthcare, patient safety, design problems, operational problems, HFE solutions, HFE principles, research project, analysis, design, implementation, evaluation of healthcare systems, emerging topics related to HF/E in healthcare, implications, consequences, productivity, safety, wellness, satisfaction in healthcare settings, teamwork, communication skills, original study, research paper, healthcare applications, case study, background research, standard citation styles, editing, reviewing, creating drafts, revising drafts\nTools: Canvas, ChatGPT, spelling and grammar checkers\nPrerequisites: ISEN 330",
+  "headers": [
+    {
+      "text": "Course Information",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grade Determination:",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Research report:",
+      "level": 1,
+      "page": 2
+    },
+    {
+      "text": "Homework assignment:",
+      "level": 1,
+      "page": 2
+    },
+    {
+      "text": "Reflections:",
+      "level": 1,
+      "page": 2
+    },
+    {
+      "text": "Practicum:",
+      "level": 1,
+      "page": 2
+    },
+    {
+      "text": "Re-grading Policy:",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Use of AI in the Course",
+      "level": 2,
+      "page": 3
+    }
+  ]
+}

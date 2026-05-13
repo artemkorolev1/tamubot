@@ -1,40 +1,18 @@
 {
   "file_stem": "202641_ISEN_689_601_66715",
   "findings": {
-    "content_preservation": [],
+    "content_preservation": [
+      "The actual late work policy (e.g., penalties for unexcused late work, grace period) is missing from the 'Late Work Policy' section."
+    ],
     "strip_completeness": [],
     "structural_coherence": [
-      "The table under 'Syllabus weeks 9 to 14' is missing the 'Assignments due' column header, despite having data for that column (e.g., 'Hw7', 'Hw8')."
+      "The 'Course Schedule' under 'Syllabus weeks 1 to 8' is not formatted as a table; it appears as unaligned columns of text.",
+      "The 'Course Schedule' under 'Syllabus weeks 9 to 14' is not formatted as a table; it appears as unaligned columns of text."
     ],
-    "metadata_accuracy": []
+    "metadata_accuracy": [
+      "The 'Credit Hours: 3' in 'Course Information' conflicts with 'Credit 1 to 4' in the 'Catalog Description'."
+    ]
   },
-  "timing_s": 17.77,
-  "proposals": {
-    "new_false_positives": [
-      "Section 601 (66715) Special Topics in... Fall 2026 - College Station",
-      "Meeting Times:",
-      "Meeting Type: LEC",
-      "Meeting Days: TR",
-      "Start Time: 2:20PM",
-      "End Time: 3:35PM",
-      "Start Date: 08/24/2026",
-      "End Date: 12/10/2026",
-      "Meeting Location:",
-      "ZACH 266",
-      "Credit Hours:",
-      "3",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "This material Is: Recommended",
-      "Authors:",
-      "Week",
-      "Course Topics",
-      "Assignments due"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [],
-    "reasoning": "The identified 'new_false_positives' are either sub-details (like section numbers, meeting times, contact labels, material labels) or table column headers that have been incorrectly parsed as document section headers. They should be demoted to body text or recognized as part of a table structure. No institutional boilerplate or general text cleanups were confidently identified based on the provided document and rules."
-  }
+  "timing_s": 10.11,
+  "proposals": {}
 }

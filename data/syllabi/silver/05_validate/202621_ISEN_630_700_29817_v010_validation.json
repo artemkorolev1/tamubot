@@ -2,37 +2,16 @@
   "file_stem": "202621_ISEN_630_700_29817_v010",
   "findings": {
     "content_preservation": [],
-    "strip_completeness": [
-      "Section 'Late Work Policy' (the general one, not the 'Course Specific Late Work Policy') appears to be boilerplate and should be removed."
-    ],
+    "strip_completeness": [],
     "structural_coherence": [
-      "The 'Credit Hours: 3' line is duplicated immediately after the first instance.",
-      "The header 'Schedule of Topics' appears twice consecutively, once as '### Schedule of Topics' and once as '#### Schedule of Topics'.",
-      "The section 'Re-grading Policy' under 'Additional Course Information' is a near-duplicate of the 'Re-grading Policy' section under 'Grading Policy'."
+      "Under 'Course Information', the entry 'Credit Hours: 3' is duplicated.",
+      "In the 'Instructor Details' section, 'Office Hours' and 'Preferred Contact Method' lack colons, making their structure inconsistent with other fields like 'Email:' and 'Phone:'.",
+      "Under 'Course Schedule', the heading '#### Schedule of Topics' immediately follows '### Schedule of Topics', creating a redundant heading level.",
+      "The 'Approximate Week' column in the 'Course Schedule' table is inconsistently populated, with many empty cells for sub-topics or events, making the weekly progression unclear.",
+      "The section '### Re-grading Policy :' under 'Additional Course Information' is a duplicate of the earlier '### Re-grading Policy' and has an extraneous colon in its header."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 0.35,
-  "proposals": {
-    "new_false_positives": [
-      "Preferred Contact Method",
-      "This material Is: Recommended",
-      "Approximate Week",
-      "Topic",
-      "Lessons",
-      "Text/source material and references"
-    ],
-    "new_boilerplate": [
-      "Late Work Policy"
-    ],
-    "text_cleanups": [
-      {
-        "regex": "Credit Hours:\\n3\\nCredit Hours:\\n3",
-        "replace_with": "Credit Hours:\\n3"
-      },
-      "#### Schedule of Topics",
-      "### Re-grading Policy :\nStudents have 1 week after grades are released for a homework, quiz, or exam to submit a re-grade request via email to Dr. Ferris. This request must not exceed 1 page (11 point font, single spacing), and must clearly indicate the relevant problem(s) and justification for why you think re-grading is warranted. Note that a requested regrade may result in further point deductions if new errors are discovered."
-    ],
-    "reasoning": "The 'new_false_positives' are labels or table headers that were incorrectly identified as section headers. 'Late Work Policy' is identified as institutional boilerplate by the user. 'text_cleanups' address specific formatting and content duplication issues: removing the duplicate 'Credit Hours: 3' entry, removing the redundant lower-level 'Schedule of Topics' header, and removing the entire duplicate 'Re-grading Policy' section under 'Additional Course Information'."
-  }
+  "timing_s": 11.96,
+  "proposals": {}
 }

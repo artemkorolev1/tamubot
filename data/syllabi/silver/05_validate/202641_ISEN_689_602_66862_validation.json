@@ -1,84 +1,15 @@
 {
   "file_stem": "202641_ISEN_689_602_66862",
   "findings": {
-    "content_preservation": [
-      "Content for 'Additional Course Information' section is missing."
-    ],
+    "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The 'Course Schedule' section is not formatted as a table; the data is presented as plain text instead of aligned columns, and the table headers ('Week Topic Tentative course outline Notes', 'Week Topic Notes') are malformed.",
-      "The header 'Additional Course Information' is orphaned with no content following it."
+      "Awkward phrasing and redundancy in 'Textbook and/or Resource Materials' section: 'This material Is: No required textbook N/A'",
+      "Course Schedule table has dates (e.g., '(8/24/26)') on separate rows, breaking the logical association with the corresponding week's topic.",
+      "Orphaned header 'Additional Course Information' with no content following it."
     ],
-    "metadata_accuracy": [
-      "The specific topic for this 'Special Topics' course (optical, laser, and imaging-based sensing and measurement methods) is not included in the main course title or section title, which only state 'Special Topics in...'"
-    ]
+    "metadata_accuracy": []
   },
-  "timing_s": 31.57,
-  "proposals": {
-    "new_false_positives": [
-      "Section 602 (66862) Special Topics in... Fall 2026 - College Station",
-      "Meeting Times:",
-      "Meeting Type: LEC",
-      "Meeting Days: TR",
-      "Start Time: 08:00AM",
-      "End Time: 09:15AM",
-      "Start Date: 08/24/2026",
-      "End Date: 12/10/2026",
-      "Meeting Location:",
-      "ETB 1013",
-      "Credit Hours:",
-      "3",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "T 9:30 - 10:30",
-      "This material Is: No required textbook N/A",
-      "Notes:",
-      "Exam 1: 30%",
-      "Exam 2: 30%",
-      "Final Project: 40% (proposal 10%, presentation 15%, final report 15%)",
-      "Grades A for 90%-100%, B for 80%-89.99%, C for 70%-79.99%, D for 60%69.99%, and F for &lt;60%.",
-      "Week 1 (8/24/26) Introduction to Sensing & Measurement",
-      "Week 2 (8/31/26) Ray & Wave Optics",
-      "Week 3 (9/7/26) Interference & Diffraction",
-      "Week 4 (9/14/26) Gaussian Beam & Laser Optics",
-      "Week 5 (9/21/26) Optical Detectors",
-      "Exam 1 (in class)",
-      "Week 6 (9/28/26) Laser fundamentals",
-      "Week 7 (10/5/26) Thermal Radiometry",
-      "Week 8 (10/12/26) Process Physics",
-      "Week 9 (10/19/26) Real-time monitoring and in-situ characterization in Additive Manufacturing",
-      "Week 10 (10/26/26) Optical Metrology in Semiconductor Manufacturing",
-      "Exam 2 (in class)",
-      "Week 11 (11/2/26) Feature Extraction from Physical Signals",
-      "Project proposal due (11/8/26)",
-      "Week 12 (11/9/26) Time-Series &Spatio-Temporal Data",
-      "Week 13 (11/16/26) System Integration & Process Control",
-      "Week 14 (11/23/26) Final project presentation",
-      "Week 15 (11/30/26) Final project presentation",
-      "Final report due (12/4/26)",
-      "Additional Course Information"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      {
-        "pattern": "&lt;60%",
-        "replace_with": "<60%"
-      },
-      {
-        "pattern": "&Spatio-Temporal",
-        "replace_with": "& Spatio-Temporal"
-      },
-      {
-        "pattern": "Week Topic Tentative course outline Notes",
-        "replace_with": ""
-      },
-      {
-        "pattern": "Week Topic Notes",
-        "replace_with": ""
-      }
-    ],
-    "reasoning": "new_false_positives: Many lines identified as headers are actually course metadata, specific data labels (e.g., 'Meeting Times:', 'Email:'), values (e.g., 'ETB 1013', '3', 'T 9:30 - 10:30'), grading breakdown details, textbook status, or individual entries within the course schedule. The final 'Additional Course Information' is an orphaned header with no content. These should all be demoted to body text or parsed as specific data points rather than section headers.\nnew_boilerplate: No text was identified as institutional boilerplate that appears verbatim across all syllabi. The 'Late Work Policy' content, while standard, cannot be confirmed as universal boilerplate without additional syllabi for comparison.\ntext_cleanups: HTML entities like '&lt;60%' and '&Spatio-Temporal' should be corrected to their proper characters. The phrases 'Week Topic Tentative course outline Notes' and 'Week Topic Notes' are malformed table headers within the 'Course Schedule' section and should be removed as they are artifacts of the parsing process and not actual content."
-  }
+  "timing_s": 9.59,
+  "proposals": {}
 }

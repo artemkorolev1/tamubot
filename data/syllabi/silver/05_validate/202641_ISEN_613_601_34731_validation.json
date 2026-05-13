@@ -2,27 +2,15 @@
   "file_stem": "202641_ISEN_613_601_34731",
   "findings": {
     "content_preservation": [
-      "Content for Week 15 (Topics and Required Reading) in the Course Schedule is missing."
+      "Course schedule is incomplete; content for Week 15 (topics and required reading) and subsequent weeks is missing."
     ],
     "strip_completeness": [],
     "structural_coherence": [
-      "Duplicate header: '### Course Schedule' immediately follows '## Course Schedule'.",
-      "The Course Schedule is split into two sections, with the headers 'Week Topics Required Reading' repeated, indicating a broken table structure."
+      "The 'Subtitle:' field under 'Textbook and/or Resource Materials' is empty, while the actual subtitle 'With Applications in Python' appears on the following line without a clear label.",
+      "The 'Course Schedule' table has a repeated header row ('Week | Topics | Required Reading') after Week 10, indicating a structural issue in table parsing or formatting."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 15.87,
-  "proposals": {
-    "new_false_positives": [
-      "### Course Schedule",
-      "Week",
-      "Topics",
-      "Required Reading"
-    ],
-    "new_boilerplate": [
-      "## Special Course Designation"
-    ],
-    "text_cleanups": [],
-    "reasoning": "The header '### Course Schedule' is a duplicate and immediately follows '## Course Schedule', making it redundant. 'Week', 'Topics', and 'Required Reading' are table column headers, not section headers, and should be demoted to body text or handled as part of a table structure. '## Special Course Designation' is a common institutional boilerplate section, often containing generic text like 'None' across many syllabi."
-  }
+  "timing_s": 8.9,
+  "proposals": {}
 }

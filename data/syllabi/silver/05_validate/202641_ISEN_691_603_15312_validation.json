@@ -1,31 +1,14 @@
 {
   "file_stem": "202641_ISEN_691_603_15312",
   "findings": {
-    "content_preservation": [],
-    "strip_completeness": [],
-    "structural_coherence": [
-      "The 'Credit Hours' line is duplicated under the 'Course Information' section."
+    "content_preservation": [
+      "The actual late work policy for unexcused absences is missing from the 'Late Work Policy' section.",
+      "A detailed course schedule, including topics, assignments, and deadlines, is missing from the 'Course Schedule' section."
     ],
+    "strip_completeness": [],
+    "structural_coherence": [],
     "metadata_accuracy": []
   },
-  "timing_s": 22.01,
-  "proposals": {
-    "new_false_positives": [
-      "Section 603 (15312) Research Fall 2026 - College Station",
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "This material Is: Open Educational Resource (OER)"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      {
-        "pattern": "(Credit Hours:\\n1 TO 23)\\n\\n\\1",
-        "replacement": "\\1"
-      }
-    ],
-    "reasoning": "The identified 'new_false_positives' are either course metadata, labels for specific data points, or descriptive statements that were incorrectly promoted to section headers by the parser. They should be demoted to body text. There is no university-wide boilerplate identified in this document. The 'text_cleanups' regex addresses the explicit issue of duplicated 'Credit Hours' information by replacing the pattern of two identical blocks with a single instance, ensuring the information appears only once."
-  }
+  "timing_s": 9.86,
+  "proposals": {}
 }

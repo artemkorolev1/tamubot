@@ -145,11 +145,16 @@ class FalsePositiveFilter:
         input_dir: Path,
         output_dir: Path,
         config: dict[str, Any] | None = None,
+        report_path: Path | None = None,
     ) -> FilterResult:
         config = config or {}
         input_dir = Path(input_dir)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        if report_path is None:
+            from tamubot.ingestion.report_writer import get_report
+
+            report_path = get_report()
 
         result = FilterResult()
         md_files = sorted(input_dir.glob("*.md"))
@@ -218,6 +223,17 @@ class FalsePositiveFilter:
                     "cleanups_applied": cleanups_applied,
                 }
             )
+
+            if report_path:
+                from tamubot.ingestion.report_writer import update_false_positive
+
+                update_false_positive(
+                    report_path,
+                    md_path.stem,
+                    len(demoted),
+                    cleanups_applied,
+                    [d["header"] for d in demoted],
+                )
 
         result.metrics = {
             "total_demoted": total_demoted,

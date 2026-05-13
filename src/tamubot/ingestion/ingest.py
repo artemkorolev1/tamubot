@@ -31,6 +31,7 @@ DB_NAME = os.getenv("MONGODB_DB", "tamubot")
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 PARSED_DIR_LEGACY = Path("tamu_data/processed/gemini_parsed")
 PARSED_DIR_V3 = Path("tamu_data/processed/v3_step3_flat")
+PARSED_DIR_V4 = Path("data/syllabi/silver/06_chunk")
 
 EMBEDDING_MODEL = "voyage-3"
 EMBEDDING_DIMS = 1024
@@ -132,8 +133,13 @@ def build_course_doc(data: dict, source_file: str) -> dict:
 
 
 _SEMESTER_MAP = {
-    "11": "Spring", "21": "Summer I", "31": "Summer II", "41": "Fall",
-    "01": "Spring", "02": "Summer", "03": "Fall",
+    "11": "Spring",
+    "21": "Summer I",
+    "31": "Summer II",
+    "41": "Fall",
+    "01": "Spring",
+    "02": "Summer",
+    "03": "Fall",
 }
 
 
@@ -146,11 +152,11 @@ def _parse_v3_result_filename(stem: str) -> dict:
     # Expected: ['202541', 'CSCE', '111', '500', '49744', 'v010']
     if len(parts) < 5:
         return {"crn": "", "course_id": "", "section": "", "term": ""}
-    semester = parts[0]          # e.g. '202541'
-    dept = parts[1]              # e.g. 'CSCE'
-    course_num = parts[2]        # e.g. '111'
-    section = parts[3]           # e.g. '500'
-    crn = parts[4]               # e.g. '49744'
+    semester = parts[0]  # e.g. '202541'
+    dept = parts[1]  # e.g. 'CSCE'
+    course_num = parts[2]  # e.g. '111'
+    section = parts[3]  # e.g. '500'
+    crn = parts[4]  # e.g. '49744'
     year = semester[:4]
     sem_code = semester[4:]
     season = _SEMESTER_MAP.get(sem_code, f"Term{sem_code}")
@@ -277,30 +283,145 @@ def build_course_doc_v3(data: dict, source_file: str) -> dict:
     return validated.model_dump()
 
 
+def _term_from_filename(stem: str) -> str:
+    """Parse term from filename semester code as fallback for malformed metadata.
+
+    Filename pattern: {semester}_{dept}_{num}_{section}_{crn}[_HP][_vNNN]
+    Semester: YYYYSS where SS is 11=Spring, 21=Summer, 31=Summer, 41=Fall
+    """
+    parts = stem.split("_")
+    if not parts:
+        return ""
+    semester = parts[0]
+    if len(semester) < 5:
+        return ""
+    year = semester[:4]
+    sem_code = semester[4:]
+    season = _SEMESTER_MAP.get(sem_code, f"Term{sem_code}")
+    return f"{season} {year}"
+
+
+def _normalize_tas(raw: list | None) -> list[str]:
+    """Normalize teaching_assistants to list of strings.
+
+    V4 metadata enrichment may return TAs as dicts with name/email or as plain strings.
+    """
+    if not raw:
+        return []
+    result = []
+    for ta in raw:
+        if isinstance(ta, str):
+            result.append(ta)
+        elif isinstance(ta, dict) and ta.get("name"):
+            result.append(ta["name"])
+    return result
+
+
+def build_anchor_v4(course_id: str, section: str, term: str, header_path: str) -> str:
+    """Build contextual anchor from header_path for v4 chunks."""
+    leaf = header_path.rsplit(" > ", 1)[-1] if header_path else "General"
+    return f"{course_id} Section {section}, {term} — {leaf}:"
+
+
+def build_chunk_docs_v4(data: dict, source_file: str) -> list[dict]:
+    """Build ChunkDocV4 documents from v4 pipeline output."""
+    from tamubot.rag.models_v4 import ChunkDocV4
+
+    meta = data.get("course_metadata", {})
+    stem = Path(source_file).stem
+    crn = str(meta.get("crn") or "")
+    course_id = meta.get("course_id", "")
+    section = meta.get("section", "")
+    term = meta.get("term", "")
+    if "?" in term or not term:
+        term = _term_from_filename(stem)
+    instructor = meta.get("instructor", {})
+    instructor_name = instructor.get("name") if instructor else None
+    source = data.get("source")
+
+    docs = []
+    for i, chunk in enumerate(data.get("chunks", [])):
+        idx = chunk.get("chunk_index", i)
+        header_path = chunk.get("header_path", "")
+        anchor = build_anchor_v4(course_id, section, term, header_path)
+        validated = ChunkDocV4(
+            crn=crn,
+            chunk_index=idx,
+            content=chunk.get("content") or "",
+            has_table=chunk.get("has_table") or False,
+            course_id=course_id,
+            section=section,
+            term=term,
+            instructor_name=instructor_name,
+            header_path=header_path or None,
+            token_count=chunk.get("token_count"),
+            flags=chunk.get("flags") or [],
+            split_reason=chunk.get("split_reason"),
+            page=chunk.get("page"),
+            source=source,
+            anchor=anchor,
+            source_file=source_file,
+        )
+        docs.append(validated.model_dump())
+    return docs
+
+
+def build_course_doc_v4(data: dict, source_file: str) -> dict:
+    """Build CourseDocV4 document from v4 pipeline output."""
+    from tamubot.rag.models_v4 import CourseDocV4
+
+    meta = data.get("course_metadata", {})
+    stem = Path(source_file).stem
+    chunks = data.get("chunks", [])
+    term = meta.get("term", "")
+    if "?" in term or not term:
+        term = _term_from_filename(stem)
+    validated = CourseDocV4(
+        crn=str(meta.get("crn") or ""),
+        course_id=meta.get("course_id", ""),
+        section=meta.get("section", ""),
+        term=term,
+        instructor=meta.get("instructor"),
+        teaching_assistants=_normalize_tas(meta.get("teaching_assistants")),
+        meeting_times=meta.get("meeting_times"),
+        location=meta.get("location"),
+        credit_hours=meta.get("credit_hours"),
+        chunk_count=len(chunks),
+        syllabus_url=meta.get("syllabus_url"),
+        source=data.get("source"),
+        course_type=data.get("course_type"),
+        format=meta.get("format"),
+        prerequisites=meta.get("prerequisites"),
+        course_summary=data.get("course_summary"),
+        chunk_config=data.get("chunk_config"),
+        source_file=source_file,
+    )
+    return validated.model_dump()
+
+
 def build_policy_ops(db, data: dict) -> list[UpdateOne]:
     """Build upsert operations for boilerplate policies."""
     crn = data.get("course_metadata", {}).get("crn", "")
     ops = []
     for name in data.get("boilerplate_policies", []):
         h = sha256_hash(name)
-        ops.append(UpdateOne(
-            {"policy_hash": h},
-            {
-                "$set": {"policy_name": name, "ingested_at": datetime.utcnow()},
-                "$setOnInsert": {"policy_hash": h, "full_text": None},
-                "$addToSet": {"courses_referencing": crn},
-            },
-            upsert=True,
-        ))
+        ops.append(
+            UpdateOne(
+                {"policy_hash": h},
+                {
+                    "$set": {"policy_name": name, "ingested_at": datetime.utcnow()},
+                    "$setOnInsert": {"policy_hash": h, "full_text": None},
+                    "$addToSet": {"courses_referencing": crn},
+                },
+                upsert=True,
+            )
+        )
     return ops
 
 
 def embed_chunks(voyage: voyageai.Client, chunk_docs: list[dict]) -> list[dict]:
     """Embed chunk docs in batches using Voyage AI. Mutates docs in-place."""
-    texts = [
-        (doc["anchor"] + " " + doc["content"]) if "anchor" in doc else doc["content"]
-        for doc in chunk_docs
-    ]
+    texts = [(doc["anchor"] + " " + doc["content"]) if "anchor" in doc else doc["content"] for doc in chunk_docs]
 
     for start in range(0, len(texts), EMBED_BATCH_SIZE):
         batch = texts[start : start + EMBED_BATCH_SIZE]
@@ -316,7 +437,7 @@ def embed_chunks(voyage: voyageai.Client, chunk_docs: list[dict]) -> list[dict]:
                 if retries > 3:
                     print(f"  ERROR: Embedding failed after 3 retries: {e}")
                     raise
-                wait = 2 ** retries
+                wait = 2**retries
                 print(f"  WARN: Embedding error ({e}), retrying in {wait}s...")
                 time.sleep(wait)
 
@@ -348,13 +469,20 @@ def upsert_course(db, course_doc: dict):
 
 
 def _crn_from_filename(filepath: Path) -> str | None:
-    """Extract CRN from filename pattern like 202611_CSCE_670_600_46627.json."""
+    """Extract CRN from filename pattern like 202611_CSCE_670_600_46627.json.
+
+    Handles suffixes: _vNNN (v3), _HP (v4 Howdy Portal).
+    """
     parts = filepath.stem.split("_")
     # For V3 filenames like ..._v001.json, crn is before _vNNN
     if parts and parts[-1].startswith("v") and parts[-1][1:].isdigit():
         if len(parts) >= 2 and parts[-2].isdigit():
             return parts[-2]
-    # For legacy filenames
+    # For V4 filenames with _HP suffix, crn is before _HP
+    if parts and parts[-1] == "HP":
+        if len(parts) >= 2 and parts[-2].isdigit():
+            return parts[-2]
+    # For legacy/v4 filenames ending in CRN
     if parts and parts[-1].isdigit():
         return parts[-1]
     return None
@@ -363,31 +491,46 @@ def _crn_from_filename(filepath: Path) -> str | None:
 def main():
     parser = argparse.ArgumentParser(description="Ingest parsed syllabi into MongoDB Atlas")
     parser.add_argument("--department", type=str, help="Filter by department prefix (e.g. CSCE)")
-    parser.add_argument("--crns-file", type=str,
-                        help="JSON file with 'crns' list — ingest only those CRNs "
-                             "(e.g. tamu_data/evals/eval_corpus.json)")
+    parser.add_argument(
+        "--crns-file",
+        type=str,
+        help="JSON file with 'crns' list — ingest only those CRNs (e.g. tamu_data/evals/eval_corpus.json)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Preview without writing to DB")
     parser.add_argument("--v3", action="store_true", help="Ingest from V3 flat JSONs (v3_step3_flat format)")
-    parser.add_argument("--v3-result", action="store_true",
-                        help="Ingest from v3_result chunker output format "
-                             "(top-level course_id/semester, CRN from filename)")
-    parser.add_argument("--source-dir", type=str,
-                        help="Override source directory (default: tamu_data/processed/v3_step3_flat)")
-    parser.add_argument("--chunks-collection", type=str,
-                        help="Target MongoDB collection for chunks (default: chunks_v3 with --v3)")
-    parser.add_argument("--courses-collection", type=str,
-                        help="Target MongoDB collection for courses (default: courses_v3 with --v3)")
-    parser.add_argument("--chunk-tag", type=str,
-                        help="Strategy tag stored on each chunk doc (e.g. '300t_50o', 'semantic_v1')")
-    parser.add_argument("--chunk-size", type=int,
-                        help="Chunk token size stored on each chunk doc (for reporting)")
-    parser.add_argument("--chunk-overlap", type=int,
-                        help="Chunk overlap token size stored on each chunk doc (for reporting)")
+    parser.add_argument(
+        "--v3-result",
+        action="store_true",
+        help="Ingest from v3_result chunker output format (top-level course_id/semester, CRN from filename)",
+    )
+    parser.add_argument(
+        "--v4",
+        action="store_true",
+        help="Ingest from v4 Docling pipeline output (data/syllabi/silver/06_chunk/)",
+    )
+    parser.add_argument(
+        "--source-dir", type=str, help="Override source directory (default: tamu_data/processed/v3_step3_flat)"
+    )
+    parser.add_argument(
+        "--chunks-collection", type=str, help="Target MongoDB collection for chunks (default: chunks_v3 with --v3)"
+    )
+    parser.add_argument(
+        "--courses-collection", type=str, help="Target MongoDB collection for courses (default: courses_v3 with --v3)"
+    )
+    parser.add_argument(
+        "--chunk-tag", type=str, help="Strategy tag stored on each chunk doc (e.g. '300t_50o', 'semantic_v1')"
+    )
+    parser.add_argument("--chunk-size", type=int, help="Chunk token size stored on each chunk doc (for reporting)")
+    parser.add_argument(
+        "--chunk-overlap", type=int, help="Chunk overlap token size stored on each chunk doc (for reporting)"
+    )
     args = parser.parse_args()
 
     if args.source_dir:
         parsed_dir = Path(args.source_dir)
-    elif args.v3 or getattr(args, 'v3_result', False):
+    elif args.v4:
+        parsed_dir = PARSED_DIR_V4
+    elif args.v3 or getattr(args, "v3_result", False):
         parsed_dir = PARSED_DIR_V3
     else:
         parsed_dir = PARSED_DIR_LEGACY
@@ -411,16 +554,22 @@ def main():
             print(f"ERROR: No CRNs found in {args.crns_file}")
             sys.exit(1)
         json_files = [f for f in json_files if _crn_from_filename(f) in target_crns]
-        print(f"  --crns-file: filtered to {len(json_files)} files "
-              f"matching {len(target_crns)} corpus CRNs")
+        print(f"  --crns-file: filtered to {len(json_files)} files matching {len(target_crns)} corpus CRNs")
 
     print(f"Found {len(json_files)} JSON files to ingest from {parsed_dir}")
     if not json_files:
         return
 
-    is_v3 = args.v3 or getattr(args, 'v3_result', False)
-    chunks_col = args.chunks_collection or ("chunks_v3" if is_v3 else "chunks")
-    courses_col = args.courses_collection or ("courses_v3" if is_v3 else "courses")
+    is_v3 = args.v3 or getattr(args, "v3_result", False)
+    if args.v4:
+        chunks_col = args.chunks_collection or "chunks_v4"
+        courses_col = args.courses_collection or "courses_v4"
+    elif is_v3:
+        chunks_col = args.chunks_collection or "chunks_v3"
+        courses_col = args.courses_collection or "courses_v3"
+    else:
+        chunks_col = args.chunks_collection or "chunks"
+        courses_col = args.courses_collection or "courses"
 
     if args.dry_run:
         print("DRY RUN — no database writes will occur")
@@ -430,14 +579,24 @@ def main():
                 if "error" in data:
                     print(f"  {f.name}: SKIP (error file)")
                     continue
-                if getattr(args, 'v3_result', False):
+                if args.v4:
+                    chunks = build_chunk_docs_v4(data, f.name)
+                elif getattr(args, "v3_result", False):
                     chunks = build_chunk_docs_v3_result(
-                        data, f.name, chunk_tag=args.chunk_tag,
-                        chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap,
+                        data,
+                        f.name,
+                        chunk_tag=args.chunk_tag,
+                        chunk_size=args.chunk_size,
+                        chunk_overlap=args.chunk_overlap,
                     )
                 elif args.v3:
-                    chunks = build_chunk_docs_v3(data, f.name, chunk_tag=args.chunk_tag,
-                                                 chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap)
+                    chunks = build_chunk_docs_v3(
+                        data,
+                        f.name,
+                        chunk_tag=args.chunk_tag,
+                        chunk_size=args.chunk_size,
+                        chunk_overlap=args.chunk_overlap,
+                    )
                 else:
                     chunks = build_chunk_docs(data, f.name)
                 print(f"  {f.name}: {len(chunks)} chunks")
@@ -462,9 +621,14 @@ def main():
 
         try:
             # Build documents
-            if getattr(args, 'v3_result', False):
+            if args.v4:
+                chunk_docs = build_chunk_docs_v4(data, filepath.name)
+                course_doc = build_course_doc_v4(data, filepath.name)
+                policy_ops = []
+            elif getattr(args, "v3_result", False):
                 chunk_docs = build_chunk_docs_v3_result(
-                    data, filepath.name,
+                    data,
+                    filepath.name,
                     chunk_tag=args.chunk_tag,
                     chunk_size=args.chunk_size,
                     chunk_overlap=args.chunk_overlap,
@@ -473,7 +637,8 @@ def main():
                 policy_ops = []
             elif args.v3:
                 chunk_docs = build_chunk_docs_v3(
-                    data, filepath.name,
+                    data,
+                    filepath.name,
                     chunk_tag=args.chunk_tag,
                     chunk_size=args.chunk_size,
                     chunk_overlap=args.chunk_overlap,
@@ -490,9 +655,7 @@ def main():
                 embed_chunks(voyage, chunk_docs)
 
             # Write to MongoDB
-            db[courses_col].update_one(
-                {"crn": course_doc["crn"]}, {"$set": course_doc}, upsert=True
-            )
+            db[courses_col].update_one({"crn": course_doc["crn"]}, {"$set": course_doc}, upsert=True)
             if chunk_docs:
                 ops = []
                 for doc in chunk_docs:
@@ -506,16 +669,16 @@ def main():
 
             total_chunks += len(chunk_docs)
             total_files += 1
-            print(f"  [{i+1}/{len(json_files)}] {filepath.name}: {len(chunk_docs)} chunks ingested")
+            print(f"  [{i + 1}/{len(json_files)}] {filepath.name}: {len(chunk_docs)} chunks ingested")
 
         except Exception as e:
             errors.append(filepath.name)
-            print(f"  [{i+1}/{len(json_files)}] ERROR {filepath.name}: {e}")
+            print(f"  [{i + 1}/{len(json_files)}] ERROR {filepath.name}: {e}")
 
     print(f"\nIngestion complete: {total_files} files, {total_chunks} chunks")
     print(f"  Courses ({courses_col}): {db[courses_col].count_documents({})}")
     print(f"  Chunks  ({chunks_col}):  {db[chunks_col].count_documents({})}")
-    if not args.v3:
+    if not (args.v3 or args.v4):
         print(f"  Policies: {db['policies'].count_documents({})}")
     if errors:
         print(f"  Errors ({len(errors)}): {errors}")

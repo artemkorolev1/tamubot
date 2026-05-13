@@ -2,29 +2,20 @@
   "file_stem": "202641_ISEN_620_700_14035",
   "findings": {
     "content_preservation": [
-      "The GroupMe link and QR code mentioned in the 'Communication' section are missing."
+      "Link and QR code for GroupMe are missing from the Communication section."
     ],
-    "strip_completeness": [],
+    "strip_completeness": [
+      "Section 'Late Work Policy' is boilerplate and should be removed."
+    ],
     "structural_coherence": [
-      "The 'Course Schedule' table is split into two sections, each under a separate header.",
-      "The second 'Course Schedule' header uses H3 (###) while the first uses H2 (##), indicating an inconsistent heading level for a continuous section.",
-      "The reference to 'page 6' in the 'Course Format and Expectations' section is a hardcoded page number that is likely incorrect in the markdown format."
+      "The course schedule lists specific days (T, R) and times for exams, which contradicts the 'Meeting Days: Asynchronous' and 'Start Time: N/A' in Course Information and the 'does not involve regular class meetings' statement in Course Format and Expectations.",
+      "The footnote '1 An academic hour is 50 minutes.' in Expected Time Commitment is orphaned, as its reference point is missing."
     ],
     "metadata_accuracy": [
-      "The course term in the main title ('Fall 2026') conflicts with the 'Start Date' and 'End Date' ('Fall 2025') listed under 'Course Information'."
+      "The year in the syllabus title 'Fall 2026' contradicts the course dates '08/25/2025 - 12/16/2025' and the schedule dates (2025).",
+      "CRN (Course Reference Number) is not explicitly labeled as a distinct metadata field, though '14035' appears in the title."
     ]
   },
-  "timing_s": 0.47,
-  "proposals": {
-    "new_false_positives": [
-      "Course Schedule"
-    ],
-    "new_boilerplate": [
-      "Special Course Designation"
-    ],
-    "text_cleanups": [
-      "page 6"
-    ],
-    "reasoning": "The second 'Course Schedule' header is a false positive because it's a continuation of the previous schedule section, not a new, distinct section, and its inconsistent heading level (H3 after H2) indicates a parsing error. 'Special Course Designation' is boilerplate because it consistently appears with 'None' as its content, suggesting it's a placeholder section that should be stripped if empty. 'page 6' is a text cleanup because hardcoded page number references are artifacts of the original document format and become invalid or misleading in a dynamic markdown format."
-  }
+  "timing_s": 16.54,
+  "proposals": {}
 }

@@ -2,57 +2,15 @@
   "file_stem": "202641_ISEN_614_700_66484",
   "findings": {
     "content_preservation": [
-      "The specific details of the 'Late Work Policy' (e.g., penalties for unexcused late work) are missing; only an exemption for excused absences is provided."
+      "The author list for 'Applied Multivariate Statistical Analysis' contains a repeated 'R. A.' (R. A. Johnson, R. A., and D. W. Wichern), suggesting a potential data corruption or typo."
     ],
     "strip_completeness": [],
     "structural_coherence": [
-      "In 'Course Prerequisites', the numbered list starts with '3.', indicating missing items '1.' and '2.' or incorrect numbering.",
-      "In 'Course Schedule', the schedule is presented as two separate blocks, and the header 'Weeks Topic' is repeated and orphaned. The 'Project Due' entry is also awkwardly placed, suggesting a malformed table structure."
+      "In the 'Course Prerequisites' section, the item 'Knowledge on hypothesis test and linear regression...' is prefixed with '3.', suggesting a malformed or incomplete list.",
+      "The 'Course Schedule' section contains a broken table structure, with the header 'Weeks Topic' repeated and 'Project Due' appearing as an orphaned entry outside the main table."
     ],
-    "metadata_accuracy": [
-      "The 'Meeting Days' field under 'Course Information' is empty."
-    ]
+    "metadata_accuracy": []
   },
-  "timing_s": 20.16,
-  "proposals": {
-    "new_false_positives": [
-      "Section 700 (66484) Advanced Quality Control",
-      "Fall 2026 - College Station",
-      "Meeting Times:",
-      "Meeting Type: LEC",
-      "Meeting Days:",
-      "Start Time: N/A",
-      "End Time: N/A",
-      "Start Date: 08/24/2026",
-      "End Date: 12/10/2026",
-      "Meeting Location:",
-      "ONLINE ONLINE",
-      "Credit Hours:",
-      "Jaesung Lee",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "Tuesday 10:50-11:50",
-      "Prerequisite/Corequisite(s): STAT 212 or STAT 601.",
-      "Basically, following knowledge is necessary",
-      "This material Is: Optional",
-      "Introduction to Statistical Quality Control Authors: Montgomery",
-      "Applied Multivariate Statistical Analysis Authors: R. A. Johnson, R. A., and D. W. Wichern",
-      "Weeks",
-      "Topic",
-      "Project Due",
-      "Statistics Capable (hand-held) Calculator: (Ex. TI 84 Plus, TI 89, Nspire, etc.) is required. Be sure to bring your calculator to all Lectures .",
-      "Software : Matlab (or equivalent programming language, such as R, Python , EXCEL, and Minitab.",
-      "Course Materials & Copyright: All documents used in this course are copyrighted. Here, \"documents\" means all materials generated for this class, including, but not limited to, syllabi, quizzes, exams, problem sets, slide sets, videos, and all materials appearing on the class website or sent to you via email. Because these materials are copyrighted, you do not have the right to copy or share any of them for any purpose other than your personal academic use unless I expressly grant permission. In particular, course materials may not be given or sold to any for-profit enterprise, or uploaded elsewhere for sharing."
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "This material Is: ",
-      "Authors: ",
-      "Lectures .",
-      "Python , EXCEL"
-    ],
-    "reasoning": "False positives are identified as short labels, specific data points, or introductory sentences that are incorrectly parsed as headers. These should be treated as body text or specific fields. No new boilerplate sections were identified that are universally institutional and should be stripped entirely, as per the conservative rule. Text cleanups address minor formatting inconsistencies and redundant prefixes."
-  }
+  "timing_s": 8.88,
+  "proposals": {}
 }

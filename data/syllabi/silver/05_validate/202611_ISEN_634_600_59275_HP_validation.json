@@ -3,24 +3,19 @@
   "findings": {
     "content_preservation": [],
     "strip_completeness": [
-      "The text 'Course Syllabus' appears multiple times within the document content, indicating unstripped page headers/footers.",
-      "Section 'Excused absences: Refer to Texas A&M University policies at http://student-rules.tamu.edu/rule07' is boilerplate and should be removed."
+      "Orphaned text 'Course Syllabus' appears after 'Course Learning Outcomes'.",
+      "Orphaned text 'Course Syllabus' appears after 'Textbook and/or Resource Materials' section [4].",
+      "Orphaned text 'Course Syllabus' appears after the 'Grading Policy' table.",
+      "Orphaned text 'Course Syllabus' appears after the 'Graded Attendance' policy.",
+      "Orphaned text 'Course Syllabus' appears within the 'Course Schedule' table, splitting it."
     ],
     "structural_coherence": [
-      "The entry 'Pauzi\u00e9, A. (2008). A method to assess the driver mental workload: The driving activity load index (DALI). IET Intelligent Transport Systems, 2(4), 315-322.' under '[3] Mental Workload' is not formatted as a bullet point, unlike other entries in the 'Textbook and/or Resource Materials' section.",
-      "The entries under '[4] Task Analysis' are not formatted as bullet points, unlike other entries in the 'Textbook and/or Resource Materials' section."
+      "Bullet points are missing from the list items under 'Course Learning Outcomes'.",
+      "Bullet points are missing from the list items describing 'Term Project' Phase 1 and Phase 2.",
+      "The 'Course Schedule' table is broken into two separate tables with a repeated header row."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 15.03,
-  "proposals": {
-    "new_false_positives": [],
-    "new_boilerplate": [
-      "Excused absences: Refer to Texas A&M University policies at http://student-rules.tamu.edu/rule07"
-    ],
-    "text_cleanups": [
-      "Course Syllabus"
-    ],
-    "reasoning": "The string 'Course Syllabus' is a recurring page header/footer artifact that should be removed. The section 'Excused absences: Refer to Texas A&M University policies at http://student-rules.tamu.edu/rule07' is identified as institutional boilerplate specific to Texas A&M University and should be stripped from all syllabi."
-  }
+  "timing_s": 9.06,
+  "proposals": {}
 }

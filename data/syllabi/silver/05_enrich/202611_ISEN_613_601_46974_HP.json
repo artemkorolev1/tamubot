@@ -1,0 +1,87 @@
+{
+  "source_file": "202611_ISEN_613_601_46974_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 613",
+    "section": "601",
+    "term": "Spring 2026",
+    "crn": "46974",
+    "instructor": {
+      "name": "Madhav Erraguntla",
+      "email": "merraguntla@tamu.edu",
+      "office": "ETB 4021",
+      "office_hours": "10:00-11:00 AM, Tue"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 8:00-9:15 AM",
+    "location": "Zach 345",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 613 | Engineering Data Analysis | Spring 2026\nInstructor: Madhav Erraguntla | merraguntla@tamu.edu\nMeets: TR 8:00-9:15 AM | Zach 345\nGrading: Homework [30%], Midterm Exam [35%], Final Project [35%] — A: 90-100%, B: 80-89.9%, C: 70-79.9%, D: 60-69.9%, F: below 60%\nTopics: LDA, QDA, KNN, LASSO, Ridge regression, Bootstrap, Support vector machines, Principal component analysis (PCA), Tree",
+  "headers": [
+    {
+      "text": "Syllabus",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Course Description",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Course Syllabus",
+      "level": 4,
+      "page": 1
+    },
+    {
+      "text": "Grading Policy",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Course Schedule",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Software",
+      "level": 3,
+      "page": 3
+    }
+  ]
+}

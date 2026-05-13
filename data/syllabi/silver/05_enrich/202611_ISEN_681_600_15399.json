@@ -1,0 +1,82 @@
+{
+  "source_file": "202611_ISEN_681_600_15399",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "seminar",
+  "course_metadata": {
+    "course_id": "ISEN 681",
+    "section": "600",
+    "term": "Spring 2026",
+    "crn": "15399",
+    "instructor": {
+      "name": "Joseph Geunes",
+      "email": "geunes@tamu.edu",
+      "office": "4024 ETB",
+      "office_hours": "N/A"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "F 1:50PM - 2:55PM",
+    "location": "ETB 1034",
+    "format": "in-person",
+    "credit_hours": "1",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/deb85l0mo/Spring-2026-College-Station-ISEN-681-600-%2815399%29?mode=view"
+  },
+  "course_summary": "ISEN 681 | Seminar | Spring 2026\nInstructor: Joseph Geunes | geunes@tamu.edu\nMeets: F 1:50PM - 2:55PM | ETB 1034\nGrading: S/U (Unsatisfactory for more than two unexcused absences)\nTopics: Industrial and Systems Engineering research trends, research in a professional atmosphere, departmental research activities, documenting research, presentations, seminar",
+  "headers": [
+    {
+      "text": "ISEN 681 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Additional Course Details",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 3
+    }
+  ]
+}

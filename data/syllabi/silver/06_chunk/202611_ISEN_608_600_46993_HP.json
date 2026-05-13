@@ -1,0 +1,184 @@
+{
+  "source_file": "202611_ISEN_608_600_46993_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 608",
+    "section": "600",
+    "term": "Spring 2026",
+    "crn": "46993",
+    "instructor": {
+      "name": "Hamid R. Parsaei, Ph.D., P.E.",
+      "email": "hamid.parsaei@tamu.edu",
+      "office": "ETB 4068A",
+      "office_hours": "Tuesdays and Thursdays from 1:00 to 3:00 PM in-person"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Tuesdays -Thursdays, 8:00 -9:15 AM",
+    "location": "Room 2026, Emerging Technology Building (ETB)",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 608 | Industrial Case Analysis | Spring 2026\nInstructor: Hamid R. Parsaei | hamid.parsaei@tamu.edu\nMeets: Tuesdays and Thursdays, 8:00 - 9:15 AM | Room 2026, Emerging Technology Building (ETB)\nPrerequisites: Approval of instructor\nTopics: Agile Activity Planning, Traditional Activity Planning, Project Auditing, Project Control, Project Risk Management, Project Strategy, Project Selection, Project team selection, Project team management, Managing Stakeholders, Resolving Conflicts, Budgeting, Scheduling, Monitoring, Information Systems, Quality control, Creation of project plans, Maintenance of project plans, Role of the project manager, Projects in Contemporary Organizations, The Project in the Organizational Structure, Building project teams, Virtual teams for international project efforts, Case studies, Application of project management principles, Engineering projects, Management, Leadership, Concepts, Tools, Techniques, Managerial perspective",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 15,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "# Course Syllabus\n\nISEN 608 Section 600 Industrial Case Analysis (Credits 3) Spring 2026\n\nTuesdays -Thursdays, 8:00 -9:15 AM Room 2026, Emerging Technology Building (ETB)\n\nOffice Hours: Tuesdays and Thursdays from 1:00 to 3:00 PM in-person",
+      "header_path": "Course Syllabus",
+      "token_count": 60,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "# Course Instructor:\n\nHamid R. Parsaei, Ph.D., P.E.\n\nOffice:\n\nETB 4068A\n\nEmail: hamid.parsaei@tamu.edu\n\nOffice phone number:\n\n979-458-2353\n\n3 Lecture Hours . Practice in applications of principles to the solution of actual case problems involving broad management decisions.\n\nPrerequisite\n\n: Approval of instructor.\n\n# Required Text:",
+      "header_path": "Course Instructor:",
+      "token_count": 83,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 2,
+      "content": "# Project Management: A Strategic Managerial Approach, 11th Edition\n\nby Jack R. Meredith and Scott M. Shafer\n\nWiley, ISBN: 978-1-119-80393-5",
+      "header_path": "Project Management: A Strategic Managerial Approach, 11th Edition",
+      "token_count": 35,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 3,
+      "content": "# Course Description and Topics\n\nThis course introduces concepts, tools, and techniques used in the management and leadership of engineering projects. Course topics include the role of the project manager, project team selection and management, creation and maintenance of project plans, quality control, and project risk management. Case studies from diverse engineering areas are used to demonstrate the application of project management principles.\n\n- Projects in Contemporary Organizations\n\n- Project Strategy and Selection\n\n- The Project Manager\n\n- Managing Stakeholders and Resolving Conflicts\n\n- The Project in the Organizational Structure\n\n- Activity Planning: Traditional and Agile\n\n- Budgeting and Risk Management\n\n- Scheduling\n\n- Monitoring and Information Systems\n\n- Project Control\n\n- Project Auditing\n\nThe material will be presented from a managerial perspective, that is, what a project manager would encounter in actual practice, emphasizing building project teams and virtual teams for international project efforts.",
+      "header_path": "Course Description and Topics",
+      "token_count": 258,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 4,
+      "content": "# Course Grade :\n\nExam 1\n\n100 Points\n\nExam 2\n\n100 Points\n\nExam 3\n\n100 Points\n\nQuizzes\n\n50 Points\n\nHomework\n\n50 Points\n\nHomework assignments include analyzing and written responses to case studies",
+      "header_path": "Course Grade :",
+      "token_count": 49,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 5,
+      "content": "# Exam Dates :\n\nExam 1 (format: In-class Exam)\n\nTuesday, February 24, 2026\n\nExam 2 (format: In-class Exam)\n\nTuesday, March 31, 2026\n\nExam 3 (format: In-class Exam)\n\nFriday, May 1, 2026 (1:00 - 3:00 PM)\n\nAll exams and quizzes are closed book and closed notes",
+      "header_path": "Exam Dates :",
+      "token_count": 64,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 6,
+      "content": "# Attendance Policies:\n\n### Makeup Policy:\n\nIf an absence is excused, the instructor will either provide the student an opportunity to make up an exam or other work that contributes to the final grade or provide a satisfactory alternative by a date agreed upon by the student and instructor. If the instructor has a regularly scheduled makeup exam, students are expected to attend unless they have a university-approved excuse.\n\nThe makeup work must be completed in a timeframe not to exceed 30 calendar days from the last day of the initial absence.\n\nThe student is responsible for providing satisfactory evidence to the instructor to substantiate the reason for the absence. Among the reasons absences are considered excused by the university are the following (see Student Rule 7 for details http://student-rules.tamu.edu/rule07 ). The fact that these are university-excused absences does not relieve the student of responsibility for prior notification and documentation. Failure to notify and/or document properly may result in an unexcused absence. Falsification of documentation is a violation of the Honor Code.",
+      "header_path": "Attendance Policies:",
+      "token_count": 280,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 7,
+      "content": "# 1) Participation in an activity that is required for a class and appears on the university authorized activity list at https://stuactonline.tamu.edu/app/sponsauth/index",
+      "header_path": "1) Participation in an activity that is required for a class and appears on the university authorized activity list at https://stuactonline.tamu.edu/app/sponsauth/index",
+      "token_count": 42,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 8,
+      "content": "# 2) Death or major illness in a student's immediate family.\n\n# 3) Illness of a dependent family member.",
+      "header_path": "2) Death or major illness in a student's immediate family.",
+      "token_count": 26,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 9,
+      "content": "# 4) Participation in legal proceedings or administrative procedures that require a student's presence.",
+      "header_path": "4) Participation in legal proceedings or administrative procedures that require a student's presence.",
+      "token_count": 26,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 10,
+      "content": "# 5) Religious holy day. NOTE: Prior notification is NOT required.",
+      "header_path": "5) Religious holy day. NOTE: Prior notification is NOT required.",
+      "token_count": 16,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 11,
+      "content": "# 6) Injury or illness that is too severe or contagious for the student to attend class. a) Injury or illness of three or more class days: Student will provide a medical confirmation note from his or her medical provider within one week of the last date of the absence (see Student Rules 7.1.6.1)\n\n## b) Injury or illness of less than three class days: Student will provide one or both of these (at instructor's discretion), within one week of the last date of the absence:\n\n- (i.)Texas A&M University Explanatory Statement for Absence from Class form available at http://attendance.tamu.edu\n- (ii.) Confirmation of visit to a health care professional affirming date and time of visit.\n\n## c) An absence for a non-acute medical service does not constitute an excused absence.\n\n# 7) Required participation in military duties.",
+      "header_path": "6) Injury or illness that is too severe or contagious for the student to attend class. a) Injury or illness of three or more class days: Student will provide a medical confirmation note from his or her medical provider within one week of the last date of the absence (see Student Rules 7.1.6.1)",
+      "token_count": 206,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 12,
+      "content": "# 8) Mandatory admission interviews for professional or graduate school that cannot be rescheduled.",
+      "header_path": "8) Mandatory admission interviews for professional or graduate school that cannot be rescheduled.",
+      "token_count": 25,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 13,
+      "content": "# 9) Mandatory participation as a student-athlete in NCAA-sanctioned competition.",
+      "header_path": "9) Mandatory participation as a student-athlete in NCAA-sanctioned competition.",
+      "token_count": 20,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 14,
+      "content": "# 10) In accordance with Title IX of the Educational Amendments of 1972, Texas A&M University shall treat pregnancy (childbirth, false pregnancy, termination of pregnancy and recovery therefrom) and related conditions as a justification for an excused absence for so long a period of time as is deemed medically necessary by the student's physician. Requests for excused absence related to pregnancy should be directed to the instructor.\n\nOther absences may be excused at the discretion of the instructor with prior notification and proper documentation.\nIn cases where prior notification is not feasible (e.g., accident or emergency) the student must provide notification by the end of the second working day after the absence, including an explanation of why notice could not be sent prior to the class.\nAccommodations sought for absences due to the observance of a religious holiday can be sought either prior or after the absence, but not later than two working days after the absence.",
+      "header_path": "10) In accordance with Title IX of the Educational Amendments of 1972, Texas A&M University shall treat pregnancy (childbirth, false pregnancy, termination of pregnancy and recovery therefrom) and related conditions as a justification for an excused absence for so long a period of time as is deemed medically necessary by the student's physician. Requests for excused absence related to pregnancy should be directed to the instructor.",
+      "token_count": 247,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:55.278967"
+}

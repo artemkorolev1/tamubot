@@ -2,50 +2,13 @@
   "file_stem": "202641_ISEN_689_600_66698",
   "findings": {
     "content_preservation": [],
-    "strip_completeness": [
-      "Section 'Additional Course Information' containing copyright notice is boilerplate and should be removed"
-    ],
+    "strip_completeness": [],
     "structural_coherence": [
-      "Textbook details (ISBN, Authors, Publisher, Edition) are incorrectly placed under 'Grading Policy > Research Report' instead of under the 'Textbook and/or Resource Materials' section, leaving the latter effectively empty.",
-      "The 'Course Schedule' is fragmented into multiple sections, each repeating the table headers 'Topic', 'Text/source material and references', and 'Approximate Week/deadlines', instead of forming a single continuous table."
+      "The textbook information (ISBN, Authors, Publisher, Edition for 'Design for Health: Applications of Human Factors') is incorrectly nested under the 'Research Report' subsection of 'Grading Policy' instead of being under the 'Textbook and/or Resource Materials' section.",
+      "The 'Course Schedule' is split into three separate tables instead of being a single continuous table."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 19.51,
-  "proposals": {
-    "new_false_positives": [
-      "Meeting Times:",
-      "Meeting Type:",
-      "Meeting Days:",
-      "Start Time:",
-      "End Time:",
-      "Start Date:",
-      "End Date:",
-      "Meeting Location:",
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "40% Research report (individual)",
-      "30% Homework assignments (individual)",
-      "20% Reflections (individual)",
-      "10% Practicum (team)",
-      "Research Report",
-      "Homework assignment:",
-      "Reflections:",
-      "Practicum:",
-      "Re-grading Policy:",
-      "Topic",
-      "Text/source material",
-      "and references",
-      "Approximate",
-      "Week/deadlines"
-    ],
-    "new_boilerplate": [
-      "Additional Course Information"
-    ],
-    "text_cleanups": [],
-    "reasoning": "The identified 'new_false_positives' are short labels, percentages, or table headers that are not true section headers but may be incorrectly promoted by a parser. The 'new_boilerplate' entry addresses the explicit instruction to remove the 'Additional Course Information' section due to its boilerplate copyright content. No general 'text_cleanups' (like regex patterns or literal strings for artifacts) were identified in the provided document that would apply broadly across syllabi."
-  }
+  "timing_s": 8.22,
+  "proposals": {}
 }

@@ -2,27 +2,17 @@
   "file_stem": "202641_ISEN_625_700_48681",
   "findings": {
     "content_preservation": [],
-    "strip_completeness": [
-      "Section 'Late Work Policy' is boilerplate and should be removed"
-    ],
+    "strip_completeness": [],
     "structural_coherence": [
-      "The descriptive text under 'Additional Course Details' is identical to the descriptive text under 'Course Prerequisites', leading to redundant information.",
-      "The 'Course Schedule' section is not formatted as a markdown table; it uses spaces for alignment instead of markdown table syntax.",
-      "The 'Course Schedule' is split into two parts by an orphaned header '### Weekly Topics', breaking the continuity of the schedule."
+      "The 'Course Schedule' and 'Weekly Topics' sections are formatted as lists but contain tabular data (Week, Topics, Important Events) that is not properly aligned or structured as a markdown table, making the 'Important Events' column difficult to read.",
+      "The header '### Weekly Topics' appears to be a continuation of the '## Course Schedule' section, creating a redundant or orphaned sub-header that breaks the flow of the schedule."
     ],
-    "metadata_accuracy": []
+    "metadata_accuracy": [
+      "Instructor 'Office Hours' are listed as 'TBD', indicating missing specific information.",
+      "The course subject and number (e.g., 'ISEN 613') are missing from the document.",
+      "The Course Reference Number (CRN) is missing."
+    ]
   },
-  "timing_s": 0.45,
-  "proposals": {
-    "new_false_positives": [
-      "### Weekly Topics"
-    ],
-    "new_boilerplate": [
-      "## Late Work Policy"
-    ],
-    "text_cleanups": [
-      "The catalog prerequisites are STAT 212 or STAT 601. A student should have passed STAT 601 or STAT 630 or ISEN 609 or (STAT 211 and STAT 212) or equivalent, AND have knowledge of computer programming.\n\nIt is essential that students have had a semester course in calculus-based probability and statistics covering at a minimum (1) distributions (single variable and joint probabilities) including the use of PDF's, PMF's and CDF's in obtaining probability statements and expectations and (2) statistics including confidence intervals and hypothesis testing."
-    ],
-    "reasoning": "The header '### Weekly Topics' is an orphaned sub-header that incorrectly splits the 'Course Schedule' section and should be demoted to body text or removed. The 'Late Work Policy' section is identified as institutional boilerplate and should be stripped entirely. The detailed prerequisite description under 'Additional Course Details' is a duplicate of the text found under 'Course Prerequisites' and should be removed from 'Additional Course Details' to eliminate redundancy."
-  }
+  "timing_s": 15.48,
+  "proposals": {}
 }

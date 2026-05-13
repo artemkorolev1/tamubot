@@ -1,37 +1,14 @@
 {
   "file_stem": "202621_ISEN_620_700_33717_v010",
   "findings": {
-    "content_preservation": [
-      "The GroupMe link and QR code mentioned in the 'Communication' section are missing."
-    ],
+    "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The 'Course Schedule' section is split into two parts by a redundant '### Course Schedule' header.",
-      "The 'Course Schedule' content is not formatted as a markdown table, but as plain text under headers."
+      "Course Schedule is split into two tables, with the second table incorrectly placed under a level 3 header '### Course Schedule' instead of continuing the main '## Course Schedule' section.",
+      "The footnote '1 An academic hour is 50 minutes.' is orphaned at the end of the 'Expected Time Commitment' section, lacking a corresponding reference in the text."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 0.41,
-  "proposals": {
-    "new_false_positives": [
-      "Section 700 (33717) Survey of Optimization Summer 2026 - College Station",
-      "Meeting Type: LEC",
-      "Meeting Days: Asynchronous",
-      "Start Time: N/A",
-      "End Time: N/A",
-      "Start Date: 05/26/2026",
-      "End Date: 08/04/2026",
-      "Meeting Location:",
-      "Credit Hours:",
-      "None",
-      "This material Is: Required",
-      "This material Is: Recommended",
-      "This Material is: Required",
-      "Course Schedule",
-      "1 An academic hour is 50 minutes."
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [],
-    "reasoning": "The identified false positives are either course metadata, key-value pairs, content labels, a redundant section header, or a footnote that should not be treated as section headers. There is no institutional boilerplate text identified that appears verbatim across all syllabi. No specific text cleanup patterns were found."
-  }
+  "timing_s": 14.68,
+  "proposals": {}
 }

@@ -1,0 +1,167 @@
+{
+  "source_file": "202641_ISEN_635_600_63276",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 635",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "63276",
+    "instructor": {
+      "name": "Thomas Ferris",
+      "email": "tferris@tamu.edu",
+      "office": "4081 ETB",
+      "office_hours": "Thursday 3 - 5"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/nq1d6dbxx/Fall-2026-College-Station-ISEN-635-600-%2863276%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): ISEN 430 or approval of instructor."
+  },
+  "course_summary": "ISEN 635 | Human Information Processing | Fall 2026\nInstructor: Thomas Ferris | tferris@tamu.edu\nGrading: Homework [30%], Exams [50%], Semester project [20%] (proposal [1%], written report [10%], project presentation [9%]) — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: 59% and lower\nTopics: Neuropsychological processes, man-machine systems design, psychophysiological methods, multiple resources theory, cognitive systems engineering, user-centered design principles, human-centered redesign solutions, peer-reviews, Vigilance, Visual processing, color vision, object recognition, depth perception, Audition, Timesharing, Haptics, haptic communication, Multisensory processing, Multimodal interfaces, central processes, decision making, human component, information processor, models of basic cognitive functions, pattern recognition, attention, memory, human-systems analysis, design methods, neuroanatomy, sensory physiology, cognitive psychology, philosophy, signal detection theory, information theory, mental workload assessment, existing technology evaluation, redesign solutions, communication skills, quantitative engineering methods, psychophysics, hot topics, trends, human information processing research, technical works review, human data collection, human performance assessment, cognitive workload assessment, real world task, creativity, human-systems interaction problems, quantitative problem exercises, reading responses, Information processing model, Sensation, Perception, Vision, Learning, Design for supporting Human Information Processing, Usability, interaction\nTools: Canvas\nPrerequisites: ISEN 430 or approval of instructor",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 13,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nHuman Information Processing. (3-0). Credit 3. Perceptual and cognitive issues as related to the design of man-machine systems; perception, central processes, decision making and other performance aspects of the human component as an information processor. Prerequisite: ISEN 430 or approval of instructor.",
+      "header_path": "Catalog Description",
+      "token_count": 82,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Additional Course Details\n\nThis course aims to provide a basic understanding of the neuropsychological processes  involved  in  human  information  processing,  models  of  basic  cognitive functions (e.g., pattern recognition, attention, and memory), and competency in a set of human-systems analysis and design methods which will be applied to a semester project. Perspectives will be introduced from several disciplines, including neuroanatomy, sensory physiology, cognitive psychology, cognitive systems engineering,  and  philosophy.  Engineering  emphases  will  include  teaching  and practice of psychophysiological methods, signal detection theory, information theory, and  mental  workload  assessment.  Through  a  semester  project,  students  will evaluate human interaction with an existing technology of their choice using these engineering  methods,  and  will  apply  user-centered  design  principles  and  other course concepts to create redesign solutions. Finally, students will practice communication skills to present their analyses and solutions.",
+      "header_path": "Additional Course Details",
+      "token_count": 268,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- demonstrate applied knowledge of quantitative engineering methods applied to human information processing: psychophysics, signal detection theory, communication/information theory, and multiple resources theory.\n\n- demonstrate an understanding of current hot topics and trends in human information processing research through review and discussion of published technical works\n\n- apply human information processing theory and methodologies to collect human data and assess human performance and/or cognitive workload in a real world task\n\n- demonstrate creativity and communication skills via a semester-long project with an in-class presentation\n\n- demonstrate applied knowledge of course concepts in identifying humansystems interaction problems with an existing technology, and in proposing human-centered redesign solutions\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 239,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Recommended\n\nEngineering Psychology and Human Performance, Fifth Edition\n\nAuthors: Wickens, C.D., Helton, W.S., Hollands, J.G., & Banbury, S.\n\n## Grading Policy",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 54,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "### Grade determination\n\n30% Homework: quantitative assignments and reading responses\n\n50% Exams: midterm (25%) and final exam (25%)\n\n20% Semester project: proposal (1%), written report (10%), and project presentation (9%)\n\nGrades will be calculated according to total points earned. The points can be curved based on class average and may be lower than the following standard (out of a total of 100 percentage points).\n\nA: 90-100% B: 80-89% C: 70-79% D: 60-69% F: 59% and lower",
+      "header_path": "Grading Policy > Grade determination",
+      "token_count": 120,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "### Homework:\n\nThere are two general types of homework assignments in this class: quantitative problem exercises and reading responses. The quantitative assignments are designed for you to practice some of the theory and methods discussed in class. All assignments will be posted on the Canvas course page and should be submitted electronically there as well.\n\nWith few exceptions, there will be an assigned reading related to the lecture material for each topic and/or week. As a way to jump-start class discussion, you will need to submit a reading response (RR) for each required reading via Canvas by 12:00  PM (noon) the day  BEFORE the  associated  lecture,  unless  otherwise specified. These responses must include header material (name, RR, date) and two clearly distinguished sections (I suggest using the following headers):\n\n1. Discussion point(s), which should be at least one of the following:\n\n\na. An insightful question about the reading. Time permitting, I will address as many of these questions as I can in lecture. Please ask again in lecture and/or office hours!\n\nb. A comment about how the reading relates to other course concepts or to an example/anecdote from your own life experience.\n\n1. Summary of the reading, in your own words (copying verbatim from the reading or other sources, or using generative AI to produce the summary is considered plagiarism and will be treated according to the Academic Integrity Policy). This summary is primarily meant to serve as a study aid (e.g., for reviewing for exams), and so should be organized in a way that best helps you. At a minimum, include the main messages of the reading as well as other relevant and/or interesting concepts discussed.\nAn RR template and grading rubric will be posted in Canvas. The lengths of each of the Discussion points and Summary sections can be flexible, but combined should be approximately 1 page in length . The reading response exercises are designed to support assimilation and retention of the course material, and also to identify emphases for me to cover in lecture. Unfortunately, there won't be time to address everyone's discussion points during the lecture period, but please be prepared to expand on your discussion point in lecture if called upon.",
+      "header_path": "Grading Policy > Homework:",
+      "token_count": 565,
+      "has_table": false,
+      "flags": [
+        "OVERSIZED"
+      ],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "### Exams\n\nThere  will  be  two  written,  open-book/note  exams:  a  midterm  (25%  of  final  grade) which  is  tentatively  scheduled  for  Week  8  of  the  semester,  and  a  comprehensive final exam (25%) during finals week. Each exam will have a mixed format, which can include quantitative problems, short answer questions, and/or essays that emphasize material discussed in lecture and assigned readings. Exam dates can be flexible in cases of need but must be communicated to Dr. Ferris prior to the exam's scheduled week.",
+      "header_path": "Grading Policy > Exams",
+      "token_count": 133,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 7,
+      "content": "### Research report\n\nEach student will work individually to prepare an in-depth research paper on some topic relevant to the course, due a few weeks before the end of the semester (dates\nTBD). A proposal for this paper will be due around the 3 rd week of class, so that I can judge  the  relevance  and  depth  of  the  topic  and  provide  advice/guidance.  Your completed report will be critically reviewed by other students (peer-reviews), and you will similarly review others' reports. The Research report and related review work is worth 20% of the overall grade, and the quality of your report as well as reviews will be assessed. Further details on this report will be given early in the semester.",
+      "header_path": "Grading Policy > Research report",
+      "token_count": 176,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 8,
+      "content": "### Semester Project:\n\nIndividuals or small teams of students will complete a semester project on a topic of their choice (pending Ferris approval) to apply analytical and design methods introduced and practiced in class. Each student/group will choose a technology/interface/system with which humans interact, analyze it according to course concepts to identify problems, and apply human-centered design concepts to generate redesign solutions. Deliverables include a proposal, a written report detailing the engineering analyses and redesign solutions, and a class presentation (format TBD).",
+      "header_path": "Grading Policy > Semester Project:",
+      "token_count": 148,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 9,
+      "content": "### Re-grading Policy\n\nStudents have 1 week after grades are released for a homework, quiz, or exam to submit a re-grade request in writing. This request must not exceed 1 page (11 point font, single spacing), and must clearly indicate the relevant problem(s) and justification for why you think re-grading is warranted. Note that a requested re-grade may result in further point deductions if new errors are discovered.",
+      "header_path": "Grading Policy > Re-grading Policy",
+      "token_count": 105,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 10,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 11,
+      "content": "## Course Specific Late Work Policy\n\nDr. Ferris does not allow anything to be submitted late without a University-excused absence. Items that are submitted after the posted due date/time will not receive any credit. Exceptions can be made in accordance with university rules (https://studentrules.tamu.edu/rule07/). In these cases, documentation of the circumstances will be required.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 96,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 12,
+      "content": "## Course Schedule\n\nSchedule of Topics (tentative)\n\nDate\nTopic\nText and Canvas\nmaterial\nWeek 1\nIntroduction, Information processing\nmodel\nSensation & Perception part 1\nWickens, ch. 1\nWeek 2\nSensation & Perception continued\nGoldstein, Ch. 1\nand Ch. 2\nWeek 3\nSensation & Perception continued\nPsychophysics\nWeek 4\nSignal Detection Theory\nVigilance\nWickens, Ch. 2 (1 st\nhalf)\n\nWeek 5\nVisual processing 1: basics, color vision\nVisual processing 2: object recognition\nand depth perception\nGoldstein, Ch. 3;\nCh. 9\nWolfe, Ch. 4;\nGoldstein, Ch. 10\nWeek 6\nVision continued\nAttention in visual processing\nWickens, Ch. 3\nWeek 7\nInformation Theory\nWickens, Ch. 2 (2 nd\nhalf)\nWickens, Ch. 9\n(first part)\nWeek 8\nSlack topics to prepare for Midterm\nMidterm\nWeek 9\nAudition\nWolfe, Ch. 9; Ch.\n10\nWeek10\nMemory and Learning\nWickens, Ch. 7\nWeek11\nTimesharing and mental workload\nAssessing mental workload\nWickens, Ch. 10,\n11\nWeek12\nDesign for supporting Human Information\nProcessing\nUsability\nWickens, Ch. 4\nWeek13\nHaptics and haptic communication\nWolfe, Ch. 12\nWeek14\nMultisensory processing and interaction\nMultimodal interfaces\nTBD\nWeek15\nProject presentations\nTBD\nFinal exam during finals week\n*Note format is TBD and exam may be\noffered earlier than this date/time",
+      "header_path": "Course Schedule",
+      "token_count": 312,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:57.629340"
+}

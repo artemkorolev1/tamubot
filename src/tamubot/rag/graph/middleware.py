@@ -12,8 +12,9 @@ Decorator order on every node must be:
 
 Note: @tracing_middleware was removed — function-level spans are provided by
 @observe decorators on router, retrieval, and generator functions.  OTEL context
-is set by create_trace() so all @observe spans nest under the root trace.
+is set by trace_context() so all @observe spans nest under the root trace.
 """
+
 from __future__ import annotations
 
 import functools
@@ -23,6 +24,7 @@ from typing import Any, Callable
 # ---------------------------------------------------------------------------
 # Custom pipeline exceptions (inlined from former graph/exceptions.py)
 # ---------------------------------------------------------------------------
+
 
 class V4PipelineError(Exception):
     """Base exception for v4 pipeline errors."""
@@ -67,6 +69,7 @@ def error_guard_middleware(node_fn: Callable) -> Callable:
     remains consistent.
     Non-V4PipelineError exceptions are re-raised (unexpected errors should surface).
     """
+
     @functools.wraps(node_fn)
     def wrapper(state: Any, **kwargs) -> dict:
         try:

@@ -3,24 +3,12 @@
   "findings": {
     "content_preservation": [],
     "strip_completeness": [],
-    "structural_coherence": [
-      "The content for 'Textbook and/or Resource Materials' is located between 'Course Specific Late Work Policy' and 'Course Schedule', rather than directly under its designated header.",
-      "The header '## Textbook and/or Resource Materials' is immediately followed by '## Grading Policy' without its corresponding content, making it an empty or orphaned header."
-    ],
+    "structural_coherence": [],
     "metadata_accuracy": [
-      "Instructor phone number is 'TBD', indicating it's missing or incomplete."
+      "Meeting Days field is empty",
+      "Instructor phone number is TBD (missing)"
     ]
   },
-  "timing_s": 25.99,
-  "proposals": {
-    "new_false_positives": [
-      "Section 700 (63232) Risk Engineering Fall 2025 - College Station"
-    ],
-    "new_boilerplate": [
-      "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
-      "### Communications\n\nTo maintain course integrity, all communications must be conducted through Canvas (via a message). The instructor will not respond to course-related questions via email or chat."
-    ],
-    "text_cleanups": [],
-    "reasoning": "The text 'Section 700 (63232) Risk Engineering Fall 2025 - College Station' describes the course section but is not a distinct section header for content, thus it should be demoted to body text. The 'Late Work Policy' section explicitly references a university 'Student Rule 7', indicating it's institutional boilerplate. The 'Communications' section describes a general university policy for communication channels, making it institutional boilerplate. No specific text cleanups (like HTML comments or encoding errors) were identified."
-  }
+  "timing_s": 9.05,
+  "proposals": {}
 }

@@ -1,34 +1,16 @@
 {
   "file_stem": "202641_ISEN_645_700_55965",
   "findings": {
-    "content_preservation": [
-      "The first learning outcome (numbered '1.') appears to be missing, as the list of outcomes starts at '2.'"
-    ],
+    "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "Orphaned numbers '1:' and '2:' under the 'Late Work Policy' section, indicating missing list items or content.",
-      "Orphaned text 'OV' and 'Topical outline' under the 'Course Schedule' section.",
-      "The 'Course Schedule' content is not formatted as a table, despite having a line 'Class Core Topic / Theme Technical focus' that suggests a table header.",
-      "Orphaned numbers '3:' through '14:' under the 'Course Schedule' section, indicating missing list items or content."
+      "The table in the 'Course Schedule' section is malformed; its first data row is a single, extremely long string of text instead of being structured into distinct columns.",
+      "The 'Course Specific Late Work Policy' section refers to a 'University Policies' section that is not present in the document, creating a broken internal reference."
     ],
     "metadata_accuracy": [
-      "The 'Meeting Days' field under 'Course Information' is empty."
+      "The 'Publisher' field is missing for the textbook 'The Lean Toolbox Revised Sixth Edition'."
     ]
   },
-  "timing_s": 23.78,
-  "proposals": {
-    "new_false_positives": [
-      "OV",
-      "Topical outline",
-      "This material Is: Required",
-      "This material Is: Optional"
-    ],
-    "new_boilerplate": [
-      "Special Course Designation"
-    ],
-    "text_cleanups": [
-      "\\d+:"
-    ],
-    "reasoning": "The proposed false positives ('OV', 'Topical outline', 'This material Is: Required', 'This material Is: Optional') are not true section headers but rather orphaned labels or descriptive text for individual items, likely promoted to headers by the parser. 'Special Course Designation' is identified as boilerplate because it's a common institutional section that often contains placeholder content like 'None', indicating it's university-wide and not course-specific. The text cleanup pattern '\\d+:' is proposed to remove orphaned numerical list markers (e.g., '1:', '2:', '3:') that appear without corresponding content, indicating parsing artifacts or missing information."
-  }
+  "timing_s": 11.89,
+  "proposals": {}
 }

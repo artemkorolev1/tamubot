@@ -1,0 +1,94 @@
+{
+  "source_file": "202641_ISEN_691_620_62903",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "research",
+  "course_metadata": {
+    "course_id": "ISEN 691",
+    "section": "620",
+    "term": "Fall 2026",
+    "crn": "62903",
+    "instructor": {
+      "name": "Jangho Park",
+      "email": "janghopark@tamu.edu",
+      "office": "ETB 4042",
+      "office_hours": "Weekly meetings by appointment"
+    },
+    "teaching_assistants": null,
+    "meeting_times": "Weekly one-on-one scheduled meetings at the convenience of the student and instructor.",
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "1 TO 23",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/40mvsd1iz/Fall-2026-College-Station-ISEN-691-620-%2862903%29?mode=view"
+  },
+  "course_summary": "ISEN 691 | Research | Fall 2026\nInstructor: Jangho Park | janghopark@tamu.edu\nMeets: by appointment\nGrading: Weekly participation in meetings [10%], Development of literature summary [20%], Design of experiment/data collection/data analysis [50%], Manuscript writing/revision [20%]\nTopics: literature summary development, experiment design, data collection, data analysis, manuscript writing, manuscript revision, industrial and systems engineering research, industrial engineering field research",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 6,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nResearch. Credit 1 or more each semester. Research in industrial engineering field; content and credit dependent upon needs of individual student.",
+      "header_path": "Catalog Description",
+      "token_count": 42,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- Engage in research in industrial and systems engineering.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 47,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: No required textbook\n\nNo Textbook Needed",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 24,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\nGrading will be based on the following components depending on the stage of research:\n\n- Weekly participation in meetings: 10%\n\n- Development of literature summary: 20%\n\n- Design of experiment/data collection/data analysis: 50%\n\n- Manuscript writing/revision: 20%",
+      "header_path": "Grading Policy",
+      "token_count": 70,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Course Schedule\n\nWeekly one-on-one scheduled meetings at the convenience of the student and instructor.",
+      "header_path": "Course Schedule",
+      "token_count": 26,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:58.770255"
+}

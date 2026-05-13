@@ -2,34 +2,32 @@
   "file_stem": "202641_ISEN_635_600_63276",
   "findings": {
     "content_preservation": [],
-    "strip_completeness": [],
+    "strip_completeness": [
+      "Section '## Late Work Policy' is boilerplate and should be removed"
+    ],
     "structural_coherence": [
-      "The text 'Credit Hours: 3' is duplicated under the 'Course Information' section.",
-      "Headers '# A. An insightful question about the reading.' and '# B. A comment about how the reading relates to other course concepts or to an example/anecdote from your own life experience.' under the 'Homework' section are at heading level 1, which is an incorrect heading level for sub-points of a list item.",
-      "The header 'Schedule of Topics Schedule of Topics (tentative)' in the 'Course Schedule' section is redundant.",
-      "The course schedule content under 'Course Schedule' is not formatted as a table, despite appearing to be tabular data.",
-      "The 'Re-grading Policy' section is duplicated, appearing once after 'Semester Project' and again under 'Additional Course Information'."
+      "The 'Course Schedule' section contains tabular data (Date, Topic, Text and Canvas material) but is not formatted as a markdown table, instead appearing as plain text with space alignment."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 25.61,
+  "timing_s": 17.78,
   "proposals": {
     "new_false_positives": [
-      "# A. An insightful question about the reading.",
-      "# B. A comment about how the reading relates to other course concepts or to an example/anecdote from your own life experience.",
-      "### Re-grading Policy :"
+      "Section 600 (63276) Human Information Processing Fall 2026 - College Station",
+      "Credit Hours: 3",
+      "Email: tferris@tamu.edu",
+      "Office Location: 4081 ETB",
+      "Phone: 9794582340",
+      "Office Hours: Thursday 3 - 5",
+      "Preferred Contact Method: email",
+      "This material Is: Recommended",
+      "Schedule of Topics (tentative)"
     ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      {
-        "pattern": "Credit Hours:\\n\\n3\\n\\nCredit Hours:\\n\\n3",
-        "replacement": "Credit Hours:\\n\\n3"
-      },
-      {
-        "pattern": "Schedule of Topics Schedule of Topics (tentative)",
-        "replacement": "Schedule of Topics (tentative)"
-      }
+    "new_boilerplate": [
+      "## Late Work Policy",
+      "## Course Specific Late Work Policy"
     ],
-    "reasoning": "The headers '# A. An insightful question...' and '# B. A comment...' are sub-points within a list item, not true section headers, and should be demoted to body text. The '### Re-grading Policy :' header under 'Additional Course Information' is a duplicate of a main section header and should be demoted or removed. The 'Credit Hours: 3' text is duplicated in the 'Course Information' section, and the 'Schedule of Topics Schedule of Topics (tentative)' header contains redundant text. The issue regarding the course schedule not being formatted as a table is a structural formatting concern that cannot be addressed by the provided fix types (false positives, boilerplate, or text cleanups)."
+    "text_cleanups": [],
+    "reasoning": "The identified 'new_false_positives' are either course metadata, specific details under a broader section, or subtitles, which are not intended to be top-level section headers. The 'new_boilerplate' sections, '## Late Work Policy' and '## Course Specific Late Work Policy', were identified as institutional boilerplate, with the latter explicitly referencing university rules, indicating it's not course-specific content. No specific text cleanups (like regex patterns or literal strings for removal/replacement) were identified based on the provided document and rules."
   }
 }

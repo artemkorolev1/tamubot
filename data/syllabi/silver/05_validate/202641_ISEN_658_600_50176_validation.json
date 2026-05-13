@@ -4,22 +4,11 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "Redundant header: '### Course schedule' immediately follows '## Course Schedule'.",
-      "The Course Schedule content, which appears to be a table, has lost its tabular structure. 'Topics' and 'Timeline' headers are repeated, and the data is flattened into a list rather than aligned columns."
+      "The 'Course schedule' sub-header is redundant under the 'Course Schedule' main header.",
+      "The 'Course Schedule' section contains tabular data (Topics and Timeline) but is not formatted as a table, making it difficult to read and parse programmatically."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 15.0,
-  "proposals": {
-    "new_false_positives": [
-      "### Course schedule",
-      "Topics",
-      "Timeline"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "&lt;"
-    ],
-    "reasoning": "The header '### Course schedule' is redundant as it immediately follows '## Course Schedule'. 'Topics' and 'Timeline' are column headers within the course schedule content, not true section headers, and are repeated due to parsing issues. The HTML entity '&lt;' should be replaced with '<' for proper rendering."
-  }
+  "timing_s": 3.99,
+  "proposals": {}
 }

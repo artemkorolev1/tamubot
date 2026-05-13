@@ -2,53 +2,25 @@
   "file_stem": "202541_ISEN_620_700_14035",
   "findings": {
     "content_preservation": [
-      "The GroupMe link and QR code mentioned in the 'Communication' section are missing."
+      "Image of book cover described in 'Textbook and/or Resource Materials' is missing."
     ],
     "strip_completeness": [],
     "structural_coherence": [
-      "The 'Course Schedule' is not formatted as a proper markdown table, appearing as plain text lines.",
-      "The header 'Week Date Topic Deliverable' is repeated within the 'Course Schedule' section."
+      "The 'Course Schedule' table is broken into three separate tables, each with its own header row.",
+      "The 'Course Format and Expectations' section contains a hardcoded page reference ('page 6') which is likely invalid in the current document format."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 26.12,
+  "timing_s": 23.69,
   "proposals": {
     "new_false_positives": [
-      "Section 700 (14035) Survey of Optimization Fall 2025 - College Station",
-      "Meeting Type: LEC",
-      "Meeting Days: Asynchronous",
-      "Start Time: N/A",
-      "End Time: N/A",
-      "Start Date: 08/25/2025",
-      "End Date: 12/16/2025",
-      "Meeting Location: ONLINE",
-      "Credit Hours: 3",
-      "Email: butenko@tamu.edu",
-      "Office: ETB 4037",
-      "Phone: 979-458-2333",
-      "Office Hours TR 10:00-11:00 AM or by appointment",
-      "This material Is: Required",
-      "URL for Resource:",
-      "This material Is: Recommended",
-      "ISBN:",
-      "Authors:",
-      "Publisher:",
-      "Publication Date:",
-      "Notes:",
-      "This Material is: Required",
-      "Week Date Topic Deliverable",
-      "No Class",
-      "Deep breath",
-      "Celebrate!",
-      "1 An academic hour is 50 minutes."
+      "Section 700 (14035) Survey of Optimization Fall 2025 - College Station"
     ],
-    "new_boilerplate": [
-      "Special Course Designation",
-      "Late Work Policy"
-    ],
+    "new_boilerplate": [],
     "text_cleanups": [
-      "Week Date Topic Deliverable"
+      "An image of a book cover titled \"NUMERICAL METHODS AND OPTIMIZATION AN INTRODUCTION\" by Sergiy Butenko and Panos M. Pardalos. The cover features a dark background with a stylized geometric pattern in green and yellow.",
+      "page 6"
     ],
-    "reasoning": "The proposed false positives are either sub-details of a section (e.g., 'Meeting Type: LEC', 'Email:'), labels for specific data points (e.g., 'ISBN:', 'Notes:'), or internal table headers/footnotes that are not true section headers. 'Week Date Topic Deliverable' is a repeated table header within the schedule, not a section header. The boilerplate sections 'Special Course Designation' and 'Late Work Policy' contain generic institutional text (e.g., 'None', reference to 'Student Rule 7') that is likely identical across all syllabi, especially when a 'Course Specific Late Work Policy' is also present. The text cleanup 'Week Date Topic Deliverable' is proposed because it is a redundant header within the 'Course Schedule' section, appearing multiple times, and should be handled as part of table parsing rather than as a distinct header."
+    "reasoning": "The course instance description 'Section 700 (14035) Survey of Optimization Fall 2025 - College Station' is descriptive text following the main course title, not a distinct section header. The image description is a placeholder for a missing image and should be removed. The hardcoded 'page 6' references are likely invalid in a dynamic document format and should be removed."
   }
 }

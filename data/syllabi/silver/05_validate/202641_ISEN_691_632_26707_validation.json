@@ -3,22 +3,9 @@
   "findings": {
     "content_preservation": [],
     "strip_completeness": [],
-    "structural_coherence": [
-      "The 'Credit Hours: 1 TO 23' line is duplicated under the 'Course Information' section.",
-      "Bullet points under 'Grading Policy' have an extra hyphen (e.g., '- -Weekly participation in meetings: 10%')."
-    ],
+    "structural_coherence": [],
     "metadata_accuracy": []
   },
-  "timing_s": 12.63,
-  "proposals": {
-    "new_false_positives": [
-      "Section 632 (26707) Research Fall 2026 - College Station"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "\\n\\nCredit Hours:\\n1 TO 23",
-      "^- -"
-    ],
-    "reasoning": "The 'Section...' line appears to be course metadata rather than a true section header, so it should be demoted to body text. There are no sections identified as institutional boilerplate. The '\\n\\nCredit Hours:\\n1 TO 23' pattern targets and removes the duplicate 'Credit Hours' block. The '^- -' regex targets and replaces the extra hyphen at the beginning of bullet points, as noted in the issues."
-  }
+  "timing_s": 9.48,
+  "proposals": {}
 }

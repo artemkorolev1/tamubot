@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any, Generator, Optional
 
 if TYPE_CHECKING:
     from .config import ObservabilityConfig
 
 logger = logging.getLogger("tamubot.observability")
-
-# Stores the context manager returned by start_as_current_observation
-# so finalize_trace can exit it and detach the OTEL context.
-_active_ctx_managers: dict[int, Any] = {}
 
 # ---------------------------------------------------------------------------
 # Singleton
@@ -46,91 +43,94 @@ def get_langfuse():
 
 
 # ---------------------------------------------------------------------------
-# Trace lifecycle
+# Trace lifecycle — context manager
 # ---------------------------------------------------------------------------
 
 
-def create_trace(
+@contextmanager
+def trace_context(
     obs_config: ObservabilityConfig,
     query: str,
     trace_id: Optional[str] = None,
-) -> tuple[Optional[object], Optional[str]]:
-    """Create a Langfuse root observation (trace). Returns (span, trace_id) or (None, None).
+) -> Generator[tuple[Optional[object], Optional[str]], None, None]:
+    """Context manager for Langfuse trace lifecycle.
 
-    Uses start_as_current_observation() so the OTEL context is set — any
-    @observe-decorated functions called while this trace is active will
-    automatically nest as child spans instead of creating separate traces.
+    Yields (span, trace_id) or (None, None) if Langfuse is not configured.
+    Guarantees OTEL context cleanup on exit — safe for sequential loops.
 
     Args:
         obs_config: Observability settings (trace name, tags, etc.)
         query: The user query (used as trace input).
-        trace_id: Optional existing trace ID to resume.  When provided, the new
-                  observation is appended to the existing trace instead of
-                  creating a new one (useful for multi-step flows like advisory
-                  SCP collection → pipeline execution).
+        trace_id: Optional existing trace ID to resume (for multi-step flows).
     """
     lf = get_langfuse()
     if lf is None:
-        return None, None
+        yield None, None
+        return
+
+    merged_meta = {
+        **(obs_config.metadata or {}),
+        "session_id": obs_config.session_id,
+    }
+    kwargs: dict[str, Any] = dict(
+        name=obs_config.trace_name,
+        input=query,
+        metadata=merged_meta,
+        end_on_exit=False,
+    )
+    if trace_id is not None:
+        kwargs["trace_context"] = {"trace_id": trace_id}
+
+    attr_ctx = None
     try:
-        merged_meta = {
-            **(obs_config.metadata or {}),
-            "session_id": obs_config.session_id,
-        }
-        kwargs: dict[str, Any] = dict(
-            name=obs_config.trace_name,
-            input=query,
-            metadata=merged_meta,
-            end_on_exit=False,
-        )
-        if obs_config.session_id:
-            kwargs["session_id"] = obs_config.session_id
-        if trace_id is not None:
-            kwargs["trace_context"] = {"trace_id": trace_id}
+        with lf.start_as_current_observation(**kwargs) as span:
+            resolved_trace_id = span.trace_id
 
-        ctx_manager = lf.start_as_current_observation(**kwargs)
-        span = ctx_manager.__enter__()
-        resolved_trace_id = span.trace_id
+            # Propagate session_id via OTEL attributes so all child spans inherit it.
+            if obs_config.session_id:
+                try:
+                    from langfuse._client.propagation import _propagate_attributes
 
-        # Store the context manager so finalize_trace can __exit__ it
-        _active_ctx_managers[id(span)] = ctx_manager
+                    attr_ctx = _propagate_attributes(session_id=obs_config.session_id)
+                    attr_ctx.__enter__()
+                except Exception as e:
+                    logger.warning(f"Session propagation setup failed: {e}")
+                    attr_ctx = None
 
-        # Set tags on the trace via SDK internal API (only public way in v4)
-        if obs_config.tags:
+            # Set tags on the trace (nice-to-have).
+            if obs_config.tags:
+                try:
+                    lf._create_trace_tags_via_ingestion(
+                        trace_id=resolved_trace_id,
+                        tags=obs_config.tags,
+                    )
+                except Exception:
+                    pass
+
             try:
-                lf._create_trace_tags_via_ingestion(
-                    trace_id=resolved_trace_id,
-                    tags=obs_config.tags,
-                )
-            except Exception:
-                pass  # tags are nice-to-have, not critical
-        return span, resolved_trace_id
+                yield span, resolved_trace_id
+            finally:
+                # End span
+                try:
+                    span.end()
+                except Exception as e:
+                    logger.warning(f"span.end() failed: {e}")
+
+                # Exit attribute propagation before observation context exits
+                if attr_ctx is not None:
+                    try:
+                        attr_ctx.__exit__(None, None, None)
+                    except Exception as e:
+                        logger.warning(f"Attribute context exit failed: {e}")
+
+                # Flush buffered spans to Langfuse
+                try:
+                    lf.flush()
+                except Exception as e:
+                    logger.warning(f"Langfuse flush failed: {e}")
+    except GeneratorExit:
+        # Normal generator cleanup — re-raise without logging
+        raise
     except Exception as e:
         logger.warning(f"Langfuse trace creation failed: {e}")
-        return None, None
-
-
-def finalize_trace(trace, output: str) -> None:
-    """Update trace output, end span, exit OTEL context, and flush. No-op if trace is None."""
-    if trace is None:
-        return
-    try:
-        trace.update(output=output)
-        trace.end()
-    except Exception:
-        pass
-
-    # Exit the context manager to detach the OTEL context
-    ctx_manager = _active_ctx_managers.pop(id(trace), None)
-    if ctx_manager is not None:
-        try:
-            ctx_manager.__exit__(None, None, None)
-        except Exception:
-            pass
-
-    lf = get_langfuse()
-    if lf is not None:
-        try:
-            lf.flush()
-        except Exception:
-            pass
+        yield None, None

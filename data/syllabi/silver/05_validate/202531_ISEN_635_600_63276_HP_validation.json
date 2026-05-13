@@ -2,16 +2,15 @@
   "file_stem": "202531_ISEN_635_600_63276_HP",
   "findings": {
     "content_preservation": [
-      "The 'Grade Determination' section is missing the 'C' grade range (e.g., 70-79%)."
+      "The 'C' grade range (e.g., 70-79%) is missing from the Grade Determination section."
     ],
     "strip_completeness": [],
-    "structural_coherence": [
-      "The 'Lecture Topics and Tentative Schedule' is split into two separate markdown tables.",
-      "The 'Lecture Topics and Tentative Schedule' tables are malformed; they lack proper header rows and column delimiters, causing all content to appear in a single column per row."
-    ],
-    "metadata_accuracy": []
+    "structural_coherence": [],
+    "metadata_accuracy": [
+      "CRN (Course Reference Number) is missing."
+    ]
   },
-  "timing_s": 40.31,
+  "timing_s": 16.14,
   "proposals": {
     "new_false_positives": [
       "Lecture :",
@@ -20,16 +19,10 @@
     ],
     "new_boilerplate": [],
     "text_cleanups": [
-      "(\\d)\\s(st|nd|rd|th)",
-      "^\\|\\s*(.*?)\\s*\\|$"
+      "A photo of Thomas Ferris, a man with glasses and a beard, wearing a light blue collared shirt, smiling and giving a thumbs up.",
+      "An image of the textbook cover for 'Engineering Psychology and Human Performance, Fifth Edition' by Wickens, Helton, Hollands, and Banbury.",
+      ":\\s*$"
     ],
-    "reasoning": {
-      "new_false_positives": "The entries 'Lecture :', 'Instructor:', and 'Text:' are short labels introducing information rather than distinct section headers. They should be demoted to body text to improve document structure.",
-      "new_boilerplate": "No university-wide institutional boilerplate text was identified in the document that appears verbatim across all syllabi.",
-      "text_cleanups": [
-        "The regex pattern '(\\d)\\s(st|nd|rd|th)' is proposed to correct inconsistent spacing in ordinal numbers (e.g., '1 st' should be '1st', '2 nd' should be '2nd') for better readability and consistency.",
-        "The regex pattern '^\\|\\s*(.*?)\\s*\\|$' is proposed to remove leading and trailing pipe characters from lines that were incorrectly parsed as single-column tables. This addresses the issue of malformed tables by treating their content as regular body text, cleaning up the artifact characters."
-      ]
-    }
+    "reasoning": "The identified 'false positives' are labels or descriptions (e.g., 'Lecture :', 'Instructor:', 'Text:') that were likely incorrectly promoted to section headers by the parser; they should be treated as regular body text. No institutional boilerplate headers were found that would apply verbatim across all syllabi. The 'text_cleanups' include descriptions of images which are metadata, not core syllabus content, and a regex pattern `:\\s*$` to remove trailing colons and spaces from headers, which is a common formatting artifact."
   }
 }

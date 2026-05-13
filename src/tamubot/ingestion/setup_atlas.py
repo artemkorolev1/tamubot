@@ -259,6 +259,80 @@ def setup_search_indexes_v3(db):
     return created
 
 
+def setup_standard_indexes_v4(db):
+    """Create standard MongoDB indexes for the V4 collections."""
+    chunks_v4 = db["chunks_v4"]
+    chunks_v4.create_index("crn", name="idx_crn")
+    chunks_v4.create_index("course_id", name="idx_course_id")
+    chunks_v4.create_index("term", name="idx_term")
+    chunks_v4.create_index("source", name="idx_source")
+    chunks_v4.create_index(
+        [("crn", 1), ("chunk_index", 1)],
+        unique=True,
+        name="idx_crn_chunk_unique",
+    )
+    print("  [chunks_v4] standard indexes created")
+
+    courses_v4 = db["courses_v4"]
+    courses_v4.create_index("crn", unique=True, name="idx_crn")
+    courses_v4.create_index("course_id", name="idx_course_id")
+    courses_v4.create_index("term", name="idx_term")
+    print("  [courses_v4] standard indexes created")
+
+
+def setup_search_indexes_v4(db):
+    """Create Atlas Search and Vector Search indexes for V4 collections."""
+    chunks_v4 = db["chunks_v4"]
+
+    vector_idx = SearchIndexModel(
+        definition={
+            "fields": [
+                {
+                    "type": "vector",
+                    "path": "embedding",
+                    "numDimensions": 1024,
+                    "similarity": "cosine",
+                },
+                {"type": "filter", "path": "course_id"},
+                {"type": "filter", "path": "term"},
+                {"type": "filter", "path": "source"},
+            ]
+        },
+        name="vector_index_v4",
+        type="vectorSearch",
+    )
+
+    text_idx = SearchIndexModel(
+        definition={
+            "mappings": {
+                "dynamic": False,
+                "fields": {
+                    "content": {"type": "string", "analyzer": "lucene.standard"},
+                    "header_path": {"type": "string", "analyzer": "lucene.standard"},
+                    "course_id": {"type": "token"},
+                    "term": {"type": "token"},
+                    "source": {"type": "token"},
+                    "instructor_name": {"type": "string", "analyzer": "lucene.standard"},
+                },
+            }
+        },
+        name="text_index_v4",
+        type="search",
+    )
+
+    existing = [idx["name"] for idx in chunks_v4.list_search_indexes()]
+    created = []
+    indexes = {"vector_index_v4": vector_idx, "text_index_v4": text_idx}
+    for name, idx in indexes.items():
+        if name in existing:
+            print(f"  [chunks_v4] search index '{name}' already exists — skipping")
+        else:
+            chunks_v4.create_search_index(idx)
+            created.append(name)
+            print(f"  [chunks_v4] search index '{name}' created (may take a few minutes)")
+    return created
+
+
 def setup_indexes_for_collection(db, chunks_col: str) -> list[str]:
     """Create standard + Atlas search indexes for any named chunks collection.
 
@@ -272,7 +346,7 @@ def setup_indexes_for_collection(db, chunks_col: str) -> list[str]:
     if not chunks_col.startswith("chunks_"):
         raise ValueError(f"Collection name must start with 'chunks_', got: {chunks_col!r}")
 
-    suffix = chunks_col[len("chunks_"):]  # e.g. "eval"
+    suffix = chunks_col[len("chunks_") :]  # e.g. "eval"
     courses_col = f"courses_{suffix}"
     vector_index_name = f"vector_index_{suffix}"
     text_index_name = f"text_index_{suffix}"
@@ -348,13 +422,15 @@ def setup_indexes_for_collection(db, chunks_col: str) -> list[str]:
 def main():
     parser = argparse.ArgumentParser(description="Create MongoDB Atlas indexes")
     parser.add_argument(
-        "--version", choices=["v1", "v2", "v3", "all"], default="all",
+        "--version",
+        choices=["v1", "v2", "v3", "v4", "all"],
+        default="all",
         help="Which index set to create (default: all)",
     )
     parser.add_argument(
-        "--collection", type=str,
-        help="Create indexes for a specific chunks collection (e.g. chunks_eval). "
-             "Overrides --version.",
+        "--collection",
+        type=str,
+        help="Create indexes for a specific chunks collection (e.g. chunks_eval). Overrides --version.",
     )
     args = parser.parse_args()
 
@@ -385,9 +461,15 @@ def main():
             print("\nV3 — Atlas Search indexes:")
             search_indexes += setup_search_indexes_v3(db)
 
+        if args.version in ("v4", "all"):
+            print("\nV4 — Standard indexes:")
+            setup_standard_indexes_v4(db)
+            print("\nV4 — Atlas Search indexes:")
+            search_indexes += setup_search_indexes_v4(db)
+
     print("\nDone.")
     if search_indexes:
-        col = args.collection or "chunks_v3"
+        col = args.collection or "chunks_v4"
         print(
             "NOTE: Atlas Search indexes build asynchronously. "
             f"Check Atlas UI or run db.{col}.getSearchIndexes() to verify status."

@@ -1,0 +1,92 @@
+{
+  "source_file": "202641_ISEN_640_600_55318",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 640",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "55318",
+    "instructor": {
+      "name": "Joseph Geunes",
+      "email": "geunes@tamu.edu",
+      "office": "ETB 4024",
+      "office_hours": "TBD"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "M 6:00PM - 8:30PM",
+    "location": "ZACH 160",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/n0zmj8bg6/Fall-2026-College-Station-ISEN-640-600-%2855318%29?mode=view"
+  },
+  "course_summary": "ISEN 640 | Systems Thinking and Analysis | Fall 2026\nInstructor: Joseph Geunes | geunes@tamu.edu, Richard Mayer | ricmayer@tamu.edu\nMeets: M 6:00PM - 8:30PM | ZACH 160\nGrading: Exam 1 (Midterm) [25%], Exam 2 (Final) [25%], Homework (assignments & quizzes) [50%] — A: 90% - 100%, B: 80% - 89.9%, C: 70% - 79.9%, D: 60% - 69.9%, F: below 60%\nTopics: Complex Adaptive Systems Definition, Model Based Systems Engineering, Model Based Decision Making, Systems Description Languages, Theory of Systems Design, System Architectures, Engineered Systems Life Cycle, Documenting the SE Process, systems thinking process, engineering of large-scale systems, anatomy of engineered systems, complex interactions, formulate issues, analyze issues, interpret issues, separate symptoms, separate concerns, separate opportunities, diagnose causes, identify causes (problem), systems thinking techniques, systems thinking methods, systems engineering practice, critical thinking techniques, model engineered systems, critique engineered systems, analyze engineered systems, systems engineering methods, multidisciplinary teams, communicate ideas (verbally), communicate ideas (in writing), national systems engineering issues, global systems engineering issues, Development, Systems Modeling, Modeling, Systems Thinking in Engineering Design, Trade-offs, Systems Thinking and Analysis\nTools: software tools, Canvas, Zoom\nPrerequisites: MATH 304 or approval of instructor",
+  "headers": [
+    {
+      "text": "ISEN 640 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Grading Policy",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "GRADE COMPONENTS",
+      "level": 4,
+      "page": 3
+    },
+    {
+      "text": "GRADE ASSIGNMENT",
+      "level": 4,
+      "page": 3
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Course Schedule",
+      "level": 3,
+      "page": 3
+    }
+  ]
+}

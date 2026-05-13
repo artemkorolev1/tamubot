@@ -4,18 +4,11 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The header '#### Course Syllabus' is misplaced under '### Textbook and/or Resource Materials' and its content is just a link to the textbook, making it an orphaned or redundant heading.",
-      "The 'Exam and Milestones Schedule' section within 'Course Schedule' is not properly formatted as part of the main schedule table, breaking the table's column structure and coherence."
+      "The header '#### Course Syllabus' is an incorrect heading level and is redundant, as its content (textbook link) belongs directly under '### Textbook and/or Resource Materials'.",
+      "The Course Schedule section contains two distinct tables for the weekly schedule (Weeks 1-11 and Weeks 12-15) that should be merged into a single continuous table."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 12.34,
-  "proposals": {
-    "new_false_positives": [
-      "Course Syllabus"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [],
-    "reasoning": "The header '#### Course Syllabus' is not a true section header. It appears as a sub-heading under '### Textbook and/or Resource Materials' and its content is merely a link to the textbook, making it a redundant label rather than a distinct section. It should be demoted to body text."
-  }
+  "timing_s": 10.87,
+  "proposals": {}
 }

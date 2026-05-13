@@ -1,0 +1,77 @@
+{
+  "source_file": "202641_ISEN_613_601_34731",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 613",
+    "section": "601",
+    "term": "Fall 2026",
+    "crn": "34731",
+    "instructor": {
+      "name": "Joseph Geunes",
+      "email": "geunes@tamu.edu",
+      "office": "ETB 4024",
+      "office_hours": "TBD"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 11:10AM - 12:25PM",
+    "location": "ZACH 266",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/wnlxqzy4u/Fall-2026-College-Station-ISEN-613-601-%2834731%29?mode=view"
+  },
+  "course_summary": "ISEN 613 | Engineering Data Analysis | Fall 2026\nInstructor: Joseph Geunes | geunes@tamu.edu\nMeets: TR 11:10AM-12:25PM | ZACH 266\nGrading: Homework [30%], Midterm Exam [35%], Final Project [35%] — A: 90-100%, B: 80-89.9%, C: 70-79.9%, D: 60-69.9%, F: below 60%\nTopics: LDA, QDA, KNN, Bootstrap, Subset selection, Ridge regression, LASSO, Tree-based methods, Support vector machines, Clustering, Principal Component Analysis (PCA), robust design, maintainability, reliability, quality control, assurance sciences, predictive modeling, statistical models, engineering applications, implementing existing techniques, developing new techniques, real-world problems, review study, emerging area of statistical learning, data mining, measurement principles, data collection, quality engineering problems, statistical learning, Linear regression, Classification, logistic regression, Cross validation, probability, statistics, data analysis\nTools: Python, Canvas",
+  "headers": [
+    {
+      "text": "ISEN 613 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 3
+    }
+  ]
+}

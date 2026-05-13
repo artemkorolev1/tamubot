@@ -1,0 +1,127 @@
+{
+  "source_file": "202641_ISEN_625_700_48681",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 625",
+    "section": "700",
+    "term": "Fall 2026",
+    "crn": "48681",
+    "instructor": {
+      "name": "Amarnath Banerjee",
+      "email": "banerjee@tamu.edu",
+      "office": "4041 ETB",
+      "office_hours": "TBD"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "This is an online class. There will be no regularly scheduled class meeting times. Meeting Type: LEC",
+    "location": null,
+    "format": "online",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/61fgm8d8m/Fall-2026-College-Station-ISEN-625-700-%2848681%29?mode=view"
+  },
+  "course_summary": "ISEN 625 | Simulation Methods and Applications | Fall 2026\nInstructor: Amarnath Banerjee | banerjee@tamu.edu\nMeets: Online, no scheduled meetings\nGrading: Exam 1 [18 points], Exam 2 [18 points], Lab Exam 1 [22 points], Lab Exam 2 [22 points], Lab assignments [12 points], Quizzes [8 points] — A: 90-100%, B: 80-89.9%, C: 70-79.9%, D: 60-69.9%, F: below 60%\nTopics: KN method, OptQuest, Agent Based Simulation, mixed model simulation, fluid flows combined with discrete event simulation, pull (Kanban) system, Goodness of Fit tests, Monte Carlo Simulation, non-stationary arrival process, discrete event (process-oriented) simulation modeling, random variate generation techniques, random number generation tests, user defined statistics, custom run setup, relational tables, separation of data from model, reliability logic, Task Sequences, Simio constructs, queueing theory, basic queueing models, two different types of systems, properties of output data, system comparison, non-terminating system analysis, data fitting, developing confidence intervals, probability statements, expectations, PDF's, PMF's, CDF's, single variable distributions, joint probabilities distributions, calculus-based probability, Simulation-Based Optimization, Variance Reduction Technique, ranking and selection, Verification, Validation, Input Analysis, Output Analysis, simulation data preparation, analysis of simulation output, random numbers, random variates, lists, sequences, transporters, work schedule, function, counting, branching, plots, interpreting results, processes, modeling, simulation, statistics, confidence intervals, hypothesis testing, computer programming\nTools: Simio, Canvas\nPrerequisites: STAT 212 or STAT 601, STAT 630, ISEN 609, STAT 211, knowledge of computer programming, calculus-based probability and statistics, distributions (single variable and joint probabilities), PDF's, PMF's, CDF's, probability statements, expectations, confidence intervals, hypothesis testing",
+  "headers": [
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Preferred Contact Method",
+      "level": 3,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Additional Course Details",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Additional Instructional Materials",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Grade Components",
+      "level": 3,
+      "page": 4
+    },
+    {
+      "text": "Grade Assignment",
+      "level": 3,
+      "page": 4
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Course Specific Late Work Policy",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Weekly Topics",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Additional Course Information",
+      "level": 2,
+      "page": 6
+    },
+    {
+      "text": "A Note About Homework",
+      "level": 3,
+      "page": 6
+    },
+    {
+      "text": "Course Material and Copyright Statement",
+      "level": 3,
+      "page": 7
+    }
+  ]
+}

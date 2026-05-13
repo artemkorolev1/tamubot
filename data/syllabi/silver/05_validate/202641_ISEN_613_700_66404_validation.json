@@ -2,26 +2,14 @@
   "file_stem": "202641_ISEN_613_700_66404",
   "findings": {
     "content_preservation": [
-      "Course Schedule table appears incomplete, ending abruptly at Week 15 with no content, and likely missing content for subsequent weeks/final exams."
+      "Course Schedule table is incomplete for Week 15 (missing topics and required reading)."
     ],
     "strip_completeness": [],
     "structural_coherence": [
-      "Duplicate header '### Course Schedule' immediately following '## Course Schedule'.",
-      "Course Schedule table header 'Week Topics Required Reading' is repeated after Week 10, breaking the table structure."
+      "Course Schedule table is split into two parts with repeated headers."
     ],
-    "metadata_accuracy": [
-      "Meeting Days field is missing a value."
-    ]
+    "metadata_accuracy": []
   },
-  "timing_s": 14.19,
-  "proposals": {
-    "new_false_positives": [
-      "### Course Schedule"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "Week\n\nTopics\n\nRequired Reading"
-    ],
-    "reasoning": "The header '### Course Schedule' is a duplicate immediately following '## Course Schedule' and should be demoted/removed as a false positive. The string 'Week\\n\\nTopics\\n\\nRequired Reading' is a repeated table header within the Course Schedule section, breaking the table structure, and should be removed as a text cleanup."
-  }
+  "timing_s": 9.11,
+  "proposals": {}
 }

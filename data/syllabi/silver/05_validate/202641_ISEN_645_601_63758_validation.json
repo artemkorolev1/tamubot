@@ -4,44 +4,10 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The 'Course Learning Outcomes' list starts numbering at 2, implying item 1 is missing or misnumbered.",
-      "The 'Late Work Policy' section contains numbered list items '1:' and '2:' with no content following them.",
-      "The 'Course Specific Late Work Policy' section contains a dangling reference to a non-existent 'syllabus section covering University Policies'.",
-      "The 'Course Schedule' section is poorly formatted; it appears to be a table that has lost its structure, with header elements ('OV', 'Topical outline', 'Class', 'Core Topic / Theme', 'Technical focus') not in a table, and subsequent schedule entries are run-on text interspersed with empty numbered list items (3-14)."
+      "The line 'No class on 7SEP - Labor Day holiday' is inserted between rows of the 'Course Schedule' table, disrupting its structure."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 26.77,
-  "proposals": {
-    "new_false_positives": [
-      "ISEN 645 Syllabus",
-      "Section 601 (63758) Lean Engineering Fall 2026 - College Station",
-      "Meeting Times:",
-      "Meeting Type:",
-      "Meeting Days:",
-      "Start Time:",
-      "End Time:",
-      "Start Date:",
-      "End Date:",
-      "Meeting Location:",
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "Preferred Contact Method",
-      "This material Is: Required",
-      "This material Is: Optional",
-      "OV",
-      "Topical outline",
-      "Class",
-      "Core Topic / Theme",
-      "Technical focus"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "^\\d+:\\s*$"
-    ],
-    "reasoning": "The identified 'false positives' are either document titles, course metadata, labels for specific data points, or column headers within a section, rather than actual section headers. No institutional boilerplate headers were identified based on the strict definition. The regex cleanup targets empty numbered list items (e.g., '1:', '2:', '3:') found in the 'Late Work Policy' and 'Course Schedule' sections, which are artifacts of parsing and contain no meaningful content."
-  }
+  "timing_s": 7.71,
+  "proposals": {}
 }

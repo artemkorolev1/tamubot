@@ -4,30 +4,11 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The header \"Webpage: https://safe.engr.tamu.edu/ Biography\" is malformed, combining a webpage link and a section title.",
-      "The 'Course grading components' section contains text that appears to be a malformed table, lacking proper markdown table formatting.",
-      "The 'Grading scale' section contains text that appears to be a malformed table, lacking proper markdown table formatting.",
-      "The header \"URL for Resource: https://education.wiley.com Notes:\" is malformed, combining a URL and a section title.",
-      "The 'Course topics' section is presented as a single-column list under a 'Topics' header, which is structurally unusual for a table and could be better formatted as an unordered list.",
-      "The 'Course Schedule' section contains text that appears to be a malformed table, lacking proper markdown table formatting. Additionally, rows for 'Exam 1' and 'Exam 2' are missing values in the 'Week' column."
+      "The header '### Webpage: https://safe.engr.tamu.edu/ Biography' is malformed, combining a URL and a section title. 'Biography' should likely be its own header.",
+      "The header '#### URL for Resource: https://education.wiley.com Notes:' is malformed, combining a URL and a section title, and uses an inconsistent heading level (####) compared to other sub-sections (###)."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 22.99,
-  "proposals": {
-    "new_false_positives": [
-      "Webpage: https://safe.engr.tamu.edu/ Biography",
-      "URL for Resource: https://education.wiley.com Notes:"
-    ],
-    "new_boilerplate": [
-      "Course materials and copyright:"
-    ],
-    "text_cleanups": [
-      {
-        "pattern": "&lt;",
-        "replace_with": "<"
-      }
-    ],
-    "reasoning": "The identified false positives are malformed labels containing URLs and descriptive text that were incorrectly promoted to headers by the parser. The boilerplate header 'Course materials and copyright:' is a common institutional statement found across many syllabi and should be removed entirely. The text cleanup addresses an HTML entity that should be rendered as its character equivalent."
-  }
+  "timing_s": 7.27,
+  "proposals": {}
 }

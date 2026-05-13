@@ -249,9 +249,15 @@ def validate_directory(
     input_dir: Path,
     metadata_dir: Path | None = None,
     output_dir: Path | None = None,
+    report_path: Path | None = None,
+    version_label: str | None = None,
 ) -> list[ValidationResult]:
     md_files = sorted(input_dir.glob("*.md"))
     results: list[ValidationResult] = []
+    if report_path is None:
+        from tamubot.ingestion.report_writer import get_report
+
+        report_path = get_report()
 
     for md_path in md_files:
         metadata = None
@@ -266,6 +272,17 @@ def validate_directory(
         summary = ", ".join(f"{k}={v}" for k, v in counts.items() if v > 0) or "clean"
         print(f"  {vr.file_stem}: {summary} ({vr.timing_s:.1f}s)")
 
+        if report_path and version_label:
+            from tamubot.ingestion.report_writer import update_validation
+
+            update_validation(
+                report_path,
+                vr.file_stem,
+                version_label,
+                vr.issue_counts,
+                vr.findings,
+            )
+
     if output_dir and results:
         output_dir.mkdir(parents=True, exist_ok=True)
         csv_path = output_dir / "validation_summary.csv"
@@ -278,6 +295,7 @@ def validate_directory(
                     *CATEGORIES,
                     "timing_s",
                 ],
+                extrasaction="ignore",
             )
             writer.writeheader()
             for vr in results:

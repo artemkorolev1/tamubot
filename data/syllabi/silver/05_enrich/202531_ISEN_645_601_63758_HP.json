@@ -1,0 +1,87 @@
+{
+  "source_file": "202531_ISEN_645_601_63758_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 645",
+    "section": "601",
+    "term": "?31 2025",
+    "crn": "63758",
+    "instructor": {
+      "name": "Dr. Michael Do",
+      "email": "mddo@tamu.edu",
+      "office": "ETB 4078",
+      "office_hours": "Wednesday, 10-11:30am; Friday, 10-11:30am"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": null,
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 645 | Lean Engineering | Fall 2025\nInstructor: Dr. Michael Do | mddo@tamu.edu\nGrading: Class Discussions [25%], Assignments [25%], Practical Exercises (2x) [25%], Final Exam [25%] — A: 90-100%, B: 80-89.9%, C: 70-79.9%, D: 60-69.9%, F: below 60%\nTopics: Gemba Kaizen, Kata, Lean 6σ DMAIC, 6 σ (variability reduction), factory physics methods, LPS design, PS 'health' monitoring, waste accounting, single-piece flow, quantity control, quality control, lean production cell design, lean manufacturing quantitative modeling methodologies, SE architecture, systems thinking, core principles of lean production systems, value, value stream, flow, control, perfection, Lenses of Lean, Engineering the Value Stream for Flow, Engineering the Value Stream for Control, Engineering the Cell - Flow, Controlling the Flow, PS Engineering for Variability in the PS Flow, Lean Supply Chain, modern production systems, philosophical requirements, managerial requirements, organizational requirements, case study analysis, lean production system (LPS), minimal buffering, systems engineering, methods, models, complex nature of production systems, interdependencies, knowledge, skills, experiences (KSEs), lean engineering, maintenance, System of interest, lean methods, tools, Analyze, Design, reduce variation, existing systems operations, proposed systems operations, Architect, organization, lean-6 σ culture, Introduction to Lean, Characterizing Value, Culture\nTools: Canvas\nPrerequisites: ISEN 609 or by approval of instructor",
+  "headers": [
+    {
+      "text": "1 INSTRUCTOR INFORMATION",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "2 GENERAL INFORMATION",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "2.1 COURSE DESCRIPTION",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "2.3 LEARNING OBJECTIVES",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "2.4 EXPECTATIONS",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "2.5 COMMUNICATION AND MEETING TIMES",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "2.7 REQUIRED TEXT",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "3 COURSE SCHEDULE",
+      "level": 1,
+      "page": 2
+    },
+    {
+      "text": "4 EXAM SCHEDULE",
+      "level": 1,
+      "page": 3
+    },
+    {
+      "text": "5 GRADING POLICIES",
+      "level": 1,
+      "page": 3
+    },
+    {
+      "text": "5.1 GRADE COMPONENTS",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "5.2 GRADE ASSIGNMENT",
+      "level": 2,
+      "page": 4
+    }
+  ]
+}

@@ -4,55 +4,12 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The table in the 'Course Schedule' section is broken, with the headers 'Week', 'Topic', 'Notes' repeated mid-table, indicating it was split or rendered incorrectly."
+      "Textbook 'Edition' field is split across two lines, with 'Edition:' on one line and '5th Edition' on the next.",
+      "Table in 'Course Schedule' has a duplicate header row and separator between Week 4 and Week 5.",
+      "Table in 'Course Schedule' has a malformed row `|        |                                                                     | Thanksgiving Day, No Class - 11/26 |` with empty 'Week' and 'Topic' cells."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 26.63,
-  "proposals": {
-    "new_false_positives": [
-      "Section 600 (63016) Engineering Management Control Systems Fall 2026 - College Station",
-      "Meeting Times:",
-      "Meeting Type:",
-      "Meeting Days:",
-      "Start Time:",
-      "End Time:",
-      "Start Date:",
-      "End Date:",
-      "Meeting Location:",
-      "ZACH 445",
-      "Credit Hours:",
-      "3",
-      "Michael Do",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "None",
-      "This material Is: Required",
-      "Management Control Systems",
-      "Authors:",
-      "Publisher:",
-      "Publication Date:",
-      "Edition:",
-      "This table provides the grading components and percentages.",
-      "Component",
-      "Percentage",
-      "Class Discussions",
-      "Assignments",
-      "Semester Project",
-      "Final Exam",
-      "Total",
-      "Work submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
-      "This table provides the weekly lecture topics with notes.",
-      "Week",
-      "Topic",
-      "Notes"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "Week\n\nTopic\n\nNotes"
-    ],
-    "reasoning": "The 'new_false_positives' list includes text that consists of labels, values, or descriptive sentences. These are not true section headers and are often incorrectly promoted to header status by PDF parsers, requiring demotion to body text. The 'text_cleanups' entry addresses the repeated block of 'Week', 'Topic', 'Notes' in the 'Course Schedule' section, which indicates a parsing error where the table was likely split and its headers duplicated. No text was identified as institutional boilerplate that appears verbatim across all syllabi."
-  }
+  "timing_s": 7.78,
+  "proposals": {}
 }

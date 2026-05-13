@@ -4,45 +4,48 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "In the 'Course Prerequisites' section, the list item '3. Knowledge on hypothesis test and linear regression...' is incorrectly numbered or orphaned, implying missing items 1 and 2.",
-      "The 'Late Work Policy' and 'Course Specific Late Work Policy' sections are identical, indicating redundancy or an error in content."
+      "In 'Course Prerequisites', the item '3. Knowledge on hypothesis test and linear regression (STAT212, ISEN 350, or equivalent).' is numbered '3.' without preceding items '1.' or '2.', suggesting an incomplete or malformed list.",
+      "In 'Grading Policy', the grading breakdown and letter grade scale are presented as a single, unformatted line of text: 'Three Exams: 65% In-class Exercise: 15% Homework: 10% Course Project: 10% 90 - 100 A 80 - 89.9 B 70 - 79.9 C 60 - 69.9 D Below - 59.9 F', which should be formatted as a list or table for clarity."
     ],
-    "metadata_accuracy": [
-      "Instructor name is missing.",
-      "Instructor email is missing.",
-      "Instructor office hours are missing.",
-      "Instructor office location is missing."
-    ]
+    "metadata_accuracy": []
   },
-  "timing_s": 18.6,
+  "timing_s": 33.84,
   "proposals": {
     "new_false_positives": [
       "Section 600 (65054) Advanced Quality Control",
       "Fall 2026 - College Station",
       "Meeting Times:",
-      "Meeting Type: LEC",
-      "Meeting Days: TR",
-      "Start Time: 09:35AM",
-      "End Time: 10:50AM",
-      "Start Date: 08/24/2026",
-      "End Date: 12/10/2026",
+      "Meeting Type:",
+      "Meeting Days:",
+      "Start Time:",
+      "End Time:",
+      "Start Date:",
+      "End Date:",
       "Meeting Location:",
-      "ETB 2026",
       "Credit Hours:",
-      "3",
-      "Prerequisite/Corequisite(s):",
-      "Basically, following knowledge is necessary",
       "This material Is: Optional",
-      "Authors:",
       "Weeks",
       "Topic",
-      "### Course recordings will not be provided to the students in section 600 .",
-      "Statistics Capable (hand-held) Calculator: (Ex. TI 84 Plus, TI 89, Nspire, etc.) is required.",
+      "Course recordings will not be provided to the students in section 600.",
+      "This section is designed as an in-person class, and lectures will only be recorded for students in the distance learning section. It is the students' responsibility to attend the class and learn from it. By enrolling in this course, you are agreeing to attend the classes in person.",
+      "Statistics Capable (hand-held) Calculator: (Ex. TI 84 Plus, TI 89, Nspire, etc.) is required. Be sure to bring your calculator to all Lectures .",
       "Software : Matlab (or equivalent programming language, such as R, Python , EXCEL, and Minitab.",
-      "Course Materials & Copyright:"
+      "Course Materials & Copyright: All documents used in this course are copyrighted. Here, \"documents\" means all materials generated for this class, including, but not limited to, syllabi, quizzes, exams, problem sets, slide sets, videos, and all materials appearing on the class website or sent to you via email. Because these materials are copyrighted, you do not have the right to copy or share any of them for any purpose other than your personal academic use unless I expressly grant permission. In particular, course materials may not be given or sold to any for-profit enterprise, or uploaded elsewhere for sharing."
     ],
-    "new_boilerplate": [],
-    "text_cleanups": [],
-    "reasoning": "The proposed false positives are either short labels, descriptive text, or elements of a list/table that were incorrectly identified as section headers by the parser. They do not represent distinct, top-level sections of the syllabus. No new boilerplate or text cleanups were identified based on the provided rules and document content."
+    "new_boilerplate": [
+      "Special Course Designation",
+      "Late Work Policy",
+      "Course Specific Late Work Policy"
+    ],
+    "text_cleanups": [
+      "\\(\\d+\\)",
+      "Is:",
+      "Authors:",
+      "\\(s\\)",
+      " :",
+      " ,",
+      " \\."
+    ],
+    "reasoning": "The proposed 'new_false_positives' are short labels, course identifiers, location/date information, table column headers, or full sentences/paragraphs that were likely incorrectly identified as headers by the parser. The 'new_boilerplate' sections ('Special Course Designation', 'Late Work Policy', 'Course Specific Late Work Policy') are common institutional sections that often contain identical or placeholder text across many syllabi and are typically stripped. The 'text_cleanups' are regex patterns or literal strings to address common formatting inconsistencies and artifacts such as parenthesized numbers (e.g., section IDs), redundant labels (e.g., 'Is:', 'Authors:'), plural indicators (e.g., '(s)'), and extraneous spaces before punctuation (colon, comma, period)."
   }
 }

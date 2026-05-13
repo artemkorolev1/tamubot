@@ -11,7 +11,7 @@ from .config import (
     prod_config,
 )
 from .evals import EvalInputs, run_evals
-from .tracing import create_trace, finalize_trace, get_langfuse
+from .tracing import get_langfuse, trace_context
 
 __all__ = [
     "ObservabilityConfig",
@@ -19,8 +19,7 @@ __all__ = [
     "probe_config",
     "benchmark_config",
     "chunking_config",
-    "create_trace",
-    "finalize_trace",
+    "trace_context",
     "get_langfuse",
     "EvalInputs",
     "run_evals",

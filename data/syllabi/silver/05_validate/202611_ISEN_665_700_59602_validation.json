@@ -1,30 +1,18 @@
 {
   "file_stem": "202611_ISEN_665_700_59602",
   "findings": {
-    "content_preservation": [
-      "The 'Course Schedule' section is missing a detailed week-by-week or topic-by-topic schedule, containing only a few key dates."
-    ],
+    "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The sentence 'NB: Work submitted by a student as makeup work for an excused absence is not considered late work and is exempted from the late work policy (Student Rule 7).' is repeated verbatim in both the 'Late Work Policy' and 'Course Specific Late Work Policy' sections."
+      "The sentence 'Work submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).' is duplicated in the 'Late Work Policy' and 'Course Specific Late Work Policy' sections.",
+      "The 'Course Schedule' table contains an extraneous header row `| | | | 20% | 20% | 30% | 30% | |` that displays grading percentages and does not correspond to the schedule columns, causing structural incoherence."
     ],
     "metadata_accuracy": [
-      "The 'Meeting Days' field under 'Course Information' is empty.",
-      "The 'Notes' field for the required textbook is present but empty."
+      "Meeting Days field is missing a value.",
+      "Start Time field is 'N/A', indicating missing specific time information.",
+      "End Time field is 'N/A', indicating missing specific time information."
     ]
   },
-  "timing_s": 19.23,
-  "proposals": {
-    "new_false_positives": [
-      "Section 700 (59602) Management of Engineering Systems Spring 2026 - College Station"
-    ],
-    "new_boilerplate": [
-      "Late Work Policy"
-    ],
-    "text_cleanups": [
-      "NB: Work submitted by a student as makeup work for an excused absence is not considered late work and is exempted from the late work policy (Student Rule 7).",
-      "5 th "
-    ],
-    "reasoning": "The line 'Section 700 (59602) Management of Engineering Systems Spring 2026 - College Station' is descriptive text providing course details, not a distinct section header, and should be demoted to body text. The 'Late Work Policy' section contains only a single sentence that is a direct quote of a university-wide student rule (Student Rule 7); if this section consistently appears with only this institutional text, its header should be stripped as boilerplate. The sentence 'NB: Work submitted by a student as makeup work for an excused absence is not considered late work and is exempted from the late work policy (Student Rule 7).' is explicitly noted as a verbatim repetition, so the second instance should be removed. The string '5 th ' appears to be a parsing artifact and should be corrected to '5th' for proper formatting."
-  }
+  "timing_s": 10.27,
+  "proposals": {}
 }

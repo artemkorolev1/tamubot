@@ -1,48 +1,28 @@
 {
   "file_stem": "202541_ISEN_620_601_52745",
   "findings": {
-    "content_preservation": [],
+    "content_preservation": [
+      "Link and QR code for GroupMe are missing from the 'Communication' section."
+    ],
     "strip_completeness": [
-      "Section 'Late Work Policy' is boilerplate and should be removed"
+      "Section 'Late Work Policy' is boilerplate and should be removed."
     ],
     "structural_coherence": [
-      "The 'Credit Hours' field is duplicated under the 'Course Information' section.",
-      "The table header 'Week Date Topic Deliverable' is repeated multiple times within the 'Course Schedule' section, indicating a broken table structure."
+      "Duplicate 'Credit Hours: 3' entry in the 'Course Information' section.",
+      "The 'Course Schedule' is split into four separate tables instead of one continuous table.",
+      "Hardcoded page number reference 'page 6' in 'Course Format and Expectations' is likely incorrect after conversion."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 30.69,
+  "timing_s": 19.32,
   "proposals": {
-    "new_false_positives": [
-      "Section 601 (52745) Survey of Optimization Fall 2025 - College Station",
-      "Credit Hours:",
-      "Email:",
-      "Office:",
-      "Phone:",
-      "Office Hours",
-      "This material Is: Required",
-      "URL for Resource:",
-      "This material Is: Recommended",
-      "ISBN:",
-      "Authors:",
-      "Publisher:",
-      "Publication Date:",
-      "Notes:",
-      "This Material is: Required"
-    ],
+    "new_false_positives": [],
     "new_boilerplate": [
-      "Late Work Policy",
-      "Special Course Designation"
+      "Late Work Policy"
     ],
     "text_cleanups": [
-      "Credit Hours:\n3",
-      "Week Date Topic Deliverable",
-      "1 An academic hour is 50 minutes."
+      "\\(page 6\\)"
     ],
-    "reasoning": {
-      "new_false_positives": "These are identified as header text by the parser but are actually subtitles, labels for data points, or sub-labels within a section, and should be demoted to body text.",
-      "new_boilerplate": "The 'Late Work Policy' section was explicitly identified by the user as boilerplate. 'Special Course Designation' often contains institutional boilerplate or placeholder text like 'None' across many syllabi, indicating it's not course-specific content and the entire section should be stripped.",
-      "text_cleanups": "The literal string 'Credit Hours:\\n3' represents a duplicate entry for credit hours within the 'Course Information' section. 'Week Date Topic Deliverable' is a repeated table header within the 'Course Schedule' section, indicating a parsing error. '1 An academic hour is 50 minutes.' is a footnote that should be removed."
-    }
+    "reasoning": "The 'Late Work Policy' section appears to be institutional boilerplate, as a 'Course Specific Late Work Policy' is provided separately. The hardcoded page reference '(page 6)' is likely incorrect after document conversion and should be removed."
   }
 }

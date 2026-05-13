@@ -4,21 +4,10 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "Duplicate header '### Grading Policy' immediately follows '## Grading Policy'.",
-      "The 'Course Schedule' section contains tabular data (Week, Tasks) that is not formatted as a markdown table."
+      "The 'schedule of topics' section under 'Course Schedule' presents tabular data (Week and Tasks) but is not formatted as a markdown table, reducing readability and structure."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 15.91,
-  "proposals": {
-    "new_false_positives": [
-      "### Grading Policy"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "&lt;",
-      "&nbsp;"
-    ],
-    "reasoning": "The duplicate '### Grading Policy' should be removed as it immediately follows '## Grading Policy' and contains the same content. '&lt;' is an HTML entity that should be converted to its character '<'. '&nbsp;' is an HTML entity for a non-breaking space that should be removed or replaced with a regular space for cleaner text."
-  }
+  "timing_s": 7.07,
+  "proposals": {}
 }

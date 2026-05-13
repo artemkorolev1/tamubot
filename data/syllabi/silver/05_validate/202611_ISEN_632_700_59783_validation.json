@@ -1,27 +1,27 @@
 {
   "file_stem": "202611_ISEN_632_700_59783",
   "findings": {
-    "content_preservation": [],
-    "strip_completeness": [],
+    "content_preservation": [
+      "The \"Course Schedule\" section states that a detailed schedule is \"provided in Appendix A\", but Appendix A is missing from the document."
+    ],
+    "strip_completeness": [
+      "Section 'Late Work Policy' is boilerplate and should be removed as it only references Student Rule 7 without adding course-specific details."
+    ],
     "structural_coherence": [
-      "The header 'Biography' is incorrectly merged with the 'Webpage' URL line under 'Instructor Details'.",
-      "The sub-header '### Grading Policy' is redundant, appearing directly after the main header '## Grading Policy'.",
-      "The text 'A detailed course schedule... is provided in Appendix A' is misleading, as the schedule content is presented inline rather than in a separate appendix."
+      "The header \"Webpage: https://safe.engr.tamu.edu Biography\" incorrectly combines a webpage URL with the \"Biography\" section title. \"Biography\" should be a separate header.",
+      "The \"Special Course Designation\" section states \"None\" but then immediately describes cross-listing and stacking with undergraduate courses, which contradicts \"None\".",
+      "The header \"Grading Policy\" is duplicated, appearing as both a level 2 and a level 3 heading consecutively.",
+      "The table under \"Course evaluation methods\" is malformed; the \"55%)\" for \"final deliverables\" is on a separate row, breaking the project's grade breakdown.",
+      "The table under \"Homework assignments\" is malformed; the \"* Design\" and \"competitions\" are on separate rows instead of being footnotes or part of the topic description for Homework 3 and 4.",
+      "In the \"Project deliverables\" table, the 'Date due' for \"Project deliverable 6\" is malformed as \"04-21-28-2026\".",
+      "In the \"Quiz schedule\" table, the 'Lecture material covered' for \"Quiz 4\" lists lecture numbers out of sequence: \"Lectures 15, 6, 17, 18, 19\"."
     ],
-    "metadata_accuracy": []
+    "metadata_accuracy": [
+      "\"Meeting Days\" field is missing.",
+      "\"Start Time\" field is \"N/A\" which indicates missing specific information.",
+      "\"End Time\" field is \"N/A\" which indicates missing specific information."
+    ]
   },
-  "timing_s": 0.56,
-  "proposals": {
-    "new_false_positives": [
-      "Webpage: https://safe.engr.tamu.edu Biography",
-      "### Grading Policy"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "is provided in Appendix A",
-      "|",
-      "* Design competitions"
-    ],
-    "reasoning": "The line 'Webpage: https://safe.engr.tamu.edu Biography' is incorrectly identified as a header; 'Biography' is content, not a header, and the entire line should be demoted. The sub-header '### Grading Policy' is redundant, appearing immediately after the main '## Grading Policy' header. The phrase 'is provided in Appendix A' is misleading as the schedule is inline, not in an appendix. The pipe character '|' is an extraneous separator in the quiz schedule table, likely a parsing artifact. The text '* Design competitions' is a footnote-like comment under the homework assignments table that should be removed."
-  }
+  "timing_s": 23.66,
+  "proposals": {}
 }

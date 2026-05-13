@@ -1,4 +1,4 @@
-[TAMU_POLICY] University Policies (level 2, 10986 chars)
+[TAMU_POLICY] University Policies (level 2, 10969 chars)
 ## University Policies
 ### Attendance Policy
 
@@ -6,9 +6,7 @@ The university views class attendance and participation as an individual student
 
 [Please refer to Student Rule 7 (https://student-rules.tamu.edu/rule07) in its entirety for information about excused absences, including definitions, and related documentation and timelines.](https://student-rules.tamu.edu/rule07)
 
-Class attendance is required.  If a student misses class, it is the student's responsibility to find out what was missed during the class period.
-
-
+Class attendance is required. If a student misses class, it is the student's responsibility to find out what was missed during the class period.
 
 ### Makeup Work Policy
 
@@ -26,13 +24,11 @@ Absences related to Title IX of the Education Amendments of 1972 may necessitate
 
 'An Aggie does not lie, cheat or steal, or tolerate those who do.'
 
-'Texas A&M University students are responsible for authenticating all work submitted to an instructor. If asked, students must be able to produce proof that the item submitted is indeed the work of that student. Students must keep appropriate records at all times. The inability to authenticate one's work, should the instructor request it, may be sufficient grounds to initiate an academic misconduct case' ( Section 20.1.2.3, Student Rule 20 (https://aggiehonor.tamu.edu/Rules-and-Procedures/Rules/Honor-System-Rules) ).  You can learn more about the Aggie Honor System Office Rules and Procedures, academic integrity, and your rights and responsibilities at aggiehonor.tamu.edu (https://aggiehonor.tamu.edu/) .
+'Texas A&M University students are responsible for authenticating all work submitted to an instructor. If asked, students must be able to produce proof that the item submitted is indeed the work of that student. Students must keep appropriate records at all times. The inability to authenticate one's work, should the instructor request it, may be sufficient grounds to initiate an academic misconduct case' ( Section 20.1.2.3, Student Rule 20 (https://aggiehonor.tamu.edu/Rules-and-Procedures/Rules/Honor-System-Rules) ). You can learn more about the Aggie Honor System Office Rules and Procedures, academic integrity, and your rights and responsibilities at aggiehonor.tamu.edu (https://aggiehonor.tamu.edu/) .
 
-The Industrial and Systems Engineering Department has adopted a 'no tolerance' position with respect to violations of the Aggie Honor Code.  In this course, I will request the Aggie Honor Office to assign a grade of F* for any violation of the Aggie Honor Code, no matter how minimal the violation may be.
+The Industrial and Systems Engineering Department has adopted a 'no tolerance' position with respect to violations of the Aggie Honor Code. In this course, I will request the Aggie Honor Office to assign a grade of F* for any violation of the Aggie Honor Code, no matter how minimal the violation may be.
 
-
-
-For this course, it is permissible to discuss and compare lab and homework assignments with other students. Some Canvas Quizzes have passwords needed to access the quiz.  This happens when the quiz must be taken during class; therefore, it is considered academically dishonest to share a quiz password with any student not physically present in the classroom.  
+For this course, it is permissible to discuss and compare lab and homework assignments with other students. Some Canvas Quizzes have passwords needed to access the quiz. This happens when the quiz must be taken during class; therefore, it is considered academically dishonest to share a quiz password with any student not physically present in the classroom.  
 
 When access to a computer is required for a test, it is academically dishonest and a violation of the Aggie Honor Code to access a search engine or attempt to use artificial intelligence during the test
 
@@ -45,8 +41,6 @@ work environments for all members of the University community. The University pr
 ### Civil Rights, Free Speech, and Title IX Policies
 
 Texas A&M University is committed to fostering a learning environment that is safe and productive for all. University policies and federal and state laws prohibit discrimination and harassment based on an individual's race, color, sex, (including pregnancy and related conditions), religion, national origin, age, disability, genetic information, veteran status, or any other legally protected characteristic. This includes forms of sex-based violence, such as sexual assault, sexual harassment, sexual exploitation, dating/domestic violence, and stalking.
-
-
 
 [Students can report discrimination/harassment, access supportive resources, or learn more about their options for resolving complaints on the University's Civil Rights & Title IX webpage (https://titleix.tamu.edu/) .  ](https://titleix.tamu.edu/)
 
@@ -62,11 +56,9 @@ students. If you experience barriers to your education due to a disability or th
 
 ### Pregnancy Accommodations
 
-Texas A&M provides reasonable accommodations to students due to pregnancy and/or related conditions, such as childbirth, recovery and lactation.  Students should contact the University's Pregnancy Coordinator (https://titleix.tamu.edu/title-ix-and-pregnancy-students/) as soon as they become aware of the need for accommodation.  Depending on the circumstances, accommodations could include extended time to complete assignments or exams, changes in course sequence, or modifications to the physical classroom environment.  Texas A&M will also allow a voluntary leave of absence, ensure the availability of lactation space, and maintain grievance procedures to provide for the prompt and equitable resolution of complaints of sex discrimination.   For information regarding pregnancy accommodations, email TIX.Pregnancy@tamu.edu (mailto:TIX.Pregnancy@tamu.edu) .
+Texas A&M provides reasonable accommodations to students due to pregnancy and/or related conditions, such as childbirth, recovery and lactation. Students should contact the University's Pregnancy Coordinator (https://titleix.tamu.edu/title-ix-and-pregnancy-students/) as soon as they become aware of the need for accommodation. Depending on the circumstances, accommodations could include extended time to complete assignments or exams, changes in course sequence, or modifications to the physical classroom environment. Texas A&M will also allow a voluntary leave of absence, ensure the availability of lactation space, and maintain grievance procedures to provide for the prompt and equitable resolution of complaints of sex discrimination. For information regarding pregnancy accommodations, email TIX.Pregnancy@tamu.edu (mailto:TIX.Pregnancy@tamu.edu) .
 
 ### Statement on Mental Health and Wellness
-
-
 
 Texas A&M University recognizes that mental health and wellness are critical factors influencing a student's academic success and overall wellbeing. Students are encouraged to engage in healthy self-care practices by utilizing the resources and services available through University Health Services (https://uhs.tamu.edu/) . Students needing a listening ear can call the Texas A&M Helpline (979.845.2700) from 4:00 p.m. to 8:00 a.m. weekdays and 24 hours on weekends for mental health peer support while classes are in session. The TELUS Health Student Support (https://uhs.tamu.edu/mental-health/student-support.html) app provides access to professional counseling in multiple languages anytime, anywhere by phone or chat, and the 988 Suicide & Crisis Lifeline offers 24-hour emergency support at 988 or 988lifeline.org (http://988lifeline.org/) .  
 

@@ -18,8 +18,8 @@ The VMWare server will provide access to any software tools that are leveraged t
 #### Technology Services (IT) - Main Campus
 Hours: 24/7
 Phone: (979) 845-8300
-Email: helpdesk@tamu.edu
-Call/Chat/Email/visit: https://it.tamu.edu/help
+Email: helpdesk@tamu.edu
+Call/Chat/Email/visit: https://it.tamu.edu/help
 
 [TECH_SUPPORT] Canvas LMS Technical Support (level 4, 279 chars)
 #### Canvas LMS Technical Support
@@ -65,7 +65,7 @@ Students should be aware that all university employees (except medical or mental
 Texas A&M University is committed to providing equitable access to learning opportunities for all students. If you experience barriers to your education due to a disability or think you may have a disability, please contact the Disability Resources office on your campus (resources listed below). Disabilities may include, but are not limited to, attentional, learning, mental health, sensory, physical, or chronic health conditions. All students are encouraged to discuss their disability-related needs with Disability Resources and their instructors as soon as possible.
 To request academic accommodations, contact the designated ADA office based on your location:
     - Texas A&M University, College of Nursing, College of Dentistry, Irma Lerma Rangel College of Pharmacy College Station, College of Medicine, School of Public Health, Institute of Biosciences and Technology, EnMed Program, Bush School in Washington DC, Mays Business School - CityCentre, TAMU Engineering Academies, Texas A&M University Higher Education Center at McAllen and Texas A&M University at Galveston should contact Disability Resources at (979) 845-1637 or disability@tamu.edu.
-    - Texas A&M University School of Law should contact the Office of Student Affairs at (817) 212-4111 or law-disability@law.tamu.edu to request accommodations.
+    - Texas A&M University School of Law should contact the Office of Student Affairs at (817) 212-4111 or law-disability@law.tamu.edu to request accommodations.
     - Irma Lerma Rangel College of Pharmacy in Kingsville should contact the Disability Resource Center at Texas A&M University-Kingsville at (361) 593-3024 or drc.center@tamuk.edu to request accommodations.
     - Texas A&M University College of Veterinary Medicine & Biomedical Sciences in Canyon should contact the Office of Student Accessibility at West Texas A&M University Canyon at (806) 651-2335 or osa@wtamu.edu.
 If you are experiencing difficulties with your approved accommodations, contact the office responsible for approving your accommodations or the Texas A&M ADA Coordinator Julie Kuder at ADA.Coordinator@tamu.edu or (979) 458-8407.

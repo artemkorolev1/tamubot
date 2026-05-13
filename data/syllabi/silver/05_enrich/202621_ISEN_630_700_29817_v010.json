@@ -1,0 +1,132 @@
+{
+  "source_file": "202621_ISEN_630_700_29817_v010",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 630",
+    "section": "700",
+    "term": "Summer 2026",
+    "crn": "29817",
+    "instructor": {
+      "name": "Thomas Ferris",
+      "email": "tferris@tamu.edu",
+      "office": "4081 ETB",
+      "office_hours": "Thursday 3 - 5"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/baau6objv/Summer-2026-College-Station-ISEN-630-700-%2829817%29?mode=view"
+  },
+  "course_summary": "ISEN 630 | Human Operator in Complex Systems | Summer 2026\nInstructor: Thomas Ferris | tferris@tamu.edu\nGrading: Assignments [40%], Exams [50%], Semester project report [10%] — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: 59% and lower\nTopics: NIOSH lifting equation, Reason's model of human error, Lambert's Law, MIL-STD-1472G section 5.2, MIL-STD-1472G section 5.4, MIL-STD-147",
+  "headers": [
+    {
+      "text": "ISEN630 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Additional Course Details",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Grade determination",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Assignments",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Exams",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Research report",
+      "level": 3,
+      "page": 4
+    },
+    {
+      "text": "Re-grading Policy",
+      "level": 3,
+      "page": 4
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Course Specific Late Work Policy",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Schedule of Topics",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Schedule of Topics",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "Additional Course Information",
+      "level": 2,
+      "page": 9
+    },
+    {
+      "text": "Re-grading Policy :",
+      "level": 3,
+      "page": null
+    }
+  ]
+}

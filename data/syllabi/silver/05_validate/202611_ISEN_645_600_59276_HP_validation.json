@@ -4,23 +4,18 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The phrase 'Course Syllabus' appears mid-sentence in section '2.3 LEARNING OBJECTIVES', indicating a page break artifact.",
-      "The header 'Course Syllabus' appears above the table in section '3 COURSE SCHEDULE', indicating a page break artifact.",
-      "The table in '3 COURSE SCHEDULE' is not formatted as a markdown table, but as space-separated text.",
-      "The line of underscores in '5.1 GRADE COMPONENTS' is a visual separator and not a proper markdown element."
+      "Header '2.2 PREREQUISITES' is missing a heading level (should be '## 2.2 PREREQUISITES').",
+      "The text 'Course Syllabus' is repeated unnecessarily after '## 2.3 LEARNING OBJECTIVES'.",
+      "Header '2.6 COURSE MATERIAL AVAILABILITY' is missing a heading level (should be '## 2.6 COURSE MATERIAL AVAILABILITY').",
+      "The text 'Course Syllabus' is repeated unnecessarily after '# 3 COURSE SCHEDULE'.",
+      "The text 'Course Syllabus' is repeated unnecessarily after '# 5 GRADING POLICIES'."
     ],
-    "metadata_accuracy": []
+    "metadata_accuracy": [
+      "Teaching Assistant name is 'TBD'.",
+      "Teaching Assistant email is 'TBD'.",
+      "Teaching Assistant availability is 'TBD'."
+    ]
   },
-  "timing_s": 12.4,
-  "proposals": {
-    "new_false_positives": [
-      "Course Syllabus"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "Course Syllabus",
-      "_{2,}"
-    ],
-    "reasoning": "The phrase 'Course Syllabus' appears as a page break artifact both mid-sentence and as a standalone header, so it should be removed. The line of underscores is a visual separator and not meaningful content, so it should be removed using a regex pattern."
-  }
+  "timing_s": 7.06,
+  "proposals": {}
 }

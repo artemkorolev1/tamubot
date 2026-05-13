@@ -1,0 +1,211 @@
+{
+  "source_file": "202641_ISEN_660_600_63233",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 660",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "63233",
+    "instructor": {
+      "name": "Nancy Currie-Gregg",
+      "email": "currie-gregg@tamu.edu",
+      "office": "ETB 4080 | ZACH 510C",
+      "office_hours": "Monday/Thursday 3:00-4:00 p.m."
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 12:45PM - 2:00PM",
+    "location": "ZACH 261",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/k67jy1gdk/Fall-2026-College-Station-ISEN-660-600-%2863233%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): Graduate classification. Cross Listing: CHEN 660 and SENG 660."
+  },
+  "course_summary": "ISEN 660 / CHEN 660, SENG 660 | Risk Engineering | Fall 2026\nInstructor: Nancy Currie-Gregg | currie-gregg@tamu.edu\nMeets: TR 12:45PM - 2:00PM | ZACH 261\nGrading: Exams [50%], Homework [30%], Project [15%], Activities [05%] — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: <60%\nTopics: Human Reliability Analysis (HRA), fault trees, event trees, failure modes and effects analysis, Bayesian network models, Bayes networks, Bayesian network development, scenario models, logic trees, Developing failure probabilities, Developing quantitative risk models, System risk assessment methods, probabilistic methods, uncertainty analysis, analytical risk analysis techniques, computational risk analysis techniques, quantitative risk analysis, qualitative approaches, risk assessment, risk management, risk mitigation, risk-informed decision-making, risk communication, component reliability, system reliabilities, system reliability, maintainability, and availability analysis, system designs, engineering solutions, engineering systems, industry practices, probability & statistics for risk analysis, elements of risk analysis, measuring risk, system risk analysis, case studies, applications\nTools: MS Teams, Canvas, WileyPLUS\nPrerequisites: Graduate classification",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 17,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "### Webpage: https://safe.engr.tamu.edu/ Biography\n\nDr. Nancy Currie-Gregg is the Director of the Texas A&M University Space Institute. As the Don Lummus '58 Professor of Practice in Engineering, she holds joint appointments in the Departments of Aerospace Engineering and Industrial and Systems Engineering at Texas A&M University's College of Engineering. Internationally recognized for her human-system integration, safety engineering, and risk management expertise, her research focuses on optimizing human performance and safety in aerospace systems. She also serves on the National Academies Board of Human Systems Integration and the Board of Directors for the Texas Space Commission.\n\nDr. Currie-Gregg spent the majority of her career supporting NASA's human spaceflight programs. A former NASA astronaut, she flew on four space shuttle missions, logging over 1,000 hours in space, and made significant contributions to the development of human spaceflight operations. Following the Space Shuttle Columbia tragedy, she managed the Space Shuttle Program Safety and Mission Assurance Office, overseeing the agency's return-to-flight efforts. She later served as Principal Engineer and Chief Engineer with the NASA Engineering and Safety Center, where she led independent engineering assessments for high-risk human spaceflight initiatives. A retired U.S. Army Colonel and Master Army Aviator, she accrued more than 4,000 flight hours in both rotary- and fixed-wing aircraft.\n\nDr. Currie-Gregg holds a Bachelor's degree in Biological Sciences with honors from The Ohio State University, a Master of Science in Safety Engineering from the University of Southern California, and a Ph.D. in Industrial Engineering from the University of Houston.",
+      "header_path": "Instructor Details > Webpage: https://safe.engr.tamu.edu/ Biography",
+      "token_count": 437,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Catalog Description\n\nRisk Engineering. (3-0). Credit 3. Fundamental concepts, techniques, and applications of risk assessment and risk management for engineering systems; current industry practices for risk assessment of industrial facilities using qualitative and quantitative approaches are demonstrated through exercises and case studies from diverse engineering fields. Prerequisites: Graduate classification. Cross-listed with CHEN 660 and SENG 660.",
+      "header_path": "Catalog Description",
+      "token_count": 114,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- Apply appropriate probabilistic methods to evaluate component and system reliabilities. Analyze reliability estimates to recommend preferred system designs to minimize risk.\n\n- Develop scenario models or logic trees (i.e., fault trees, event trees, failure modes and effects analysis, and Bayesian network models) to qualitatively and quantitatively evaluate potential undesired outcomes in engineered systems. Evaluate results to recommend engineering solutions to reduce risk.\n\n- Understand and apply quantitative methods for uncertainty analysis. Demonstrate methods to effectively communicate uncertainties associated with risk-informed decision-making.\n\n- Use analytical or computational risk analysis techniques to develop a comprehensive, quantitative risk analysis of a real-world case study or problem.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 235,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Required\n\nReliability and Risk Analysis\n\nISBN: 9781000864137\n\nAuthors: Mohammad Modarres, Katrina Groth\n\nPublisher: CRC Press\n\nPublication Date: 2023-04-26\n\nEdition:\n\n2nd Ed.\n\nNotes:\n\nE-book available through TAMU library\n\nThis material Is: Required\n\nAn Introduction to Reliability and Maintainability Engineering\n\nISBN: 9781478639336\n\nAuthors: Charles E. Ebeling\n\nPublisher: Waveland Press\n\nPublication Date: 2019-04-12\n\nEdition:\n\n3rd. Ed.",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 124,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Additional Instructional Materials\n\nThis Material is: Optional\n\nApplied Statistics and Probability for Engineers, WileyPLUS\n\nISBN: 9781119758723\n\nAuthors: Douglas C. Montgomery, George C. Runger\n\nPublisher: Wiley\n\nPublication Date: 2020-07-08\n\nEdition:\n\n7e",
+      "header_path": "Additional Instructional Materials",
+      "token_count": 65,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Grading Policy\n\nYour performance in the course is evaluated via multiple learning activities (exams, homework, a project, and lecture activities). The final course grade will be determined via the following weights:",
+      "header_path": "Grading Policy",
+      "token_count": 54,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 6,
+      "content": "### Course grading components\n\n| Method of Evaluation                 | Percent of Grade |\n| :----------------------------------- | :--------------- |\n| Exams (Exam 1: 25%; Exam 2: 25%)     | 50%              |\n| Homework                             | 30%              |\n| Project                              | 15%              |\n| Activities                           | 05%              |",
+      "header_path": "Grading Policy > Course grading components",
+      "token_count": 98,
+      "has_table": true,
+      "flags": [
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 7,
+      "content": "### Grading scale (based on weighted total)\n\n| Grade | Range     |\n| :---- | :-------- |\n| A     | 90-100%   |\n| B     | 80-89%    |\n| C     | 70-79%    |\n| D     | 60-69%    |\n| F     | <60%      |\n\n#### URL for Resource: https://education.wiley.com Notes:\n\nThis is a self-paced review for probability and statistics that is available via a WileyPlus course. Students can use this resource to ensure they have an appropriate probability and statistics background for success in this course.\n\nNote: Students may register for a free two-week trial account on WileyPlus. If access is desired for an extended period, there is a minimal fee for a student license for five months of access to the WileyPlus course. Alternatively, lifetime access to the e-book is also available.",
+      "header_path": "Grading Policy > Grading scale (based on weighted total)",
+      "token_count": 193,
+      "has_table": true,
+      "flags": [
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 8,
+      "content": "### Exams\n\nThere will be two exams during the course. All exams will be administered electronically, and students will be allowed to access the course textbooks, course notes, and software tools. Students are encouraged to develop their own reference/equation sheets and/or software tools to use during the exam. Only course resources, or those created by the individual student, may be accessed during the exam. All students must strictly adhere to the Aggie Honor Code during examinations. Per the course AI Statement contained in this syllabus, the use of AI tools during exams is strictly prohibited.",
+      "header_path": "Grading Policy > Exams",
+      "token_count": 151,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 9,
+      "content": "### Exam Re-grading Policy\n\nStudents have 24 hours following the release of exam grades to resubmit corrected solutions for quantitative problems only for re-grading. This policy applies to errors in the student's original solution, not instructor grading errors. Non-quantitative and extra credit problems are not eligible for re-grading and will be clearly denoted as such on each exam. If a resubmitted solution is complete, fully correct, and shows all work to derive the new solution, the student may earn up to 50% of the points originally deducted for that problem, with a maximum of 20 total points recovered per exam.\n\nThe re-grading period is considered part of the exam period. Students must work on the corrections individually and MAY NOT consult with any other person, including current/former students, teaching assistants, graders, or professors, when developing their corrections. Any violation of this policy will be considered cheating and a violation of the Aggie Honor Code.",
+      "header_path": "Grading Policy > Exam Re-grading Policy",
+      "token_count": 249,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 10,
+      "content": "### Homework\n\nThere will be homework assignments during the course. Instructions, due dates and times, and points associated with each homework assignment will be announced during lectures and through Canvas. Study groups are encouraged, but each student is responsible for developing solutions and submitting them electronically via Canvas. No paper copies will be accepted.",
+      "header_path": "Grading Policy > Homework",
+      "token_count": 94,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 11,
+      "content": "### Project\n\nThis course includes a semester-long group project to analyze and present a quantitative risk analysis of an engineered system using the techniques and methods discussed in the course. Student groups (typically 3 students) will be formed by the instructor, based on the students' stated area(s) of interest.\n\nThe final deliverables for the course project are a written report and a presentation. Details regarding specific formats and requirements for all course project deliverables will be presented during lectures and also posted on Canvas. The grading rubric for evaluating the report and presentation will be posted on Canvas well in advance of the report due date.",
+      "header_path": "Grading Policy > Project",
+      "token_count": 171,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 12,
+      "content": "### Lecture Activities\n\nThis course will utilize active learning methods during lecture periods, including group activities. To incentivize course participation and encourage student engagement, all students who attend a lecture and complete the associated lecture activity will be given full credit.\n\nNo late lecture activities will be accepted. If a student misses an activity due to a university-excused absence (see Student Rule 7), and has notified the instructor, in writing, in advance of the absence, they may complete and submit the activity for credit by 5:00 p.m. CT the day following the lecture period in which the activity was completed.",
+      "header_path": "Grading Policy > Lecture Activities",
+      "token_count": 163,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 13,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 14,
+      "content": "## Course Specific Late Work Policy\n\nHomework and case study assignments submitted after the due date/time will not receive total credit, unless due to a university-excused absence (see attendance policy). Points will be deducted for assignments submitted past the due date and time on Canvas-equivalent to 20% of the total points possible for each day, or portion thereof, past the due date. Assignments submitted more than five days after the due date will not be accepted and a score of zero will be recorded for the assignment.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 133,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 15,
+      "content": "## Course Schedule\n\n### Course topics\n\n| Topics                                          | Topics                           |\n| :---------------------------------------------- | :------------------------------- |\n| Elements of risk analysis and risk mitigation   | System risk analysis             |\n| Probability & statistics for risk analysis      | Bayes networks/models            |\n| Component reliability analysis                  | Developing quantitative risk models |\n| System reliability, maintainability, and availability analysis | Case studies                     |\n\n### Course Schedule\n\n| Week  | Topics                                                              |\n| :---- | :------------------------------------------------------------------ |\n| 1     | Elements of risk analysis and risk mitigation                       |\n| 2     | Probability & statistics for risk analysis                          |\n| 3-5   | Measuring risk: Component reliability analysis                      |\n| 6     | Developing failure probabilities                                    |\n| **Exam 1** |                                                                     |\n| 7-8   | Measuring risk: System reliability, availability, and maintainability analysis |\n| 9-10  | System risk assessment methods                                      |\n| 11    | Bayesian network development and analysis                           |\n| **Exam 2** |                                                                     |\n| 12    | Risk communication, Human Reliability Analysis (HRA)                |\n| 13    | Case study                                                          |",
+      "header_path": "Course Schedule",
+      "token_count": 415,
+      "has_table": true,
+      "flags": [
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 8
+    },
+    {
+      "chunk_index": 16,
+      "content": "## Additional Course Information\n\n### Course materials and copyright:\n\nThe materials used in this course are copyrighted. \"Materials\" includes all items produced for this course, such as the syllabus, detailed course schedule, lecture slides, online lecture videos, homework or exam questions and solutions, and additional resources posted on the course site by the instructor. You may not copy or distribute these materials unless expressly granted permission by the author.",
+      "header_path": "Additional Course Information",
+      "token_count": 119,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 8
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:57.928041"
+}

@@ -1,0 +1,105 @@
+{
+  "source_file": "202641_ISEN_615_700_48504",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 615",
+    "section": "700",
+    "term": "Fall 2026",
+    "crn": "48504",
+    "instructor": {
+      "name": "Alaa Elwany",
+      "email": "elwany@tamu.edu",
+      "office": "ETB 4045",
+      "office_hours": "Tuesdays 10:00 - 11:00 am"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/p46go3mr0/Fall-2026-College-Station-ISEN-615-700-%2848504%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): ISEN 620; ISEN 609."
+  },
+  "course_summary": "ISEN 615 | Production and Inventory Control | Fall 2026\nInstructor: Alaa Elwany | elwany@tamu.edu\nGrading: Assignments [10%], Exams [90%] — A: [90,100] B: [80-90) C: [70,80) D: [50,70) F: [0,50)\nTopics: line balancing, lot sizing, dispatching, releasing, kitting, MRP, just-in-time, flexible manufacturing, assembly, push production systems, pull production systems, deterministic operations scheduling problems, basic project scheduling problems, Model development, production control models, aggregate production planning, supply chain planning, inventory control systems, uncertain demand, analytical methods, operations management problems, production function, decision making in a production system, inventory management, production planning, scheduling, Production, Operations Analytics\nTools: Canvas\nPrerequisites: ISEN 620; ISEN 609",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 7,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nProduction and Inventory Control. (3-0). Credit 3. Model development for inventory management and for production planning; production control models for line balancing, lot sizing, dispatching, scheduling, releasing, kitting, MRP and just-in-time with treatment of flexible manufacturing and assembly. Prerequisites: ISEN 620; ISEN 609.",
+      "header_path": "Catalog Description",
+      "token_count": 90,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nProvide an in-depth coverage of the analytical methods used to solve operations management problems and support the production function. Upon completion of this course, the learner will be able to:\n\n- describe different types and levels of decision making in a production system\n\n- model, formulate, solve, analyze problems arising in aggregate production and supply chain planning\n\n- model and analyze fundamental inventory control systems with certain/uncertain demand\n\n- describe and analyze push (MRP) and pull production systems (JIT)\n\n- model and solve deterministic operations scheduling problems\n\n- model and solve basic project scheduling problems\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 180,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Optional\nProduction and Operations Analytics\nISBN: 9781478646303\nAuthors: Steven Nahmias, Tava Lennon Olsen\nPublisher: Waveland Press\nPublication Date: 2020-10-01\nEdition: 8th",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 58,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\nAssignments (Home Works or other): 10%\n\nExams: 90%\n\nThere will be four exams :\n\n1. The first three exams are not comprehensive and will cover roughly one third of course materials.\n2. At the end of the course, one optional comprehensive final exam will be held.\n3. The lowest exam grade out of these five exams will be dropped, and the overall course grade will be based on the four remaining exam grades at 30% weight each, towards the overall course grade.\nFinal grades will be assigned as follows:\nA: [90,100] B: [80-90) C: [70,80) D: [50,70) F: [0,50)",
+      "header_path": "Grading Policy",
+      "token_count": 144,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Course Schedule\n\nThe following represents when home works will be assigned or posted. Due date will be set for each home work on Canvas.\n\nWk 1: HW 1\nWk 2: HW 2\nWk 3: HW 3\nWk 4: HW 4\nWk 6: HW 5\nWk 7: HW 6\nWk 8: HW 7\nWk 10: HW 8\nWk 11: HW 9\nWk 12: HW 10\nWK 14: HW 11\nExams Schedule:\nExam 1: 9/24/26\nExam 2: 10/29/26\nExam 3: 12/03/26\nExam 4: 12/07/26 (COMPREHENSIVE FINAL)\nAll items in the schedule above are subject to change. Any changes will be communicated by the instructor 1 week a priori.\nIf no changes or modifications are announced, you are expected to follow the schedule above.",
+      "header_path": "Course Schedule",
+      "token_count": 147,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Specific Attendance Policy\n\nAttendance is not mandatory, but it is strongly encouraged. While there is no formal penalty for missing an individual class, the instructor may periodically record attendance to monitor participation. Important details regarding assignments, exam instructions, or date changes are often announced during class, and students are responsible for staying informed of any such information if they are absent.",
+      "header_path": "Course Specific Attendance Policy",
+      "token_count": 111,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:57.122230"
+}

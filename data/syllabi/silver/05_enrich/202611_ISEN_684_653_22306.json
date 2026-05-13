@@ -1,0 +1,77 @@
+{
+  "source_file": "202611_ISEN_684_653_22306",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "internship",
+  "course_metadata": {
+    "course_id": "ISEN 684",
+    "section": "653",
+    "term": "Spring 2026",
+    "crn": "22306",
+    "instructor": {
+      "name": "Joseph Geunes",
+      "email": "geunes@tamu.edu",
+      "office": "ETB 4024",
+      "office_hours": "N/A"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "1 TO 16",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/xvtm05t8q/Spring-2026-College-Station-ISEN-684-653-%2822306%29?mode=view"
+  },
+  "course_summary": "ISEN 684 | Professional Internship\nInstructor: Joseph Geunes | geunes@tamu.edu\nInstructor: Deborah Starnes | dstarnes@tamu.edu\nGrading: final internship report [S/U]\nTopics: on-the-job training, practicing engineers, professional objectives, internship report, Professional Internship\nPrerequisites: Approval of committee chair and department head",
+  "headers": [
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 3
+    }
+  ]
+}

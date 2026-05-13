@@ -1,0 +1,132 @@
+{
+  "source_file": "202531_ISEN_663_600_63016_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 663",
+    "section": "600",
+    "term": "?31 2025",
+    "crn": "63016",
+    "instructor": {
+      "name": "Michael Graul, PhD PE",
+      "email": "mgraul@tamu.edu",
+      "office": "ETB 4017",
+      "office_hours": "T 5-6p (section 600); T 6-7p (section 700) both via Zoom link: https://tamu.zoom.us/j/96265125842?pwd=iaJKuEoc0905xVuUu1fINbWpkgJWXp.1"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "M 5:45-8:15p (section 600); The lecture videos will be available on Monday night after 8:30p for section 700. I will also open a zoom session in order to provide a backup recording of the lecture. The link will be found in the Canvas Zoom Pro 1.3 tab.",
+    "location": "ZACH 440 (section 600) and the lecture video for section 700will be placed in our YuJa channel (see our canvas site); additionally, as noted above, I will record the lectures using zoom within Canvas.",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null,
+    "prerequisites": "Graduate classification."
+  },
+  "course_summary": "ISEN 663 | Engineering Management Control Systems (MCS) | 3 Fall 2025\nInstructor: Michael Graul, PhD PE | mgraul@tamu.edu\nMeets: M 5:45-8:15p (section 600); lecture videos available Monday night after 8:30p (section 700) | ZACH 440 (section 600); YuJa channel, Canvas Zoom Pro 1.3 tab (section 700)\nGrading: Quizzes [20%], Homework [20%], Midterm Exam [30%], Project Work [30%] — A: [90,100] B: [80-90) C: [70,80) D: [60,70) F: [0,60)\nTopics: Conant-Ashby theorem, \"Every good regulator of a system is a model of the system that it regulates.\", managerial cybernetics, SE architectures, SE archetypes, IDEF0 modeling, VSM introduction, VSM analysis, VSM design, VSM development, variety engineering, balanced scorecard, Levers of Control (LOC), financial responsibility centers, Pre-action control, STS (Socio-Technical Systems), HRO (Highly Reliable ORGs), NextGEN ORG Design, ORG SYS analysis, ORG SYS design, reference models (REFMODs), production/productive systems, engineered integration, human-centric organizations, constituencies, value propositions, supporting functions, ST primer, nature of controls, Organization Fit, Organization Function, Organization Form, structures, Models, Strategy maps, objects of control, Costs of controls, Financial controls, budget controls, planning, leadership, Cases",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 9,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "# 1.4 Course Description\n\nManagement Control Systems (MCSs) are a formal competency area with the Engineering Management body of knowledge. It is essential for engineering managers to understand the nature of MCSs, their design, and their remediation. The foundation for MCSs is systems science. Additionally, managerial cybernetics and systems engineering play a major role in the design, implementation, and operation of MCSs.\n\nMCSs are 'defined broadly to include everything managers do to help ensure that an organization's strategies and plans are carried out or, if conditions warrant, are modified.' For a given MCS the result is often a fusion of action-based, results-based, and personnel/cultural-based controls. This course",
+      "header_path": "1.4 Course Description",
+      "token_count": 184,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "# 1.6 Course Learning Outcomes\n\nUpon the completion of this course the student will know how to:\n\n1. Represent an organization of interest using SE architectures, archetypes, methods, and tools.\n2. Analyze and design, using SE methods and tools, an organization for viability.\n3. Leverage the appropriate management control system principles and practices to control behavior in the purposeful organization.\n4. Architect, using SE methods, an organization that is congruent with the mission, vision, and values of the target enterprise.\n5. Identify the organizational elements endemic to the management of large scale, complex systems.\n6. Identify key management control systems elements that are critical to the success of both sustaining operations endemic to, and projects undertaken by, the purposeful organization.",
+      "header_path": "1.6 Course Learning Outcomes",
+      "token_count": 205,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## 1.7 Textbook and/or Resource Materials\n\n### Required:\n\n- Management Control Systems 5th edition by Merchant and Van der Stede (2024)\nHelpful: (most available in digital form through the library) :\n- Guide to Organization Design 2 nd edition by Naomi Stanford\n- Diagnosing the System for Organizations by Stafford Beer\n- Organizational Design 4 th edition by Burton, Obel, and Hakonsson\n- Designing Organizations 3 rd edition by Galbraith\n- Levers of Organization Design by Simons\n\n#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025\n\n- Levers of Control by Simons\n- Strategy Maps by Kaplan and Norton\n- The Viability of Organizations (Vols 1-3) by Lassl\n- Critical Systems Thinking and the Management of Complexity by Michael C. Jackson 2019\n- Organizations: Behavior, Structure, and Processes by Gibson et al, 14th edition 2012\nNB: Various papers will be identified and uploaded throughout the course as well\n\n### Software support (COE Horizon Client, VM-Ware server, ISEN Desktop)\n\n- Visio (for ORG charts; LOC; Strategy maps)\n- IDEF0 (AI0WIN)\n- IDEF3 (ProSim)\n- VSMod (VSM software available at vsmod.org)\n*** We will use Canvas as our LMS. All course information will be distributed through our Canvas site.",
+      "header_path": "1.6 Course Learning Outcomes > 1.7 Textbook and/or Resource Materials",
+      "token_count": 308,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## 1.8 Grading Policy\n\nThe content of this course material must be internalized by you to be of ultimate value in your own professional career. The approach that I will use to help you internalize the knowledge of organizational systems is simple: Recitation + Application + Enriched Repetition. I will use the quizzes to ensure you have initiated this learning process and we will then use a midterm exam, homework exercises, and a team-based project to help you fully internalize the concepts of Organizational (Management Control) Systems.\nQuizzes [20%] -a quiz will be given weekly; a time window will be identified for initiating the quiz along with a time available for its completion once initiated.\nHomework [20%] -there will be several small, design, modeling, and analysis exercises assigned throughout the semester. These exercises will be used to drive home key principles and practices of organizational systems. Each HW assignment will make clear whether it is individual or team based. Many HW exercises will be extensions of activities from class including cases study analyses. A portion of the HW assessment is related to participation when appropriate.\nMidterm Exam [30%] -the midterm exam will be in a 'take -home' format. The exam will be centered on definitions, small concept models, and case study analyses.\nProject Work [30%] - Additionally I will assign a team-based project later in the semester that will pull together concepts from the lectures, readings, and homework and will be focused on the MCS and organization design for a complex production system. Production systems exist in both the service and manufacturing industries -in fact they are central to all productive enterprises. Thus, every productive enterprise operates through an MCS -regardless of whether that MCS is formally designed and instantiated or whether it exists informally.\nFinal grades will be assigned as follows: A: [90,100] B: [80-90) C: [70,80) D: [60,70) F: [0,60)\nCourse Syllabus: ISEN 663 Management Control Systems Fall 2025",
+      "header_path": "1.6 Course Learning Outcomes > 1.8 Grading Policy",
+      "token_count": 509,
+      "has_table": false,
+      "flags": [
+        "OVERSIZED"
+      ],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## 1.9 Late Work Policy\n\nLate quiz submissions are not accepted. Late Exam submissions are not accepted. Late project submissions are not accepted.\nLate homework policy: late homework can be submitted after the deadline but loses 20% of its value; no HW will be accepted after the TA uploads the comments and scores without prior permission due to extenuating circumstances. Your grade and comments regarding the homework will be made available through Canvas. Other issues associated with late work can be resolved through application of Student Rule 7 .\nThe makeup work policy is described in the syllabus section covering University Policies.",
+      "header_path": "1.6 Course Learning Outcomes > 1.9 Late Work Policy",
+      "token_count": 161,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 5,
+      "content": "## 1.10 Course Synopsis and Topical Schedule\n\nI will provide a more detailed description of the material for each week/class in the lecture notes. MCS is a blend of principle and practice applied to production/productive systems. A production system is one that generates valued goods and services -the PS constitutes a type of purposeful organization. The production system itself is an engineered integration of people, parts, processes, facilities, equipment, policies, etc. For the engineering systems manager the PS itself is subject to the engineering life-cycle. The focus of the MCS is on the PS, and more specifically the behavior of the people in the organization. Systems engineering provides a compendium of methods and models to represent and characterize the complex nature of systems and their interdependencies. The course is architected to expose the students to the knowledge, skills, and experiences (KSEs) of organizational systems. The semester project provides the experiential component, the text and state of the practice readings provide the knowledge, and classroom exercises, management tools, homework, and quizzes provide the backbone to assess the skills dimension.\nISEN 663, while not requiring either ISEN 640 or ISEN 665 as pre or co-requisites -overlaps with both. ISEN 665 is focused on the core functions and skills of the engineering manager; ISEN 640 is focused on providing the ISEN with the *systems thinking* lens -for holistic considerations when dealing with large complex systems. We initiate our discussion of organizational systems with the basic types of organizations and their core elements (using the classic dimensions of form, fit, and function). We then examine several methods, prominent in industry, for characterizing organizations -both for design and analysis. Next, we focus on the *control* facet of organizations -those managerial constructs that are put in place to ensure behaviors are congruent with the mission, vision, and values of the purposeful organization. Finally, we examine the organizational roles and responsibilities in the effective management of the large complex engineering system. Readings will be identified in the lecture notes. The socio-technical nature of the organizations, endemic to ISEN, necessitates study of both the behavior of individuals and groups/teams.\nAs is the norm with SEbased courses, ISEN 663 relies on several 'reference models' or REFMODs. These are the bread and butter of the engineering consultant and the engineering manager; more to say on that point as we progress. REFMODs embody the principles and best practices of ORG SYS analysis",
+      "header_path": "1.6 Course Learning Outcomes > 1.10 Course Synopsis and Topical Schedule",
+      "token_count": 662,
+      "has_table": false,
+      "flags": [
+        "OVERSIZED"
+      ],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 6,
+      "content": "### Topical outline\n\n| Week | Core Topic / Theme / Skill focus                                        | Assignments (NB: Readings - to be identified in the notes) |\n| :--- | :---------------------------------------------------------------------- | :--------------------------------------------------------- |\n| 1    | Introduction; ST primer; viability of the ORG; nature of controls       | Q1                                                         |\n|      | 1SEP - Labor Day (Holiday - no class)                                   |                                                            |\n| 2    | Organization Fit and Function; IDEF0 modeling                           | Q2; HW1                                                    |\n| 3    | Organization Form; structures; Models and structures                    | Q3; HW2                                                    |\n| 4    | Organization design and analysis; Strategy maps and the balanced scorecard | Q4; HW3                                                    |\n| 5    | Organization design and analysis; Levers of Control (LOC)               | Q5: HW4                                                    |\n| 6    | VSM introduction; VSM analysis and design                               | Q6; HW5&6                                                  |\n|      | Fall break 13-14OCT (no class)                                          |                                                            |\n| 7    | VSM development and variety engineering                                 | Q7                                                         |\n| 8    | VSM development and variety engineering                                 | Q8                                                         |\n| 9    | MCS I - Introduction to MCS frameworks; objects of control              | Midterm (released 3NOV)                                    |\n| 10   | MCS II - Costs of controls; financial responsibility centers; incentives | Midterm (due 11NOV)                                        |\n|      | Project specification and options released by 12NOV; establish project teams |                                                            |\n| 11   | MCS III - Financial and budget controls; MCS and project management     | Q9; Project HW1                                            |\n| 12   | MCS IV - Pre-action control: planning + leadership + Cases              | Q10; Project HW2                                           |\n| 13   | MCS and STS (Socio-Technical Systems); HRO (Highly Reliable ORGs)       | Q11; Project HW3                                           |\n| 14   | AI and NextGEN ORG Design + ethics + course epilogue                    | Q12                                                        |",
+      "header_path": "1.6 Course Learning Outcomes > 1.10 Course Synopsis and Topical Schedule > Topical outline",
+      "token_count": 691,
+      "has_table": true,
+      "flags": [
+        "OVERSIZED",
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 7,
+      "content": "#### Projects (reports and video presentations) due NLT 13DEC (2400h)\n\n* It is critical to have project reports submitted on time; 13DEC by 2400h. Grades for graduating students are due by 1800h on 17DEC.",
+      "header_path": "1.6 Course Learning Outcomes > 1.10 Course Synopsis and Topical Schedule > Topical outline > Projects (reports and video presentations) due NLT 13DEC (2400h)",
+      "token_count": 51,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 8,
+      "content": "## 1.12 Leveraging AI technology as a resource\n\nThe ability to rapidly assimilate information across a large number of disparate sources is very useful to the engineer. Unfortunately, the use and acceptance of AI technology is still in its infancy and the veracity of the AI generated information is not easily vetted nor is there a standard process by which the vetting is acceptable across the academic community. Regardless, it is a resource -but due to its volatility (same prompt, different AI-bot, varied response) and sometimes questionable provenance (what, exactly, did it assimilate in order to generate its response) the use of this technology must be carefully documented by you. The burden of veracity is placed on the user.\nIf you choose to leverage AI technologies of any type then you must, append to your submission, the following documentation:\n1. The time, date, and the exact AI technology (also termed AI-bot (for AI-Chatbot) below) used\n2. The full specification of the prompt that was used\n3. The full response provided by the AI-bot\n4. A discussion of how and where you leveraged the AI generated material in the course artifact being produced\n5. A full verification, by you, of the response from the AI-bot; this is akin to a literature review for each of the points made by the AI-bot that were leveraged by you in your submission\n6. A statement, signed by you, attesting to the veracity of the response from the AI-bot\nClearly, with a timed quiz, use of AI technology makes little sense -since you would have the added burden of supplying the aforementioned documentation as part of the timed submission. Additionally, the HW, midterm, and project are largely model-based, thus the use of AI may also be of limited value versus the additional documentation required.\n\n#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025\n\nAny submission made using AI-based inputs but not documented IAW the 6-steps above will be considered an academic honor violation.",
+      "header_path": "1.6 Course Learning Outcomes > 1.12 Leveraging AI technology as a resource",
+      "token_count": 498,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:54.946423"
+}

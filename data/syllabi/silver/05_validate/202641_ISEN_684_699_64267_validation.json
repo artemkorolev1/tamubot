@@ -2,31 +2,12 @@
   "file_stem": "202641_ISEN_684_699_64267",
   "findings": {
     "content_preservation": [
-      "The actual learning outcomes are missing from the 'Course Learning Outcomes' section, which only contains an introductory sentence."
+      "Course Learning Outcomes are missing after the introductory sentence 'Upon completion of this course, the learner will be able to:'"
     ],
     "strip_completeness": [],
-    "structural_coherence": [
-      "The 'Credit Hours' information is duplicated under the 'Course Information' section."
-    ],
+    "structural_coherence": [],
     "metadata_accuracy": []
   },
-  "timing_s": 26.05,
-  "proposals": {
-    "new_false_positives": [
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "Prerequisite/Corequisite(s):",
-      "This material Is: No required textbook",
-      "No textbook needed.",
-      "Upon completion of this course, the learner will be able to:"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "\\n\\nCredit Hours:\\n\\n1 TO 16"
-    ],
-    "reasoning": "The identified 'new_false_positives' are short labels or introductory sentences that are being incorrectly parsed as section headers and should be treated as body text or key-value pairs. The 'text_cleanups' regex targets and removes the duplicated 'Credit Hours' block, ensuring the information appears only once. No new boilerplate was identified that meets the strict criteria of institutional, universally applicable text to be stripped entirely, especially given the explicit instruction to avoid course-specific sections."
-  }
+  "timing_s": 6.58,
+  "proposals": {}
 }

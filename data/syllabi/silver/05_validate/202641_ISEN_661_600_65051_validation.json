@@ -1,43 +1,11 @@
 {
   "file_stem": "202641_ISEN_661_600_65051",
   "findings": {
-    "content_preservation": [
-      "The general late work policy for unexcused submissions is missing from the 'Late Work Policy' section. The current text only addresses makeup work for excused absences."
-    ],
+    "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [],
     "metadata_accuracy": []
   },
-  "timing_s": 18.02,
-  "proposals": {
-    "new_false_positives": [
-      "Meeting Times:",
-      "Meeting Type:",
-      "Meeting Days:",
-      "Start Time:",
-      "End Time:",
-      "Start Date:",
-      "End Date:",
-      "Meeting Location:",
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "Webpage:",
-      "Prerequisite/Corequisite(s):",
-      "This material Is: Recommended",
-      "ISBN:",
-      "Authors:",
-      "Publisher:",
-      "A:",
-      "B:",
-      "C:",
-      "D:",
-      "F:"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [],
-    "reasoning": "The identified 'new_false_positives' are short labels or descriptive phrases that are not true section headers but are often incorrectly parsed as such. They provide details within a section rather than defining a new section. No institutional boilerplate or general text cleanups were confidently identified in this document based on the provided rules."
-  }
+  "timing_s": 7.4,
+  "proposals": {}
 }

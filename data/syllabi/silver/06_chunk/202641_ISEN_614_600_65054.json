@@ -1,0 +1,115 @@
+{
+  "source_file": "202641_ISEN_614_600_65054",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 614",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "65054",
+    "instructor": {
+      "name": "Jaesung Lee",
+      "email": "j.lee@tamu.edu",
+      "office": "ETB 4016",
+      "office_hours": "Tuesday 10:50-11:50"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 09:35AM - 10:50AM",
+    "location": "ETB 2026",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/wfp6895az/Fall-2026-College-Station-ISEN-614-600-%2865054%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): STAT 212 or STAT 601.\n\nBasically, following knowledge is necessary\n\n\n3. Knowledge on hypothesis test and linear regression (STAT212, ISEN 350, or equivalent)."
+  },
+  "course_summary": "ISEN 614 | Advanced Quality Control | Fall 2026\nInstructor: Jaesung Lee | j.lee@tamu.edu\nMeets: TR | 09:35AM-10:50AM | ETB 2026\nGrading: Three Exams [65%], In-class Exercise [15%], Homework [10%], Course Project [10%] — A: 90-100, B: 80-89.9, C: 70-79.9, D: 60-69.9, F: Below 59.9\nTopics: ARL, T2 Charts, PCA, Data Reduction, Regression-based Risk Adjustment, Attribute Control Charts, Three discrete Distributions, Multivariate Statistics, Statistical Inference, Confidence Interval, Hypothesis Testing, Probability Distributions, linear regression, root cause identification, statistical process control, anomaly detection, change detection, quality control programs, manufacturing quality control, medical error detection, Advanced methods, classical treatments, evaluation, design, maintenance, monitoring, basic data analysis tools, Errors, Control Chart\nTools: Canvas, Statistics Capable (hand-held) Calculator, TI 84 Plus, TI 89, Nspire, Matlab, R, Python, EXCEL, Minitab\nPrerequisites: STAT 212 or STAT 601, hypothesis test knowledge, linear regression knowledge, ISEN 350 (or equivalent)",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 8,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nAdvanced Quality Control. (3-0). Credit 3. Advanced methods applied to quality control and anomaly detection; classical treatments and recent developments in statistical process control; evaluation, design and maintenance of quality control programs; focus on monitoring and root cause identification. Prerequisite: STAT 212 or STAT 601.",
+      "header_path": "Catalog Description",
+      "token_count": 90,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n- Understand basic principles of change and anomaly detection;\n- Learn to use the basic data analysis tools for detection;\n- Comprehend the applications of change and anomaly detection methods to manufacturing quality control, medical error detection, and other applications.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 100,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Optional\nIntroduction to Statistical Quality Control\nAuthors: Montgomery\nThis material Is: Optional\nApplied Multivariate Statistical Analysis\nAuthors: R. A. Johnson, R. A., and D. W. Wichern",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 62,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\nThree Exams: 65% In-class Exercise: 15% Homework: 10%\nCourse Project: 10%\n90 - 100 A 80 - 89.9 B 70 - 79.9 C 60 - 69.9 D\nBelow - 59.9 F\nThere will be multiple in-class exercises. During class, you will solve the inclass exercises. You will solve the exercise problems on paper sheets but submit your answers through Canvas quizzes online, which will be available on the date the exercise is taken in the class and by the next date of the release. You will have two chances to submit your answers. The answers will be automatically graded. If you do not submit your answers on Canvas, your work will not be graded. To show you have solved the exercise by yourself, you will submit the scanned answer sheet through the last question of each exercise. If you do not submit the scanned answer sheet, you may receive zero points for the exercise. Please remember you still need to submit your answers to the individual questions in the quiz module. Otherwise, your work will not be graded even if you submit the scanned answer sheet.\nYou will have multiple homework and be given a week to submit them. (If homework is given on Wednesday, the due is Tuesday.) You will submit your homework through Canvas. Both in-class exercises and homework are designed to help you fully understand and employ the concept you learned during the class.\nAs part of the assigned work for this course, you are required to conduct a course project. The purpose of the project is different from doing homework. It is to give you a feeling of how to handle a real-life dataset, make decisions yourself, and justify your undertaking. Performing this project encourages you to explore an avenue related to, but not limited to, the material in the class.\nYou may need to read additional literature and broaden your knowledge base. Students are encouraged to form a team of either two to three students (individual submission without teaming is accepted). Each team should submit one written report.",
+      "header_path": "Grading Policy",
+      "token_count": 497,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Course Specific Late Work Policy\n\nNo additional late work policy specified beyond the university policy above.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 28,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Schedule\n\n### Weekly Schedule\n\nWeeks\nTopic\nWeek 1\nCourse Introduction\nWeek 2\nProbability Distributions\nWeek 3\nStatistical Inference, Confidence Interval,\nHypothesis Testing\nWeek 4\nHypothesis Testing, Errors\nWeek 5\nControl Chart, ARL\nWeek 6\nExam 1\nWeek 7\nThree discrete Distributions\nWeek 8\nAttribute Control Charts\nWeek 9\nRegression-based Risk Adjustment\nWeek 10\nMultivariate Statistics\nWeek 11\nExam 2\nWeek 12\nT2 Charts\nWeek 13\nPCA and Data Reduction\nWeek 14\nExam 3\nProject Due",
+      "header_path": "Course Schedule",
+      "token_count": 122,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 7,
+      "content": "## Additional Course Information\n\nCourse recordings will not be provided to the students in section 600.\n\nThis section is designed as an in-person class, and lectures will only be recorded for students in the distance learning section. It is the students' responsibility to attend the class and learn from it. By enrolling in this course, you are agreeing to attend the classes in person.\nStatistics Capable (hand-held) Calculator: (Ex. TI 84 Plus, TI 89, Nspire, etc.) is required. Be sure to bring your calculator to all Lectures .\nSoftware : Matlab (or equivalent programming language, such as R, Python , EXCEL, and Minitab.\nCourse Materials & Copyright: All documents used in this course are copyrighted. Here, \"documents\" means all materials generated for this class, including, but not limited to, syllabi, quizzes, exams, problem sets, slide sets, videos, and all materials appearing on the class website or sent to you via email. Because these materials are copyrighted, you do not have the right to copy or share any of them for any purpose other than your personal academic use unless I expressly grant permission. In particular, course materials may not be given or sold to any for-profit enterprise, or uploaded elsewhere for sharing.",
+      "header_path": "Additional Course Information",
+      "token_count": 312,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:56.988954"
+}

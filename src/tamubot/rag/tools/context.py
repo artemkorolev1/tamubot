@@ -34,7 +34,20 @@ def format_context_xml(results: list[dict]) -> str:
         ordered_results = [results[0]] + results[2:] + [results[1]]
         rank_mapping = [1] + list(range(3, len(results) + 1)) + [2]
 
-    parts = ["<context>"]
+    # Prepend course summaries if available
+    from tamubot.rag.tools.mongo import get_course_summaries
+
+    course_ids = list({doc.get("course_id") for doc in results if doc.get("course_id")})
+    summaries = get_course_summaries(course_ids) if course_ids else {}
+
+    parts = []
+    if summaries:
+        parts.append("<course_summaries>")
+        for cid, summary in sorted(summaries.items()):
+            parts.append(f'<summary course="{html.escape(cid)}">{html.escape(summary)}</summary>')
+        parts.append("</course_summaries>")
+
+    parts.append("<context>")
     for position, (rank, doc) in enumerate(zip(rank_mapping, ordered_results), 1):
         # source= attribute uses original rank for citation purposes
         attrs = [f'source="{rank}"', f'id="{rank}"']
@@ -42,7 +55,10 @@ def format_context_xml(results: list[dict]) -> str:
             attrs.append(f'course="{doc["course_id"]}"')
         if doc.get("section"):
             attrs.append(f'section="{doc["section"]}"')
-        if doc.get("category"):
+        # Prefer v4 header_path, fall back to v3 category
+        if doc.get("header_path"):
+            attrs.append(f'header="{doc["header_path"]}"')
+        elif doc.get("category"):
             attrs.append(f'category="{doc["category"]}"')
         if doc.get("instructor_name"):
             attrs.append(f'instructor="{doc["instructor_name"]}"')
@@ -50,7 +66,7 @@ def format_context_xml(results: list[dict]) -> str:
             attrs.append(f'term="{doc["term"]}"')
 
         attr_str = " ".join(attrs)
-        title = doc.get("title", "") or doc.get("header_text", "")
+        title = doc.get("title", "") or doc.get("header_text", "") or doc.get("header_path", "")
         content = doc.get("content", doc.get("policy_name", ""))
 
         # XML escape special characters in content
@@ -71,7 +87,7 @@ def collapse_whitespace(text: str) -> str:
 
     Gemini sometimes pads markdown table cells with excessive whitespace.
     """
-    return re.sub(r' {3,}', ' ', text)
+    return re.sub(r" {3,}", " ", text)
 
 
 def strip_thinking_blocks(text: str) -> str:
@@ -81,4 +97,4 @@ def strip_thinking_blocks(text: str) -> str:
     quote into a <thinking> block before answering. These blocks must be
     stripped before the response is shown to the user.
     """
-    return re.sub(r'<thinking>.*?</thinking>\s*', '', text, flags=re.DOTALL).strip()
+    return re.sub(r"<thinking>.*?</thinking>\s*", "", text, flags=re.DOTALL).strip()

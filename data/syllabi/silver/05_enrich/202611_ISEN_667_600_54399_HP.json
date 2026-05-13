@@ -1,0 +1,122 @@
+{
+  "source_file": "202611_ISEN_667_600_54399_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 667",
+    "section": "600",
+    "term": "Spring 2026",
+    "crn": "54399",
+    "instructor": {
+      "name": "Hamid R. Parsaei, Ph.D., P.E.",
+      "email": "hamid.parsaei@tamu.edu",
+      "office": "ETB 4068A",
+      "office_hours": "Tuesdays & Thursdays 1:00 -2:30 PM"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "9:35 -10:50 AM (CDT)",
+    "location": "Room 2026, Emerging Technology Building (ETB)",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 667 | Engineering Economy | Spring 2026\nInstructor: Hamid R. Parsaei | hamid.parsaei@tamu.edu\nMeets: 9:35 -10:50 AM (CDT) | Room 2026, Emerging Technology Building (ETB)\nGrading: Exam 1 [25%], Exam 2 [25%], Exam 3 [25%], Homework [12.5%], Quizzes [12.5%]\nTopics: Nominal and Effective Interest Rates, Present Worth Values, Future Worth Values, Annual Worth Analysis, Rate of Return Analysis, Benefit/Cost Analysis, Public Sector Economics, Independent Projects with Budget Limitation, Breakeven Analysis, Payback Analysis, Depreciation Methods, Depletion Methods, Decision Making Under Risk, Foundations of Engineering Economy, Time and Interest Affect Money, Combining Factors, engineering economics principles, engineering decision problems, capital investment, engineering economic analysis techniques, alternative capital investments evaluation, income taxes, inflation, discounted cash flow analysis, competing projects, determination of rate of return on investment, risk and uncertainty in engineering analysis\nPrerequisites: ISEN 303 or approval of instructor",
+  "headers": [
+    {
+      "text": "Course Syllabus",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "Course Instructor:",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Required Text:",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Description and Topics",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Grade :",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Exam Dates :",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Makeup Policy:",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "1) Participation in an activity that is required for a class and appears on the university authorized activity list at https://stuactonline.tamu.edu/app/sponsauth/index",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "2) Death or major illness in a student's immediate family.",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "3) Illness of a dependent family member.",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "4) Participation in legal proceedings or administrative procedures that require a student's presence.",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "5) Religious holy day. NOTE: Prior notification is NOT required.",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "6) Injury or illness that is too severe or contagious for the student to attend class. a) Injury or illness of three or more class days: Student will provide a medical confirmation note from his or her medical provider within one week of the last date of the absence (see Student Rules 7.1.6.1)",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "b) Injury or illness of less than three class days: Student will provide one or both of these (at",
+      "level": 4,
+      "page": 3
+    },
+    {
+      "text": "c) An absence for a non-acute medical service does not constitute an excused absence.",
+      "level": 4,
+      "page": 3
+    },
+    {
+      "text": "7) Required participation in military duties.",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "8) Mandatory admission interviews for professional or graduate school that cannot be rescheduled.",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "9) Mandatory participation as a student-athlete in NCAA-sanctioned competition.",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "10) In accordance with Title IX of the Educational Amendments of 1972, Texas A&M University shall treat pregnancy (childbirth, false pregnancy, termination of pregnancy and recovery therefrom) and related conditions as a justification for an excused absence for so long a period of time as is deemed medically necessary by the student's physician. Requests for excused absence related to pregnancy should be directed to the instructor.",
+      "level": 3,
+      "page": 3
+    }
+  ]
+}

@@ -1,0 +1,225 @@
+{
+  "source_file": "202641_ISEN_667_700_47617",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 667",
+    "section": "700",
+    "term": "Fall 2026",
+    "crn": "47617",
+    "instructor": {
+      "name": "Hamid Parsaei",
+      "email": "hamid.parsaei@tamu.edu",
+      "office": "ETB 4068A",
+      "office_hours": "Fridays (3:00 to 4:30 pm)"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Weekly Recitation: Fridays 3:00 - 4:00 PM",
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/nihn2nr5o/Fall-2026-College-Station-ISEN-667-700-%2847617%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): ISEN 303 or approval of instructor; also taught at Qatar campus."
+  },
+  "course_summary": "ISEN 667 | Engineering Economy | Fall 2026\nInstructor: Hamid Parsaei | hamid.parsaei@tamu.edu\nMeets: Fridays 3:00 - 4:00 PM\nGrading: Exam 1 [25%], Exam 2 [25%], Exam 3 [25%], Homework [25%]\nTopics: single amounts-compound amount (F/P) factors, present worth (P/F) factors, uniform series- present worth (P/A) factors, capital recovery (A/P) factors, uniform series - compound amount (F/A) factors, sinking fund (A/F) factors, Arithmetic Gradient, Geometric Gradient, Minimum Attractive Rate of Return (MARR), Weighted Average Cost of Capital (WACC), internal ROR (IROR), B/C ratio, cost-effectiveness analysis (CEA), Linear program model, straight line method of depreciation, DB method of depreciation, DDB methods of depreciation, MACRS method of depreciation, cost depletion, percentage depletion methods, Monte Carlo sampling, discounted cash flow analysis, break-even analysis, rate of return on investment, nominal interest rates, effective interest rates, present worth analysis, future worth analysis, annual worth analysis, capitalized cost analysis, capital recovery (CR), life-cycle cost (LCC) analysis, incremental cash flow analysis, Capital rationing, Payback period analysis, asset depreciation, depletion, probability distributions, cumulative distributions, random sample, expected value, standard deviation, simulation analysis, engineering economic analysis, capital investments, income taxes, inflation, competing projects, risk, uncertainty, time value of money, interest rate, rates of return, cash flows, economic equivalence, simple interest, compound interest, opportunity cost, equivalence relations, payment period (PP), compounding period (CP), single-amount cash flows, series cash flows, gradient cash flows, continuously compounded interest rates, varying interest rates, mutually exclusive projects, independent projects, revenue alternatives, cost alternatives, equal-life alternatives, different-life alternatives, perpetual life, ROR method, PW method, AW method, nominal rate of return, effective rate of return, bond investment, public sector projects, private sector projects, multiple alternatives, service sector projects, projects with equal lives, projects with unequal lives, ranking options, Breakeven point, asset recovery period, decision making under risk, engineering economics, application study approach, engineering economy study steps, economic decisions, ethics, engineering economic terminology, symbols, engineering economy formulas, engineering economy tools, linear interpolation, factor tables\nPrerequisites: ISEN 303 or approval of instructor",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 19,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "### Course Description and Topics\n\nFundamental concepts and advanced techniques of engineering economic analysis; evaluation of alternative capital investments considering income taxes, depreciation and inflation; discounted cash flow analysis of competing projects, break-even analysis and determination of rate of return on investment; risk and uncertainty in engineering analysis.\n\nSubjects covered in this course include:\n\nChapter 1: Foundations of Engineering Economy\nChapter 2: Factors: How Time and Interest Affect Money\nChapter 3: Combining Factors\nChapter 4: Nominal and Effective Interest Rates\nChapter 5: Analysis Using Present Worth and Future Worth Values\nChapter 6: Annual Worth Analysis\nChapter 7: Rate of Return Analysis, One Project\nChapter 8: Rate of Return Analysis, Multiple Alternatives\nChapter 9: Benefit/Cost Analysis and Public Sector Economics\nChapter 12: Independent Projects with Budget Limitation\nChapter 13: Breakeven and Payback Analysis\nChapter 16: Depreciation and Depletion Methods\nChapter 19: Decision Making Under Risk",
+      "header_path": "Course Information > Course Description and Topics",
+      "token_count": 263,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Catalog Description\n\nEngineering Economy. (3-0). Credit 3. Fundamental concepts and advanced techniques of engineering economic analysis; evaluation of alternative capital investments considering income taxes, depreciation and inflation; discounted cash flow analysis of competing projects, break-even analysis and determination of rate of return on investment; risk and uncertainty in engineering analysis. Prerequisite: ISEN 303 or approval of instructor; also taught at Qatar campus.\n\n## Course Learning Outcomes",
+      "header_path": "Catalog Description",
+      "token_count": 130,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 2,
+      "content": "### Chapter 1:\n\n1. Define engineering economics and time value of money, identify areas of application study approach\n2. Understand and identify the steps in an engineering economy study\n3. Identify areas in which economic decisions can challenge good ethics\n4. Perform calculations for interest rate and rates of return\n5. Identify and use engineering economic terminology and symbols\n6. Understand cash flows and know how to graphically represent them\n7. Describe and calculate economic equivalence\n8. Calculate simple and compound interest amounts for one or more time periods\n9. State the meaning and role of Minimum Attractive Rate of Return (MARR), Weighted Average Cost of Capital (WACC), and opportunity cost\n10. Identify types of information obtainable using engineering economy formulas and tools.",
+      "header_path": "Course Learning Outcomes > Chapter 1:",
+      "token_count": 202,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 3,
+      "content": "### Chapter 2:\n\n1. Derive and use factors for single amounts-compound amount (F/P) and present worth (P/F) Factors\n2. Derive and use factors for uniform series- present worth (P/A) and capital recovery (A/P) Factors\n3. Derive and use factors for uniform series - compound amount (F/A) and sinking fund (A/F) Factors\n4. Use linear interpolation in factor tables\n5. Arithmetic Gradient\n6. Geometric Gradient\n7. Use equivalence relations to determine i (interest rate) or n for a cash flow series.",
+      "header_path": "Course Learning Outcomes > Chapter 2:",
+      "token_count": 124,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 4,
+      "content": "### Chapter 4:\n\n1. Understand interest rate statements that include nominal and effective rate\n2. Derive and use the formula for effective annual interest rates\n3. Determine interest rate for any stated time period\n4. Determine payment period (PP) and compounding period (CP) for equivalence calculations\n5. Perform equivalence calculations for single-amount cash flows and PP greater or equal CP\n6. Make calculations for series and gradient cash flows with PP ≥ CP\n7. Perform equivalence calculations when PP < CP\n8. Derive and use the effective interest rate formula for interest rates that are compounded continuously\n9. Perform equivalency calculations for interest rates that vary from one time period to another",
+      "header_path": "Course Learning Outcomes > Chapter 4:",
+      "token_count": 179,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 5,
+      "content": "### Chapter 5:\n\n1. Identifying mutually exclusive and independent projects; define revenue and cost alternatives\n2. Select the best of equal-life alternatives using present worth analysis\n3. Select the best of different-life alternatives using present worth analysis\n4. Select the best alternative using future worth analysis\n5. Select the best alternative using capitalized cost analysis",
+      "header_path": "Course Learning Outcomes > Chapter 5:",
+      "token_count": 97,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 6,
+      "content": "### Chapter 6:\n\n1. Advantages of AW: Demonstrate that the Annual Worth value is the same for each life cycle\n2. Capital Recovery and AW Values: Calculate and interpret the capital recovery (CR) and AW amounts\n3. AW Analysis: Select the best alternative using an annual worth analysis\n4. Perpetual Life and AW Analysis: Evaluate alternatives with very long lives using AW analysis\n5. Life-Cycle Cost Analysis: Perform a life-cycle cost (LCC) analysis using AW methods",
+      "header_path": "Course Learning Outcomes > Chapter 6:",
+      "token_count": 116,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 7,
+      "content": "### Chapter 7:\n\n1. State and understand the meaning of rate of return (ROR)\n2. Use a PW or AW relation to determine the internal ROR (IROR) of a series of cash flows\n3. State the difficulties of using the ROR method, relative to the PW and AW methods\n4. Determine the maximum number of possible ROR values and their values for a specific cash flow series\n5. Calculate the nominal and effective rate of return for a bond investment",
+      "header_path": "Course Learning Outcomes > Chapter 7:",
+      "token_count": 108,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 8,
+      "content": "### Chapter 8:\n\n1. State why the ROR method of comparing alternatives requires an incremental cash flow analysis\n2. Calculate the incremental cash flow series for two alternatives\n3. Interpret the meaning of the incremental ROR determined from the incremental cash flow series\n4. Select the best from several alternatives using incremental ROR analysis",
+      "header_path": "Course Learning Outcomes > Chapter 8:",
+      "token_count": 88,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 9,
+      "content": "### Chapter 9:\n\n1. Explain difference in public vs. private sector projects\n2. Calculate B/C ratio for single project\n3. Select better of two alternatives using B/C method\n4. Select best of multiple alternatives using B/C method\n5. Use cost-effectiveness analysis (CEA) to evaluate service sector projects\n6. Describe how ethical compromises may enter public sector projects",
+      "header_path": "Course Learning Outcomes > Chapter 9:",
+      "token_count": 94,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 10,
+      "content": "### Chapter 12:\n\n1. Capital rationing basics\n2. Projects with equal lives\n3. Projects with unequal lives\n4. Linear program model\n5. Ranking options",
+      "header_path": "Course Learning Outcomes > Chapter 12:",
+      "token_count": 37,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 11,
+      "content": "### Chapter 13:\n\n1. Breakeven point - one parameter\n2. Breakeven point - two alternatives\n3. Payback period analysis",
+      "header_path": "Course Learning Outcomes > Chapter 13:",
+      "token_count": 29,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 12,
+      "content": "### Chapter 16:\n\n1. Understand basic terms of asset depreciation\n2. Apply straight line method of depreciation\n3. Apply DB and DDB methods of depreciation; switch between DDB and SL methods\n4. Apply MACRS method of depreciation\n5. Select asset recovery period for MACRS\n6. Explain depletion and apply cost depletion & percentage depletion methods",
+      "header_path": "Course Learning Outcomes > Chapter 16:",
+      "token_count": 86,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 13,
+      "content": "### Chapter 19:\n\n1. Understand decision making under risk\n2. Construct probability distributions and cumulative distributions\n3. Take random sample from a distribution\n4. Estimate expected value and standard deviation from random sample\n5. Use Monte Carlo sampling for simulation analysis to evaluate alternatives\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes > Chapter 19:",
+      "token_count": 88,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 14,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Required\nRequired Text: Engineering Economy\nISBN: 978-1-264-IS809-6\nAuthors: Leland Blank and Anthony Tarquin\nPublisher: McGraw Hill\nPublication Date: 9th Edition (2024)",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 56,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 15,
+      "content": "## Grading Policy\n\n### Course Grade:\n\n- Exam 1: 100 Points\n- Exam 2: 100 Points\n- Exam 3: 100 Points\n- Homework: 100 Points\n\n### Exam Dates:\n\n- Exam 1 (format: Take home) Friday, October 2nd, 2026\n- Exam 2 (format: Take home) Friday, October 30th, 2026\n- Exam 3 (format: Take home) Friday, November 27th, 2026",
+      "header_path": "Grading Policy",
+      "token_count": 77,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 8
+    },
+    {
+      "chunk_index": 16,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 8
+    },
+    {
+      "chunk_index": 17,
+      "content": "## Course Specific Late Work Policy\n\n### Makeup Policy:\n\nIf an absence is excused, the instructor will either provide the student with an opportunity to make up an exam or other work that contributes to the final grade or provide a satisfactory alternative by a date agreed upon by the student and instructor. If the instructor has a regularly scheduled makeup exam, students are expected to attend unless they have a university-approved excuse.\n\nThe makeup work must be completed in a timeframe not to exceed 30 calendar days from the last day of the initial absence.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 142,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 8
+    },
+    {
+      "chunk_index": 18,
+      "content": "## Course Schedule\n\nWeekly Recitation: Fridays 3:00 - 4:00 PM",
+      "header_path": "Course Schedule",
+      "token_count": 15,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 10
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:58.269259"
+}

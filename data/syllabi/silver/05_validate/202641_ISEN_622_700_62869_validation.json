@@ -4,27 +4,10 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The value for 'Meeting Location' (ONLINE ONLINE) is on a new line, separated from its label.",
-      "The value for 'Credit Hours' (3) is on a new line, separated from its label.",
-      "The value for 'Email' (butenko@tamu.edu) is on a new line, separated from its label.",
-      "The value for 'Office Location' (4037 ETB) is on a new line, separated from its label.",
-      "The value for 'Phone' (979-458-2333) is on a new line, separated from its label.",
-      "The value for 'Office Hours' (TBA) is on a new line, separated from its label.",
-      "The value for 'Webpage' (https://butenko.engr.tamu.edu/) is on a new line, separated from its label.",
-      "The value for 'Authors' (Sergiy Butenko) is on a new line, separated from its label.",
-      "The value for 'URL for Resource' (https://drive.google.com/file/d/13qVYKm_5vPzPGScfrdH4jhPD9BFOyRfg/view?usp=sharing) is on a new line, separated from its label."
+      "The 'Meeting Days' field in 'Course Information' is malformed; 'Start Time: N/A End Time: N/A' appears as its value, rather than being separate fields or a proper value for 'Meeting Days'."
     ],
-    "metadata_accuracy": [
-      "The value for 'Meeting Days' is missing."
-    ]
+    "metadata_accuracy": []
   },
-  "timing_s": 20.29,
-  "proposals": {
-    "new_false_positives": [],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "\\\\"
-    ],
-    "reasoning": "The backslash character '\\' appears as an unnecessary escape character in the URL for 'URL for Resource'. It should be removed to clean up the text."
-  }
+  "timing_s": 10.11,
+  "proposals": {}
 }

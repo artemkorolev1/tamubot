@@ -1,0 +1,82 @@
+{
+  "source_file": "202641_ISEN_622_600_19843",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 622",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "19843",
+    "instructor": {
+      "name": "Sergiy Butenko",
+      "email": "butenko@tamu.edu",
+      "office": "4037 ETB",
+      "office_hours": "TBA"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 11:10AM - 12:25PM",
+    "location": "ZACH 345",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/5nmcmnny8/Fall-2026-College-Station-ISEN-622-600-%2819843%29?mode=view"
+  },
+  "course_summary": "ISEN 622 | Linear Programming | Fall 2026\nInstructor: Sergiy Butenko | butenko@tamu.edu\nMeets: TR 11:10AM-12:25PM | ZACH 345\nGrading: Lecture quizzes [10%], Homework assignments [15%], Three in-class exams [25%], Three in-class exams [25%], Three in-class exams [25%] — A: [90,100], B: [80,90), C: [70,80), D: [60,70), F: [0,60)\nTopics: Gomory Cut, Farkas' Lemma, KKT Conditions, The Primal-Dual Simplex Method, Dantzig-Wolfe Decomposition, Two-Stage Stochastic LP, Modeling Either/Or Conditions, Parametric Linear Programming, Complementary slackness, Simplex Method in the Matrix Form, Analysis of the Simplex Method, Simplex Method: Initialization, Simplex Method: Iteration and Termination, Simplex Method: An Introduction, revised simplex method, dual simplex methods, bounded variables, column generation, decomposition, Integer Programming Modeling, integer programming, Representation of Polyhedra, Properties of Polyhedra, polyhedral sets, convex sets, cones, duality theory, sensitivity analysis, LP Modeling, Graphical Method, linear optimization models, small-scale LPs, large-scale LPs, simplex method, linear programming, theory, algorithms, mathematics\nTools: optimization software\nPrerequisites: MATH 304",
+  "headers": [
+    {
+      "text": "ISEN 622 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 3
+    }
+  ]
+}

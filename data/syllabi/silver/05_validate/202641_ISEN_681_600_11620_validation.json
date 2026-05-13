@@ -2,20 +2,14 @@
   "file_stem": "202641_ISEN_681_600_11620",
   "findings": {
     "content_preservation": [
-      "The 'Textbook and/or Resource Materials' section contains contradictory information: 'This material Is: Required' followed by 'No materials are required.'",
-      "The 'Course Schedule' section states that speakers are 'listed under Assignments', but the 'Assignments' section containing this list is missing."
+      "Detailed weekly schedule or 'Assignments' section with speaker information is missing, despite being referenced in the 'Course Schedule'."
     ],
     "strip_completeness": [],
     "structural_coherence": [],
-    "metadata_accuracy": []
+    "metadata_accuracy": [
+      "The 'Textbook and/or Resource Materials' section contains contradictory information regarding required materials ('This material Is: Required' vs 'No materials are required')."
+    ]
   },
-  "timing_s": 32.05,
-  "proposals": {
-    "new_false_positives": [],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "This material Is: Required"
-    ],
-    "reasoning": "The phrase 'This material Is: Required' in the 'Textbook and/or Resource Materials' section is contradictory to the following statement 'No materials are required.' and appears to be an artifact or misinterpretation of the source material. Removing this specific literal string will resolve the contradiction."
-  }
+  "timing_s": 9.95,
+  "proposals": {}
 }

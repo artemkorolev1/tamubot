@@ -1,9 +1,9 @@
-[INSTITUTIONAL] 2.8 COURSE MATERIAL AND COPYRIGHT (level 2, 561 chars)
+[INSTITUTIONAL] 2.8 COURSE MATERIAL AND COPYRIGHT (level 2, 563 chars)
 ## 2.8 COURSE MATERIAL AND COPYRIGHT
 
-All documents used in this course are copyrighted. Here, "documents" means all materials generated for this class, including, but not limited to, syllabi, exams, problem sets, slide sets, and all materials appearing on the class web site or sent to you via email. Because these materials are copyrighted, you do not have the right to copy any of them for any purpose other than your own personal academic use unless I grant permission. In particular, course materials may not be given or sold to any for-profit enterprise.
+All documents used in this course are copyrighted. Here, "documents" means all materials generated for this class, including, but not limited to, syllabi, exams, problem sets, slide sets, and all materials appearing on the class web site or sent to you in an email. Because these materials are copyrighted, you do not have the right to copy any of them for any purpose other than your own personal academic use unless I grant permission. In particular, course materials may not be given or sold to any for-profit enterprise.
 
-[TAMU_POLICY] 6 UNIVERSITY POLICIES (level 1, 7722 chars)
+[TAMU_POLICY] 6 UNIVERSITY POLICIES (level 1, 7774 chars)
 # 6 UNIVERSITY POLICIES
 ## 6.1 ATTENDANCE POLICY
 
@@ -11,15 +11,16 @@ The university views class attendance and participation as an individual student
 
 Please refer to Student Rule 7 in its entirety for information about excused absences, including definitions, and related documentation and timelines.
 
-With respect to medical issues, students may use the Explanatory Statement for Absence from Class form in lieu of a medical confirmation. Students must submit the Explanatory Statement for Absence from Class within two business days after the last date of absence.  This includes absence because the student is too ill to attend class to take an exam.  (See paragraph below regarding 'Personal Illness and Quarantine'.)
+With respect to medical issues, students may use the Explanatory Statement for Absence from Class form in lieu of a medical confirmation. Students must submit the Explanatory Statement for Absence from Class within two business days after the last date of absence. This includes absence because the student is too ill to attend class to take an exam. (See paragraph below regarding 'Personal Illness and Quarantine'.)
 
-Also, please note that the rule regarding job interviews is as follows: 'Mandatory interviews for permanent, full-time employment or full-time internships (including those that are part of a cooperative education program) that have a duration of at least 10 weeks, provided that such interviews are related to the student's academic program and provided that the interviews are fixed date by employer policy and cannot be rescheduled. A student may not request excused absences for employment or internship interviews for more than one scheduled class meeting in one academic term.'  Also, 'Documentation from the employer must be provided 5 business days in advance.'
+Also, please note that the rule regarding job interviews is as follows: 'Mandatory interviews for permanent, full-time employment or full-time internships (including those that are part of a cooperative education program) that have a duration of at least 10 weeks, provided that such interviews are related to the student's academic program and provided that the interviews are fixed date by employer policy and cannot be rescheduled. A student may not request excused absences for employment or internship interviews for more than one scheduled class meeting in one academic term.' Also, 'Documentation from the employer must be provided 5 business days in advance.'
 
-In this class, I only need official documentation regarding an excused absence if the absence is during an exam time.  For other times, documentation is not needed.
+In this class, I only need official documentation regarding an excused absence if the absence is during an exam time. For other times, documentation is not needed.
+
+ATM TEXAS A&M
+UNIVERSITY.
 
 Course Syllabus
-
-
 
 ## 6.2 MAKEUP WORK POLICY
 
@@ -39,15 +40,16 @@ Students who request an excused absence are expected to uphold the Aggie Honor C
 
 You can learn more about the Aggie Honor System Office Rules and Procedures, academic integrity, and your rights and responsibilities at aggiehonor.tamu.edu.
 
-The Industrial and Systems Engineering Department has adopted a 'no tolerance' position with respect to violations of the Aggie Honor Code.  In this course, I will request the Aggie Honor Office to assign a grade of F* for any violation of the Aggie Honor Code, no matter how minimal the violation may be.  (The Honor Council Rules and Procedures can be found at http://aggiehonor.tamu.edu.)
+The Industrial and Systems Engineering Department has adopted a 'no tolerance' position with respect to violations of the Aggie Honor Code. In this course, I will request the Aggie Honor Office to assign a grade of F* for any violation of the Aggie Honor Code, no matter how minimal the violation may be. (The Honor Council Rules and Procedures can be found at http://aggiehonor.tamu.edu.)
 
 ## 6.4 AMERICANS WITH DISABILITIES ACT (ADA) POLICY
 
 Texas A&M University is committed to providing equitable access to learning opportunities for all students. If you experience barriers to your education due to a disability or think you may have a disability, please contact Disability Resources in the Student Services Building or at (979) 845-1637 or visit disability.tamu.edu. Disabilities may include, but are not limited to attentional, learning, mental health, sensory, physical, or chronic health conditions. All students are encouraged to discuss their disability related needs with Disability Resources and their instructors as soon as possible.
 
+ATM TEXAS A&M
+UNIVERSITY.
+
 Course Syllabus
-
-
 
 ## 6.5 TITLE IX AND STATEMENT ON LIMITS TO CONFIDENTIALITY
 
@@ -75,9 +77,8 @@ You are allowed to use AI tools as you see fit. AI exists today and advancing da
 
 When submitting your work, you must clearly identify any writing, text, or media generated by AI. This can be done by highlight in BLUE to annotate this work was generated by AI. NO AI tool will be used during the FINAL EXAM.
 
-Course Syllabus
-
-
+ATM TEXAS A&M
+UNIVERSITY.
 
 Course Syllabus
 

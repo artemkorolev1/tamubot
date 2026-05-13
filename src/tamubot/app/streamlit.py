@@ -32,39 +32,10 @@ for name, mod in sorted(sys.modules.items()):
         importlib.reload(mod)
 
 from tamubot.core import config
-from tamubot.rag.observability import create_trace, finalize_trace, prod_config
+from tamubot.rag.observability import prod_config
 
 # Intent types that trigger the advisory orchestrator
 ADVISORY_INTENTS = {"PLANNING", "CAREER"}
-
-
-def _create_or_resume_trace(obs, query, resume_trace_id=None):
-    """Create a Langfuse trace, optionally resuming an existing one.
-
-    When resume_trace_id is provided, the new observation is appended to the
-    existing trace (same trace_id) instead of creating a new one.  This keeps
-    multi-step flows (SCP form → advisory pipeline) in a single trace.
-    """
-    if resume_trace_id:
-        from tamubot.rag.observability.tracing import _active_ctx_managers, get_langfuse
-
-        lf = get_langfuse()
-        if lf is not None:
-            try:
-                ctx = lf.start_as_current_observation(
-                    trace_context={"trace_id": resume_trace_id},
-                    name=obs.trace_name,
-                    input=query,
-                    metadata={**(obs.metadata or {}), "session_id": obs.session_id},
-                    end_on_exit=False,
-                )
-                span = ctx.__enter__()
-                _active_ctx_managers[id(span)] = ctx
-                return span, span.trace_id
-            except Exception as e:
-                logger.warning(f"Trace resume failed, creating new trace: {e}")
-        return create_trace(obs, query=query)
-    return create_trace(obs, query=query)
 
 
 logging.basicConfig(level=logging.INFO)
@@ -294,12 +265,9 @@ if prompt:
     with st.chat_message("assistant"):
         if USE_MONGODB:
             # --- MongoDB 3-stage pipeline: Route → Retrieve+Rerank → Generate ---
+            from tamubot.rag.observability import trace_context
 
-            # Create a parent Langfuse trace for this request.
-            # On advisory rerun, resume the trace from the first pass so the
-            # whole SCP-collection → pipeline sequence is one trace.
             obs = prod_config(session_id=str(id(st.session_state)))
-            lf_trace, _trace_id = _create_or_resume_trace(obs, prompt, resume_trace_id=_advisory_trace_id)
 
             # Resolve thread_config early (needed by cache check and pipeline)
             # Use session_state to store thread_id so it's stable across Streamlit reruns
@@ -324,167 +292,177 @@ if prompt:
 
                     _log.getLogger("tamubot").warning(f"mem0 initialization failed (non-fatal): {_mem0_err}")
 
-            # --- answer cache check (skip full pipeline on exact-match hit) ---
-            if config.SESSION_CACHE_ENABLED:
-                from tamubot.rag.graph.pipeline import get_current_state
-                from tamubot.rag.utils import normalize_query as _norm
+            # trace_context guarantees OTEL cleanup even when st.stop()/st.rerun()
+            # raise exceptions. On advisory rerun, resume_trace_id appends to the
+            # existing trace so the SCP-collection → pipeline sequence is one trace.
+            with trace_context(obs, prompt, trace_id=_advisory_trace_id) as (lf_trace, _trace_id):
+                # --- answer cache check (skip full pipeline on exact-match hit) ---
+                if config.SESSION_CACHE_ENABLED:
+                    from tamubot.rag.graph.pipeline import get_current_state
+                    from tamubot.rag.utils import normalize_query as _norm
 
-                _current = get_current_state(thread_config)
-                _cached_answer = _current.get("answer_cache", {}).get(_norm(prompt))
-                if _cached_answer:
-                    answer_placeholder = st.empty()
-                    answer_placeholder.markdown(_cached_answer)
-                    finalize_trace(lf_trace, output=_cached_answer)
-                    st.session_state.messages.append({"role": "assistant", "content": _cached_answer})
-                    st.stop()
+                    _current = get_current_state(thread_config)
+                    _cached_answer = _current.get("answer_cache", {}).get(_norm(prompt))
+                    if _cached_answer:
+                        answer_placeholder = st.empty()
+                        answer_placeholder.markdown(_cached_answer)
+                        if lf_trace is not None:
+                            lf_trace.update(output=_cached_answer)
+                        st.session_state.messages.append({"role": "assistant", "content": _cached_answer})
+                        st.stop()
 
-            # --- Step 1: Classify query ---
-            # If we're resuming after SCP form submission, use the stored router
-            # result instead of re-classifying (avoids a second LLM call that
-            # might return a different intent type).
-            from tamubot.rag.router import classify_query
+                # --- Step 1: Classify query ---
+                # If we're resuming after SCP form submission, use the stored router
+                # result instead of re-classifying (avoids a second LLM call that
+                # might return a different intent type).
+                from tamubot.rag.router import classify_query
 
-            router_result = None
-            rr_dict = _advisory_router  # None on first pass, dict on SCP rerun
+                router_result = None
+                rr_dict = _advisory_router  # None on first pass, dict on SCP rerun
 
-            if rr_dict is not None:
-                # Rerun after SCP form — router result was stored in session_state
-                logger.info("Advisory rerun: using stored router result, skipping re-classification")
-            else:
-                with st.spinner("Classifying your question..."):
-                    try:
-                        router_result = classify_query(prompt)
-                        logger.info(
-                            f"Router: function={router_result.function}, mode={router_result.retrieval_mode},"
-                            f" courses={router_result.course_ids}, intent={router_result.intent_type}"
-                        )
-                        # Pre-serialize to dict for both advisory and standard paths
-                        rr_dict = {
-                            "function": router_result.function,
-                            "course_ids": router_result.course_ids,
-                            "retrieval_mode": router_result.retrieval_mode,
-                            "intent_type": router_result.intent_type,
-                            "rewritten_query": router_result.rewritten_query,
-                            "recursive_search": router_result.recursive_search,
-                            "requires_retrieval": router_result.requires_retrieval,
-                            "section": router_result.section,
-                        }
-                    except Exception as e:
-                        logger.error(f"Router failed: {traceback.format_exc()}")
-                        st.error(f"Classification failed: {e}")
-
-            # --- Step 2: Advisory dispatch (before running any pipeline) ---
-            is_advisory = rr_dict is not None and rr_dict.get("intent_type") in ADVISORY_INTENTS
-
-            if is_advisory and not st.session_state.get("scp_validated"):
-                # Activate the SCP form (rendered at top level) and stop.
-                # Store the query, router result, and trace_id so the form
-                # submission rerun can resume the advisory pipeline.
-                st.session_state.scp_form_active = True
-                st.session_state.scp_pending_query = prompt
-                st.session_state.scp_router_result = rr_dict
-                st.session_state.scp_trace_id = _trace_id
-                finalize_trace(lf_trace, output="[SCP form shown — awaiting student profile]")
-                st.rerun()
-
-            if is_advisory and st.session_state.get("scp_validated"):
-                # Run advisory pipeline with collected SCP
-                from tamubot.advisory.pipeline import run_advisory_pipeline
-
-                scp = {
-                    "scp_program": st.session_state.get("scp_program"),
-                    "scp_completed_courses": st.session_state.get("scp_completed_courses", []),
-                    "scp_target_semester": st.session_state.get("scp_target_semester"),
-                    "scp_goal": st.session_state.get("scp_goal"),
-                }
-                session_id = thread_config.get("configurable", {}).get("thread_id", "")
-                answer = ""
-                try:
-                    with st.spinner("Generating personalized advisory answer..."):
-                        advisory_answer, advisory_error = run_advisory_pipeline(
-                            query=prompt,
-                            scp=scp,
-                            router_result=rr_dict,
-                            trace=lf_trace,
-                            session_id=session_id,
-                        )
-                    answer = advisory_answer or ""
-                    if advisory_error:
-                        st.warning(f"Advisory pipeline error: {advisory_error}")
-                except Exception as e:
-                    logger.error(f"Advisory pipeline failed: {traceback.format_exc()}")
-                    st.error(f"Advisory pipeline failed: {e}")
-
-                answer_placeholder = st.empty()
-                answer_placeholder.markdown(answer)
-                finalize_trace(lf_trace, output=answer or "[advisory error]")
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-
-                # Clear SCP form state so the next query starts fresh
-                for key in (
-                    "scp_form_active",
-                    "scp_pending_query",
-                    "scp_router_result",
-                    "scp_trace_id",
-                    "scp_validated",
-                ):
-                    st.session_state.pop(key, None)
-
-            else:
-                # --- Step 3: Standard RAG pipeline (non-advisory queries) ---
-                answer_tokens: list[str] = []
-                source_docs: list[dict] = []
-                with st.spinner("Retrieving and generating..."):
-                    try:
-                        result = run_pipeline_with_memory(prompt, trace=lf_trace, thread_config=thread_config)
-                        source_docs, router_result, data_gaps, data_integrity, conflicted_ids, answer_tokens = result
-                    except Exception as e:
-                        logger.error(f"Retrieval failed: {traceback.format_exc()}")
-                        st.error(f"Retrieval failed: {e}")
-
-                answer = ""
-                answer_placeholder = st.empty()
-                for token in answer_tokens:
-                    answer += token
-                    answer_placeholder.markdown(answer + "▌")
-                answer_placeholder.markdown(answer)
-                logger.info(f"Generation complete, answer length: {len(answer)}")
-
-                # Render syllabus links for all retrieved courses
-                if source_docs:
-                    course_ids = list({doc["course_id"] for doc in source_docs if doc.get("course_id")})
-                    try:
-                        url_map = get_syllabus_urls(course_ids)
-                    except Exception:
-                        url_map = {}
-                    if url_map:
-                        links = "  ".join(f"[{cid} Syllabus]({url})" for cid, url in sorted(url_map.items()))
-                        answer_placeholder.markdown(answer + "\n\n---\n**Syllabi:** " + links)
-                        answer += "\n\n---\n**Syllabi:** " + links
-
-                # Close the parent trace and flush all buffered spans
-                finalize_trace(lf_trace, output=answer)
-
-                if source_docs:
-                    with st.expander("View Source Documents", expanded=False):
-                        if router_result:
-                            mode_label = router_result.retrieval_mode
-                            sem = f" | Intent: {router_result.intent_type}" if router_result.intent_type else ""
-                            st.caption(
-                                f"Function: **{router_result.function}** | "
-                                f"Mode: {mode_label}{sem} | "
-                                f"Courses: {', '.join(router_result.course_ids) or 'none'}"
+                if rr_dict is not None:
+                    # Rerun after SCP form — router result was stored in session_state
+                    logger.info("Advisory rerun: using stored router result, skipping re-classification")
+                else:
+                    with st.spinner("Classifying your question..."):
+                        try:
+                            router_result = classify_query(prompt)
+                            logger.info(
+                                f"Router: function={router_result.function}, mode={router_result.retrieval_mode},"
+                                f" courses={router_result.course_ids}, intent={router_result.intent_type}"
                             )
-                        for i, doc in enumerate(source_docs):
-                            label = doc.get("course_id", doc.get("policy_name", "Unknown"))
-                            st.write(f"**Source {i + 1}:** {label}")
-                            if doc.get("category"):
-                                st.write(f"*Category: {doc['category']}*")
-                            content = doc.get("content", doc.get("policy_name", ""))
-                            st.info(content[:500] + ("..." if len(content) > 500 else ""))
-                            st.write("---")
+                            # Pre-serialize to dict for both advisory and standard paths
+                            rr_dict = {
+                                "function": router_result.function,
+                                "course_ids": router_result.course_ids,
+                                "retrieval_mode": router_result.retrieval_mode,
+                                "intent_type": router_result.intent_type,
+                                "rewritten_query": router_result.rewritten_query,
+                                "recursive_search": router_result.recursive_search,
+                                "requires_retrieval": router_result.requires_retrieval,
+                                "section": router_result.section,
+                            }
+                        except Exception as e:
+                            logger.error(f"Router failed: {traceback.format_exc()}")
+                            st.error(f"Classification failed: {e}")
 
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+                # --- Step 2: Advisory dispatch (before running any pipeline) ---
+                is_advisory = rr_dict is not None and rr_dict.get("intent_type") in ADVISORY_INTENTS
+
+                if is_advisory and not st.session_state.get("scp_validated"):
+                    # Activate the SCP form (rendered at top level) and stop.
+                    # Store the query, router result, and trace_id so the form
+                    # submission rerun can resume the advisory pipeline.
+                    st.session_state.scp_form_active = True
+                    st.session_state.scp_pending_query = prompt
+                    st.session_state.scp_router_result = rr_dict
+                    st.session_state.scp_trace_id = _trace_id
+                    if lf_trace is not None:
+                        lf_trace.update(output="[SCP form shown — awaiting student profile]")
+                    st.rerun()
+
+                if is_advisory and st.session_state.get("scp_validated"):
+                    # Run advisory pipeline with collected SCP
+                    from tamubot.advisory.pipeline import run_advisory_pipeline
+
+                    scp = {
+                        "scp_program": st.session_state.get("scp_program"),
+                        "scp_completed_courses": st.session_state.get("scp_completed_courses", []),
+                        "scp_target_semester": st.session_state.get("scp_target_semester"),
+                        "scp_goal": st.session_state.get("scp_goal"),
+                    }
+                    session_id = thread_config.get("configurable", {}).get("thread_id", "")
+                    answer = ""
+                    try:
+                        with st.spinner("Generating personalized advisory answer..."):
+                            advisory_answer, advisory_error = run_advisory_pipeline(
+                                query=prompt,
+                                scp=scp,
+                                router_result=rr_dict,
+                                trace=lf_trace,
+                                session_id=session_id,
+                            )
+                        answer = advisory_answer or ""
+                        if advisory_error:
+                            st.warning(f"Advisory pipeline error: {advisory_error}")
+                    except Exception as e:
+                        logger.error(f"Advisory pipeline failed: {traceback.format_exc()}")
+                        st.error(f"Advisory pipeline failed: {e}")
+
+                    answer_placeholder = st.empty()
+                    answer_placeholder.markdown(answer)
+                    if lf_trace is not None:
+                        lf_trace.update(output=answer or "[advisory error]")
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
+
+                    # Clear SCP form state so the next query starts fresh
+                    for key in (
+                        "scp_form_active",
+                        "scp_pending_query",
+                        "scp_router_result",
+                        "scp_trace_id",
+                        "scp_validated",
+                    ):
+                        st.session_state.pop(key, None)
+
+                else:
+                    # --- Step 3: Standard RAG pipeline (non-advisory queries) ---
+                    answer_tokens: list[str] = []
+                    source_docs: list[dict] = []
+                    with st.spinner("Retrieving and generating..."):
+                        try:
+                            result = run_pipeline_with_memory(prompt, thread_config=thread_config)
+                            source_docs, router_result, data_gaps, data_integrity, conflicted_ids, answer_tokens = (
+                                result
+                            )
+                        except Exception as e:
+                            logger.error(f"Retrieval failed: {traceback.format_exc()}")
+                            st.error(f"Retrieval failed: {e}")
+
+                    answer = ""
+                    answer_placeholder = st.empty()
+                    for token in answer_tokens:
+                        answer += token
+                        answer_placeholder.markdown(answer + "▌")
+                    answer_placeholder.markdown(answer)
+                    logger.info(f"Generation complete, answer length: {len(answer)}")
+
+                    # Render syllabus links for all retrieved courses
+                    if source_docs:
+                        course_ids = list({doc["course_id"] for doc in source_docs if doc.get("course_id")})
+                        try:
+                            url_map = get_syllabus_urls(course_ids)
+                        except Exception:
+                            url_map = {}
+                        if url_map:
+                            links = "  ".join(f"[{cid} Syllabus]({url})" for cid, url in sorted(url_map.items()))
+                            answer_placeholder.markdown(answer + "\n\n---\n**Syllabi:** " + links)
+                            answer += "\n\n---\n**Syllabi:** " + links
+
+                    # Set trace output before context manager exits
+                    if lf_trace is not None:
+                        lf_trace.update(output=answer)
+
+                    if source_docs:
+                        with st.expander("View Source Documents", expanded=False):
+                            if router_result:
+                                mode_label = router_result.retrieval_mode
+                                sem = f" | Intent: {router_result.intent_type}" if router_result.intent_type else ""
+                                st.caption(
+                                    f"Function: **{router_result.function}** | "
+                                    f"Mode: {mode_label}{sem} | "
+                                    f"Courses: {', '.join(router_result.course_ids) or 'none'}"
+                                )
+                            for i, doc in enumerate(source_docs):
+                                label = doc.get("course_id", doc.get("policy_name", "Unknown"))
+                                st.write(f"**Source {i + 1}:** {label}")
+                                if doc.get("category"):
+                                    st.write(f"*Category: {doc['category']}*")
+                                content = doc.get("content", doc.get("policy_name", ""))
+                                st.info(content[:500] + ("..." if len(content) > 500 else ""))
+                                st.write("---")
+
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
 
         else:
             # --- Vertex AI legacy path ---

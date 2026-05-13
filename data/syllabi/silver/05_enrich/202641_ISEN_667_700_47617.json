@@ -1,0 +1,167 @@
+{
+  "source_file": "202641_ISEN_667_700_47617",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 667",
+    "section": "700",
+    "term": "Fall 2026",
+    "crn": "47617",
+    "instructor": {
+      "name": "Hamid Parsaei",
+      "email": "hamid.parsaei@tamu.edu",
+      "office": "ETB 4068A",
+      "office_hours": "Fridays (3:00 to 4:30 pm)"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Weekly Recitation: Fridays 3:00 - 4:00 PM",
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/nihn2nr5o/Fall-2026-College-Station-ISEN-667-700-%2847617%29?mode=view"
+  },
+  "course_summary": "ISEN 667 | Engineering Economy | Fall 2026\nInstructor: Hamid Parsaei | hamid.parsaei@tamu.edu\nMeets: Fridays 3:00 - 4:00 PM\nGrading: Exam 1 [25%], Exam 2 [25%], Exam 3 [25%], Homework [25%]\nTopics: single amounts-compound amount (F/P) factors, present worth (P/F) factors, uniform series- present worth (P/A) factors, capital recovery (A/P) factors, uniform series - compound amount (F/A) factors, sinking fund (A/F) factors, Arithmetic Gradient, Geometric Gradient, Minimum Attractive Rate of Return (MARR), Weighted Average Cost of Capital (WACC), internal ROR (IROR), B/C ratio, cost-effectiveness analysis (CEA), Linear program model, straight line method of depreciation, DB method of depreciation, DDB methods of depreciation, MACRS method of depreciation, cost depletion, percentage depletion methods, Monte Carlo sampling, discounted cash flow analysis, break-even analysis, rate of return on investment, nominal interest rates, effective interest rates, present worth analysis, future worth analysis, annual worth analysis, capitalized cost analysis, capital recovery (CR), life-cycle cost (LCC) analysis, incremental cash flow analysis, Capital rationing, Payback period analysis, asset depreciation, depletion, probability distributions, cumulative distributions, random sample, expected value, standard deviation, simulation analysis, engineering economic analysis, capital investments, income taxes, inflation, competing projects, risk, uncertainty, time value of money, interest rate, rates of return, cash flows, economic equivalence, simple interest, compound interest, opportunity cost, equivalence relations, payment period (PP), compounding period (CP), single-amount cash flows, series cash flows, gradient cash flows, continuously compounded interest rates, varying interest rates, mutually exclusive projects, independent projects, revenue alternatives, cost alternatives, equal-life alternatives, different-life alternatives, perpetual life, ROR method, PW method, AW method, nominal rate of return, effective rate of return, bond investment, public sector projects, private sector projects, multiple alternatives, service sector projects, projects with equal lives, projects with unequal lives, ranking options, Breakeven point, asset recovery period, decision making under risk, engineering economics, application study approach, engineering economy study steps, economic decisions, ethics, engineering economic terminology, symbols, engineering economy formulas, engineering economy tools, linear interpolation, factor tables\nPrerequisites: ISEN 303 or approval of instructor",
+  "headers": [
+    {
+      "text": "ISEN 667 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Description and Topics",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Catalog Description",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Chapter 1:",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "Chapter 2:",
+      "level": 3,
+      "page": 4
+    },
+    {
+      "text": "Chapter 4:",
+      "level": 3,
+      "page": 4
+    },
+    {
+      "text": "Chapter 5:",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Chapter 6:",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Chapter 7:",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Chapter 8:",
+      "level": 3,
+      "page": 6
+    },
+    {
+      "text": "Chapter 9:",
+      "level": 3,
+      "page": 6
+    },
+    {
+      "text": "Chapter 12:",
+      "level": 3,
+      "page": 6
+    },
+    {
+      "text": "Chapter 13:",
+      "level": 3,
+      "page": 6
+    },
+    {
+      "text": "Chapter 16:",
+      "level": 3,
+      "page": 7
+    },
+    {
+      "text": "Chapter 19:",
+      "level": 3,
+      "page": 7
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 7
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 7
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 8
+    },
+    {
+      "text": "Course Grade:",
+      "level": 3,
+      "page": 8
+    },
+    {
+      "text": "Exam Dates:",
+      "level": 3,
+      "page": 8
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 8
+    },
+    {
+      "text": "Course Specific Late Work Policy",
+      "level": 2,
+      "page": 8
+    },
+    {
+      "text": "Makeup Policy:",
+      "level": 3,
+      "page": 8
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 10
+    }
+  ]
+}

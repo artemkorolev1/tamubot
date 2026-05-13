@@ -1,39 +1,29 @@
 {
   "file_stem": "202531_ISEN_663_600_63016_HP",
   "findings": {
-    "content_preservation": [
-      "The 'Late Work Policy' section refers to a 'University Policies' section for makeup work, but this section is not present in the document."
-    ],
+    "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The header '## Course Syllabus: ISEN 663 Management Control Systems Fall 2025' is repeated after the Course Description.",
-      "The list of 'Course Learning Outcomes' starts with item '3.' instead of '1.'.",
-      "The header '#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025' is repeated after the Textbook and/or Resource Materials section.",
-      "The line 'Course Syllabus: ISEN 663 Management Control Systems Fall 2025' appears as plain text, repeating the title, after the Grading Policy section.",
-      "Holiday entries ('1SEP - Labor Day (Holiday - no class)', 'Fall break 13-14OCT (no class)') in the 'Topical outline' break the column alignment of the schedule.",
-      "The line '#### Projects (reports and video presentations) due NLT 13DEC (2400h)' is formatted as a header but appears to be a specific note about due dates.",
-      "The header '#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025' is repeated after the Topical Schedule section.",
-      "Section numbering jumps from '1.10 Course Synopsis and Topical Schedule' to '1.12 Leveraging AI technology as a resource', indicating section '1.11' is missing or misnumbered.",
-      "The list of documentation requirements under '1.12 Leveraging AI technology as a resource' starts with item '4.' instead of '1.'.",
-      "The header '### Course Syllabus: ISEN 663 Management Control Systems Fall 2025' is repeated after the AI policy section."
+      "Redundant sub-header '## Course Syllabus: ISEN 663 Management Control Systems Fall 2025' appears under section 1.4.",
+      "Redundant sub-header '#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025' appears under section 1.7.",
+      "Redundant sub-header 'Course Syllabus: ISEN 663 Management Control Systems Fall 2025' appears under section 1.8.",
+      "Redundant sub-header '### Course Syllabus: ISEN 663 Management Control Systems Fall 2025' appears under section 1.10.",
+      "The table in section 1.10 'Topical outline' has rows ('1SEP - Labor Day (Holiday - no class)', 'Fall break 13-14OCT (no class)', 'Project specification and options released by 12NOV; establish project teams') that are missing the 'Week' column, breaking the table structure.",
+      "Redundant sub-header '#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025' appears after the table in section 1.10.",
+      "Redundant sub-header '#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025' appears under section 1.12."
     ],
     "metadata_accuracy": [
       "The 'Section' field under '1.1 Course Information' is empty.",
-      "The 'TA/Grader Details' section states 'TBA', indicating missing information for the TA/Grader."
+      "The 'TA/Grader Details' field under '1.3 TA/Grader Details' is 'TBA', indicating missing information."
     ]
   },
-  "timing_s": 28.17,
+  "timing_s": 16.84,
   "proposals": {
     "new_false_positives": [
-      "## Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
-      "#### Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
-      "#### Projects (reports and video presentations) due NLT 13DEC (2400h)",
-      "### Course Syllabus: ISEN 663 Management Control Systems Fall 2025"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
       "Course Syllabus: ISEN 663 Management Control Systems Fall 2025"
     ],
-    "reasoning": "The repeated 'Course Syllabus: ISEN 663 Management Control Systems Fall 2025' at various header levels are redundant and not true section headers, thus they should be demoted to body text or removed. The line 'Projects (reports and video presentations) due NLT 13DEC (2400h)' is a specific note, not a general section header. The plain text 'Course Syllabus: ISEN 663 Management Control Systems Fall 2025' is a redundant artifact that should be removed. No new boilerplate sections were identified that meet the strict criteria of being institutional and needing to be stripped entirely."
+    "new_boilerplate": [],
+    "text_cleanups": [],
+    "reasoning": "The string 'Course Syllabus: ISEN 663 Management Control Systems Fall 2025' is the main title of the document and appears redundantly as a sub-header multiple times throughout the syllabus. These are parsing artifacts and should be demoted to body text or removed if they are exact duplicates of the main title."
   }
 }

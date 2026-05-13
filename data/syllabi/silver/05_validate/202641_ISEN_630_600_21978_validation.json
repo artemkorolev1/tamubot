@@ -4,25 +4,10 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The 'Credit Hours: 3' line is duplicated immediately after itself in the 'Course Information' section.",
-      "The 'Exams' section refers to an 'Academic Integrity and Misconduct Policy section below' which is missing from the document.",
-      "The 'Re-grading Policy' section is duplicated, appearing once under 'Grading Policy' and again under 'Additional Course Information'.",
-      "The header 'Schedule of Topics' is duplicated immediately after itself under 'Course Schedule'.",
-      "The 'Course Schedule' content is not formatted as a proper markdown table; it appears as unformatted text with manual spacing."
+      "Table in 'Schedule of Topics' is malformed; the 'Lessons' column content is a single, unformatted block of text instead of structured rows, rendering the table unreadable."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 16.47,
-  "proposals": {
-    "new_false_positives": [
-      "Re-grading Policy :",
-      "Schedule of Topics"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "Credit Hours:\n\n3",
-      " (see Academic Integrity and Misconduct Policy section below for ISEN-mandated consequences)"
-    ],
-    "reasoning": "The 'Credit Hours: 3' line is duplicated; the second instance should be removed. The reference to 'Academic Integrity and Misconduct Policy section below' points to a missing section and should be removed. The 'Re-grading Policy :' header is a duplicate and contains an artifact (colon), so it should not be treated as a header. The 'Schedule of Topics' header at the '####' level is a duplicate and should not be treated as a header."
-  }
+  "timing_s": 8.25,
+  "proposals": {}
 }

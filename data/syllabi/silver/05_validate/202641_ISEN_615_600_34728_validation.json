@@ -2,39 +2,15 @@
   "file_stem": "202641_ISEN_615_600_34728",
   "findings": {
     "content_preservation": [
-      "The 'Textbook and/or Resource Materials' section is empty; its content is found under 'Course Schedule'."
+      "Grading policy states 'There will be four exams' but later refers to 'these five exams' when describing the lowest grade drop, indicating a contradiction or missing exam information."
     ],
     "strip_completeness": [],
     "structural_coherence": [
-      "Duplicate entry 'Credit Hours: 3' under 'Course Information'.",
-      "Textbook and resource materials are incorrectly placed under 'Course Schedule' instead of 'Textbook and/or Resource Materials'."
+      "In 'Textbook and/or Resource Materials', the 'Edition' label and its value '8th' are on separate lines, suggesting a formatting error where they should be together (e.g., 'Edition: 8th').",
+      "The homework schedule under 'Course Schedule' is presented as a continuous block of text, losing its intended list or itemized format (e.g., each 'Wk X: HW Y' should be on a new line)."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 21.7,
-  "proposals": {
-    "new_false_positives": [
-      "Section 600 (34728) Production and Inventory Control Fall 2026 - College Station",
-      "This material Is: Optional",
-      "ISBN:",
-      "Authors:",
-      "Publisher:",
-      "Publication Date:",
-      "Edition:"
-    ],
-    "new_boilerplate": [
-      "Work submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7)."
-    ],
-    "text_cleanups": [
-      {
-        "pattern": "Credit Hours:\\n\\n3\\n\\nCredit Hours:\\n\\n3",
-        "replacement": "Credit Hours:\\n\\n3"
-      },
-      {
-        "pattern": " Syllabus",
-        "replacement": ""
-      }
-    ],
-    "reasoning": "The identified false positives are either course identifiers, specific labels for textbook details, or short descriptive phrases that are not true section headers. The boilerplate text refers to a specific 'Student Rule 7', indicating it's a university-wide policy. The text cleanups address the explicit duplicate 'Credit Hours: 3' entry and remove the redundant ' Syllabus' from the main course title."
-  }
+  "timing_s": 14.07,
+  "proposals": {}
 }

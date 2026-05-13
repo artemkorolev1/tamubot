@@ -1,0 +1,105 @@
+{
+  "source_file": "202611_ISEN_620_600_59274",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 620",
+    "section": "600",
+    "term": "Spring 2026",
+    "crn": "59274",
+    "instructor": {
+      "name": "Shixuan Zhang",
+      "email": "shixuan.zhang@tamu.edu",
+      "office": "ETB 4031",
+      "office_hours": "Thursdays 3:45-4:45 pm"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 2:20PM-3:35PM",
+    "location": "ETB 1013",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null,
+    "prerequisites": "Prerequisite/Corequisite(s): MATH 304 or MATH 311."
+  },
+  "course_summary": "ISEN 620 | Survey of Optimization | Spring 2026\nInstructor: Shixuan Zhang | shixuan.zhang@tamu.edu\nMeets: TR 2:20PM-3:35PM | ETB 1013\nGrading: Homework Assignments [10%], Midterm Exam [40%], Final Exam [50%] — A: [90%, 100%], B: [80%, 90%), C: [70%, 80%), D: [60%, 70%), F: [0%, 60%)\nTopics: K-K-T conditions, Lagrange conditions, simplex methods, duality theory, sensitivity analysis, deterministic linear optimization, unconstrained-nonlinear optimization, constrained-nonlinear optimization, integer optimization solution methods, mixed-integer optimization solution methods, continuous linear optimization methods, nonlinear optimization methods, numerical algorithms, linear optimization modeling, optimization models (linear, nonlinear, continuous, integer, mixed-integer), real-world problems, model characteristics (convex, nonconvex), local solutions, global solutions, linear programming\nTools: Canvas\nPrerequisites: MATH 304 or MATH 311",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 7,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nSurvey of Optimization. (3-0). Credit 3. Theory and numerical methods for deterministic linear and nonlinear optimization; topics include linear programming, unconstrained-nonlinear optimization, constrained-nonlinear optimization, Lagrange and K-K-T conditions, and numerical algorithms. Prerequisite: MATH 304 or MATH 311.",
+      "header_path": "Catalog Description",
+      "token_count": 87,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- consider real-world problems and determine appropriate optimization models (linear or nonlinear, continuous, integer, or mixed-integer) to use;\n\n- apply simplex methods to solve continuous linear optimization problems and interpret the solutions using duality theory;\n\n- describe main ideas of behind integer and mixed-integer optimization solution methods, especially their connections to continuous linear optimization methods;\n\n- recognize some basic nonlinear optimization methods and their potential limitations based on model characteristics (convex versus nonconvex) and solution goals (local versus global solutions).\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 189,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Recommended\n\nA First Course in Linear Optimization\n\nAuthors:\n\nJon Lee\n\nPublisher:\n\nPublished under CC BY 3.0\n\nEdition:\n\n4.07+\n\nURL for Resource:\n\nhttps://github.com/jon77lee/JLee\\_LinearOptimizationBook/tree/master\n\nThis material Is: Optional\n\nLinear and Nonlinear Programming\n\nISBN:\n\n978-3-030-85450-8\n\nAuthors:\n\nDavid G. Luenberger and Yinyu Ye\n\nPublisher:\n\nSpringer Cham\n\nPublication Date:\n\n2021\n\nEdition:\n\nFifth Edition\n\nThis material Is: Optional\n\nNumerical Optimization\n\nISBN:\n\n0-387-30303-0\n\nAuthors:\n\nJorge Nocedal and Stephen J. Wright\n\nPublisher:\n\nSpringer\n\nPublication Date:\n\n2006\n\nEdition:\n\nSecond Edition",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 168,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\n### Grade Decomposition\n\nTasks\n\nPercentage\n\nHomework Assignments\n\n10%\n\nMidterm Exam\n\n40%\n\nFinal Exam\n\n50%\n\nBoth exams are closed-book. The tentative date for the midterm is February 24 (in-class). The final exam is scheduled on May 5, 1-3 pm. A 1-page cheat sheet and a calculator (with no Internet access) are allowed for both exams.\n\nHomework assignments will be given biweekly. Canvas is set up to allow multiple submissions and only the last submitted assignment will be graded. Late submission will incur a deduction of 5% per hour. Some homework assignments will ask students to use computer tools. For these assignments, students need to submit their source code, together with the computer outputs. The source code must be done using designated computer programming languages, or those approved by the instructor.\n\nFinal grades will be determined as follows.\n\n### Letter Grade Cutoffs\n\nRange\n\nLetter Grade\n\n[90%, 100%]\n\nA\n\n[80%, 90%)\n\nB\n\n[70%, 80%)\n\nC\n\n[60%, 70%)\n\nD\n\n[0%, 60%)\n\nF\n\nAbout regrading, assignment or exam regrading requests will be considered if received in writing via email, with the original work attached to your instructor or the grader **no later than one week after the material was returned**. Note that the instructor and the grader have the right to regrade the entirety, so it is possible to lose points. Therefore, it is recommended that students should ask for regrading only there is substantial reason that the grade is given in error.",
+      "header_path": "Grading Policy",
+      "token_count": 372,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Course Specific Late Work Policy\n\nLate submission for homework assignments is accepted with the reduction in points (5% per hour). Makeup exams are only available for excused absence defined in Student Rule 7.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 53,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Schedule\n\nThe following course schedule is tentative and subject to change, depending on the actual progress and student feedback.\n\n- Week 1-4: Introduction and linear optimization modeling\n\n- Week 5-8: Simplex methods, linear optimization duality, and sensitivity analysis\n\n- Week 9-10: Introduction to integer and mixed-integer optimization methods\n\n- Week 11-15: Selected topics in nonlinear optimization",
+      "header_path": "Course Schedule",
+      "token_count": 104,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:55.545349"
+}

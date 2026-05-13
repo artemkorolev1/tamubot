@@ -1,0 +1,132 @@
+{
+  "source_file": "202531_ISEN_663_600_63016_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 663",
+    "section": "600",
+    "term": "?31 2025",
+    "crn": "63016",
+    "instructor": {
+      "name": "Michael Graul, PhD PE",
+      "email": "mgraul@tamu.edu",
+      "office": "ETB 4017",
+      "office_hours": "T 5-6p (section 600); T 6-7p (section 700) both via Zoom link: https://tamu.zoom.us/j/96265125842?pwd=iaJKuEoc0905xVuUu1fINbWpkgJWXp.1"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "M 5:45-8:15p (section 600); The lecture videos will be available on Monday night after 8:30p for section 700. I will also open a zoom session in order to provide a backup recording of the lecture. The link will be found in the Canvas Zoom Pro 1.3 tab.",
+    "location": "ZACH 440 (section 600) and the lecture video for section 700will be placed in our YuJa channel (see our canvas site); additionally, as noted above, I will record the lectures using zoom within Canvas.",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 663 | Engineering Management Control Systems (MCS) | 3 Fall 2025\nInstructor: Michael Graul, PhD PE | mgraul@tamu.edu\nMeets: M 5:45-8:15p (section 600); lecture videos available Monday night after 8:30p (section 700) | ZACH 440 (section 600); YuJa channel, Canvas Zoom Pro 1.3 tab (section 700)\nGrading: Quizzes [20%], Homework [20%], Midterm Exam [30%], Project Work [30%] — A: [90,100] B: [80-90) C: [70,80) D: [60,70) F: [0,60)\nTopics: Conant-Ashby theorem, \"Every good regulator of a system is a model of the system that it regulates.\", managerial cybernetics, SE architectures, SE archetypes, IDEF0 modeling, VSM introduction, VSM analysis, VSM design, VSM development, variety engineering, balanced scorecard, Levers of Control (LOC), financial responsibility centers, Pre-action control, STS (Socio-Technical Systems), HRO (Highly Reliable ORGs), NextGEN ORG Design, ORG SYS analysis, ORG SYS design, reference models (REFMODs), production/productive systems, engineered integration, human-centric organizations, constituencies, value propositions, supporting functions, ST primer, nature of controls, Organization Fit, Organization Function, Organization Form, structures, Models, Strategy maps, objects of control, Costs of controls, Financial controls, budget controls, planning, leadership, Cases",
+  "headers": [
+    {
+      "text": "Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "1.1 Course Information",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "1.2 Instructor Details",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "1.3 TA/Grader Details",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "1.4 Course Description",
+      "level": 1,
+      "page": 1
+    },
+    {
+      "text": "Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "1.5 Course Prerequisites",
+      "level": 1,
+      "page": 2
+    },
+    {
+      "text": "1.6 Course Learning Outcomes",
+      "level": 1,
+      "page": 2
+    },
+    {
+      "text": "1.7 Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Required:",
+      "level": 3,
+      "page": 2
+    },
+    {
+      "text": "Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
+      "level": 4,
+      "page": 2
+    },
+    {
+      "text": "Software support (COE Horizon Client, VM-Ware server, ISEN Desktop)",
+      "level": 3,
+      "page": 3
+    },
+    {
+      "text": "1.8 Grading Policy",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "1.9 Late Work Policy",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "1.10 Course Synopsis and Topical Schedule",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
+      "level": 3,
+      "page": 4
+    },
+    {
+      "text": "Topical outline",
+      "level": 3,
+      "page": 5
+    },
+    {
+      "text": "Projects (reports and video presentations) due NLT 13DEC (2400h)",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
+      "level": 4,
+      "page": 5
+    },
+    {
+      "text": "1.12 Leveraging AI technology as a resource",
+      "level": 2,
+      "page": 6
+    },
+    {
+      "text": "Course Syllabus: ISEN 663 Management Control Systems Fall 2025",
+      "level": 4,
+      "page": 6
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-[TAMU_POLICY] University Policies (level 2, 10066 chars)
+[TAMU_POLICY] University Policies (level 2, 10468 chars)
 ## University Policies
 ### Attendance Policy
 
@@ -16,7 +16,7 @@ Absences related to Title IX of the Education Amendments of 1972 may necessitate
 
 'The instructor is under no obligation to provide an opportunity for the student to make up work missed because of an unexcused absence' (Student Rule 7, Section 7.4.2).
 
-
+<!-- The logo "ATM | TEXAS A&M UNIVERSITY." is decorative and the text "Course Syllabus" is already a heading. Removing this marker. -->
 
 Course Syllabus
 
@@ -42,7 +42,7 @@ Texas A&M University is committed to fostering a learning environment that is sa
 
 Students can report discrimination/harassment, access supportive resources, or learn more about their options for resolving complaints on the University's Civil Rights & Title IX webpage.
 
-
+<!-- The logo "ATM | TEXAS A&M UNIVERSITY." is decorative and the text "Course Syllabus" is already a heading. Removing this marker. -->
 
 Course Syllabus
 
@@ -54,13 +54,13 @@ Texas A&M University is committed to providing equitable access to learning oppo
 
 To request academic accommodations, contact the designated ADA office based on your location:
 
-- Texas A&M University, College of Nursing, College of Dentistry, Irma Lerma Rangel College of Pharmacy College Station, College of Medicine, School of Public Health, Institute of Biosciences and Technology, EnMed Program, Bush School in Washington DC, Mays Business School CityCentre, TAMU Engineering Academies, Texas A&M University Higher Education Center at McAllen  and Texas A&M University at Galveston should contact Disability Resources at (979) 845-1637 or disability@tamu.edu.
+- Texas A&M University, College of Nursing, College of Dentistry, Irma Lerma Rangel College of Pharmacy College Station, College of Medicine, School of Public Health, Institute of Biosciences and Technology, EnMed Program, Bush School in Washington DC, Mays Business School CityCentre, TAMU Engineering Academies, Texas A&M University Higher Education Center at McAllen and Texas A&M University at Galveston should contact Disability Resources at (979) 845-1637 or disability@tamu.edu.
 
 - Texas A&M University School of Law should contact the Office of Student Affairs at (817) 2124111 or law-disability@law.tamu.edu to request accommodations.
 
 - Irma Lerma Rangel College of Pharmacy in Kingsville should contact the Disability Resource Center at Texas A&M University - Kingsville at (361) 593-3024 or drc.center@tamuk.edu to request accommodations.
 
-- Texas A&M University College of Veterinary Medicine & Biomedical Sciences in Canyon should contact the Office of Student Accessibility at West Texas A&M University - Canyon at (806) 6512335 or osa@wtamu.edu.
+- Texas A&M University College of Veterinary Medicine & Biomedical Sciences in Canyon should contact the Office of Student Accessibility at West Texas A&M University – Canyon at (806) 6512335 or osa@wtamu.edu.
 
 - Texas A&M University at Qatar (TAMUQ) should contact the campus psychologist, Dr. Steve Wilson +974-4423-0047 or stephen.wilson@qatar.tamu.edu.
 
@@ -68,9 +68,9 @@ If you are experiencing difficulties with your approved accommodations, contact 
 
 ### Pregnancy Accommodations
 
-Texas A&M provides reasonable accommodations to students due to pregnancy and/or related conditions, such as childbirth, recovery and lactation.  Students should contact the University's Pregnancy Coordinator as soon as they become aware of the need for accommodation.  Depending on the circumstances, accommodations could include extended time to complete assignments or exams, changes in course sequence, or modifications to the physical classroom environment.  Texas A&M will also allow a voluntary leave of absence, ensure the availability of lactation space, and maintain grievance procedures to provide for the prompt and equitable resolution of complaints of sex discrimination.   For information regarding pregnancy accommodations, email TIX.Pregnancy@tamu.edu.
+Texas A&M provides reasonable accommodations to students due to pregnancy and/or related conditions, such as childbirth, recovery and lactation. Students should contact the University's Pregnancy Coordinator as soon as they become aware of the need for accommodation. Depending on the circumstances, accommodations could include extended time to complete assignments or exams, changes in course sequence, or modifications to the physical classroom environment. Texas A&M will also allow a voluntary leave of absence, ensure the availability of lactation space, and maintain grievance procedures to provide for the prompt and equitable resolution of complaints of sex discrimination. For information regarding pregnancy accommodations, email TIX.Pregnancy@tamu.edu.
 
-
+<!-- The logo "ATM | TEXAS A&M UNIVERSITY." is decorative and the text "Course Syllabus" is already a heading. Removing this marker. -->
 
 ### Statement on Mental Health and Wellness
 

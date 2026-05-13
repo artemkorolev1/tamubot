@@ -1,0 +1,117 @@
+{
+  "source_file": "202641_ISEN_645_700_55965",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 645",
+    "section": "700",
+    "term": "Fall 2026",
+    "crn": "55965",
+    "instructor": {
+      "name": "Michael Graul, PhD PE",
+      "email": "mgraul@tamu.edu",
+      "office": "ETB 4017",
+      "office_hours": "F 5-6p and by appt"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Meeting Type: LEC Meeting Days: Start Time: N/A End Time: N/A Start Date: 08/24/2026 End Date: 12/10/2026",
+    "location": "Online",
+    "format": "online",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/twq6wkdfz/Fall-2026-College-Station-ISEN-645-700-%2855965%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): ISEN 609 or approval of instructor."
+  },
+  "course_summary": "ISEN 645 | Lean Engineering | Fall 2026\nInstructor: Michael Graul | mgraul@tamu.edu\nMeets: N/A | Online\nGrading: Quizzes [15%], Homework [15%], Midterm exam [35%], Project Work [35%] — A: [90,100] B: [80-90) C: [70,80) D: [60,70) F: [0,60)\nTopics: 6σ, Kanban, Kaizen, LPS (Lean Production System) maintenance, single-piece flow, quantity control, waste accounting, PS 'health' monitoring, variability reduction, SE architectures, factory physics principles",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 8,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nLean Engineering. (3-0). Credit 3. Introduces the principles of lean thinking in modern manufacturing systems; philosophical, managerial and organizational requirements studied; lean manufacturing quantitative modeling methodologies, lean manufacturing cell design and case study analysis. Prerequisites: ISEN 609 or approval of instructor.",
+      "header_path": "Catalog Description",
+      "token_count": 91,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Additional Course Details\n\nI will provide a more detailed description of the material for each week/class in the lecture notes.\n\nLean engineering is a blend of principle and practice applied to production systems. A lean production system is one that generates goods and services with minimal buffering of products and resources. Systems engineering provides a compendium of methods and models to represent and characterize the complex nature of production systems and their interdependencies. The course is architected to expose the students to the knowledge, skills, and experiences (KSEs) of lean engineering applied to production systems. The semester project provides the experiential component, the text and state of the practice readings provide the knowledge, and classroom exercises, management tools, and homework provide the backbone for the skills dimension.\n\nThe core principles of lean production systems are summarized as value, value stream, flow, control, and perfection . The lectures and class discussions have been organized around these 5-core principles. Like most systems, the LPS requires maintenance, or it decays. The principle of perfection alludes to the never-ending drive towards the 'lean production system upon a hill' - that is, true single-piece flow and quantity control enabled through quality control. But it is during LPS design that we must instrument for waste accounting and PS 'health' monitoring. 6σ (variability reduction) is intrinsic to LPS design.",
+      "header_path": "Additional Course Details",
+      "token_count": 374,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n1. Represent a PS of interest using SE architectures, lean methods, and tools.\n2. Analyze and Design - using SE and factory physics principles, practices, methods, and tools - a production system with minimal buffering.\n3. Leverage 6σ methods, tools, and techniques to identify sources of - and reduce variation in - both existing and proposed PS operations.\n4. Architect, using SE methods, a productive organization that is congruent with a lean-6σ culture.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 146,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Required\nThe Lean Toolbox Revised Sixth Edition\nISBN: 9781739167431\nAuthors: John Bicheno, Matthias Holweg\nPublication Date: 2024-06-19\n\nThis material Is: Required\nLean Thinking\nISBN: 9781439135952\nAuthors: James P. Womack, Daniel T. Jones\nPublisher: Simon and Schuster\nPublication Date: 2010-11-23\n\nThis material Is: Required\nFactory Physics for Managers (Pb)\nISBN: 9781265613716\nAuthors: Edward Pound\nPublisher: McGraw-Hill Companies\nPublication Date: 2023-03-31\n\nThis material Is: Optional\nSupply Chain Science\nISBN: 9780073403328\nAuthors: Wallace Hopp\nPublisher: McGraw-Hill/Irwin\nPublication Date: 2007-10-12\n\nThis material Is: Optional\nFactory Physics\nISBN: 9781478609049\nAuthors: Wallace J. Hopp, Mark L. Spearman\nPublisher: Waveland Press\nPublication Date: 2011-08-31\n\nThis material Is: Optional\nLearning to See\nISBN: 9780966784305\nAuthors: Mike Rother, John Shook\nPublisher: Lean Enterprise Institute\nPublication Date: 2003-01-01",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 249,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Grading Policy\n\nThe content of this course material must be internalized by you to be of ultimate value in your own professional career. The approach that I will use to help you internalize the knowledge of Lean systems is simple: Recitation + Application + Enriched Repetition. I will use the quizzes as a way to ensure you have initiated this learning process and we will then use lean exercise and project work to help you fully internalize the concepts of Lean Thinking and Lean Manufacturing.\n\nQuizzes [15%] - A quiz will be given weekly; a time window will be identified for initiating the quiz along with a time available for its completion once initiated.\n\nHomework [15%] - there will be several small, design, modeling, and analysis exercises assigned throughout the semester. These exercises will be used to drive home key principles and practices of Lean. Each HW assignment will make clear whether it is individual or team based. In the later half of the semester the HW assignments will be coordinated with elements of your project to serve as draft artifacts in your project design.\n\nMidterm exam [35%] - this take-home exam will cover basic principles, practices, and concepts from systems engineering, factory physics, and material flow.\n\nProject Work [35%] - Additionally I will assign a team-based project during the semester that will pull together concepts from the lean homework but will be focused on an entire production system design and/or operation. A rubric for the project will be provided when we initiate the project.\n\nFinal grades will be assigned as follows: A: [90,100] B: [80-90) C: [70,80) D: [60,70) F: [0,60)",
+      "header_path": "Grading Policy",
+      "token_count": 412,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 6
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Specific Late Work Policy\n\nCanvas is the system of record for this course.\n\nLate quizzes are not accepted.\n\nLate midterm exams will not be accepted.\n\nLate projects will not be accepted.\n\nLate homework acceptance policy: late homework can be submitted after the deadline but loses 20% of its value; no HW will be accepted after the grader uploads the comments and scores without prior permission due to extenuating circumstances. Your grade and comments regarding the homework will be made available through Canvas.\n\nOther issues associated with late work can be resolved through application of Student Rule 7.\n\nThe makeup work policy is described in the syllabus section covering University Policies.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 178,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    },
+    {
+      "chunk_index": 7,
+      "content": "## Course Schedule\n\nOV\n\nTopical outline\n\n| Class | Core Topic / Theme                                                                                             | Technical focus",
+      "header_path": "Course Schedule",
+      "token_count": 45,
+      "has_table": true,
+      "flags": [
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 7
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:57.833497"
+}

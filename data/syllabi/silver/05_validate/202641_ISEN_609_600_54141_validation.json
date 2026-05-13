@@ -4,45 +4,11 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The textbook entry for 'A First Course in Probability' is misplaced; it appears between the 'Course Specific Late Work Policy' and 'Course Schedule' sections instead of under 'Textbook and/or Resource Materials'."
+      "The textbook entry for 'A First Course in Probability' is misplaced after the 'Course Specific Late Work Policy' section, it should be under 'Textbook and/or Resource Materials'.",
+      "The 'Course Schedule' lists weeks out of chronological order (e.g., week 9 is followed by weeks 7, 8, 10)."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 23.35,
-  "proposals": {
-    "new_false_positives": [
-      "Section 600 (54141) Probability for Engineering Decisions Fall 2026 - College Station",
-      "Meeting Times:",
-      "Meeting Type: LEC",
-      "Meeting Days: R",
-      "Start Time: 5:30PM",
-      "End Time: 8:30PM",
-      "Start Date: 08/24/2026",
-      "End Date: 12/10/2026",
-      "Meeting Location:",
-      "ZACH 211",
-      "Credit Hours:",
-      "3",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "TBD",
-      "Prerequisite/Corequisite(s): Approval of instructor.",
-      "This material Is: Required",
-      "ISBN:",
-      "Authors:",
-      "Publisher:",
-      "Publication Date:",
-      "This material Is: Optional",
-      "Notes:",
-      "Week",
-      "Topics"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "&lt;"
-    ],
-    "reasoning": "Many lines identified as headers are actually labels, values, or sub-elements within existing sections (e.g., meeting details, instructor contact info, textbook attributes, table column headers). These should be demoted to body text. Specifically, 'This material Is: Optional' was identified as a misplaced header in the problem description. The '&lt;' is an HTML entity that should be cleaned up to its character equivalent. No institutional boilerplate was identified that should be stripped entirely."
-  }
+  "timing_s": 7.99,
+  "proposals": {}
 }

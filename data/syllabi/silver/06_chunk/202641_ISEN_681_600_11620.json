@@ -1,0 +1,104 @@
+{
+  "source_file": "202641_ISEN_681_600_11620",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "seminar",
+  "course_metadata": {
+    "course_id": "ISEN 681",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "11620",
+    "instructor": {
+      "name": "Joseph Geunes",
+      "email": "geunes@tamu.edu",
+      "office": "4024 ETB",
+      "office_hours": "N/A"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "F 1:50PM - 2:55PM",
+    "location": "ETB 1034",
+    "format": "in-person",
+    "credit_hours": "1",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/dt8hwyt7f/Fall-2026-College-Station-ISEN-681-600-%2811620%29?mode=view"
+  },
+  "course_summary": "ISEN 681 | Seminar | Fall 2026\nInstructor: Joseph Geunes | geunes@tamu.edu\nMeets: F 1:50PM - 2:55PM | ETB 1034\nGrading: Attendance [100%] (S/U)\nTopics: Industrial and Systems Engineering research trends, departmental research activities, procedures in documenting research, present research, professional atmosphere",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 7,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nSeminar. (1-0). Credit 1. Opportunity to present research in a professional atmosphere; presentations are not restricted to thesis or problem research;\n\n\nacquaints the student with departmental research activities and procedures in documenting research.",
+      "header_path": "Catalog Description",
+      "token_count": 69,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Additional Course Details\n\nThis course requires attendance only.  At most two unexcused absences are permitted.  More than two unexcused absences will result in an unsatisfactory grade.",
+      "header_path": "Additional Course Details",
+      "token_count": 47,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- Understand Industrial and Systems Engineering research trends.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 48,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Required\n\nNo materials are required.",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 23,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Grading Policy\n\nThis course is S/U and grading is attendance based.  Any more than two unexcused absences will result in an unsatisfactory (U) grade.",
+      "header_path": "Grading Policy",
+      "token_count": 38,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Schedule\n\nA seminar is held weekly, with the speaker listed under Assignments.",
+      "header_path": "Course Schedule",
+      "token_count": 22,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:58.311985"
+}

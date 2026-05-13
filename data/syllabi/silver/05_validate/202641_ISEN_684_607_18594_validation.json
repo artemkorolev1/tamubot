@@ -2,30 +2,12 @@
   "file_stem": "202641_ISEN_684_607_18594",
   "findings": {
     "content_preservation": [
-      "Specific learning outcomes are missing under the 'Course Learning Outcomes' section."
+      "The specific list of learning outcomes is missing from the 'Course Learning Outcomes' section."
     ],
     "strip_completeness": [],
-    "structural_coherence": [
-      "The 'Credit Hours' information is duplicated: 'Credit Hours: 1 TO 16' appears twice.",
-      "Redundant statements in 'Textbook and/or Resource Materials': 'This material Is: No required textbook' and 'No textbook needed.'"
-    ],
+    "structural_coherence": [],
     "metadata_accuracy": []
   },
-  "timing_s": 14.5,
-  "proposals": {
-    "new_false_positives": [
-      "Section 607 (18594) Professional Internship Fall 2026 - College Station",
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "Prerequisite/Corequisite(s):"
-    ],
-    "new_boilerplate": [],
-    "text_cleanups": [
-      "This material Is: No required textbook"
-    ],
-    "reasoning": "The proposed false positives are labels or descriptive text that were incorrectly identified as section headers by the parser. The text cleanup targets a specific redundant phrase identified in the issues, likely an artifact from a template or parser. No boilerplate sections were identified as institutional text to be stripped entirely, as all headers represent standard, course-specific syllabus components."
-  }
+  "timing_s": 7.83,
+  "proposals": {}
 }

@@ -4,50 +4,11 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The textbook and resource materials information is incorrectly placed after the 'Grading Policy' and 'Late Work Policy' sections, instead of directly under the 'Textbook and/or Resource Materials' heading.",
-      "The heading '# E-mail is the primary method of communication.' is an H1 level heading incorrectly nested under '## Additional Course Information'."
+      "Header '# E-mail is the primary method of communication.' is a level 1 heading nested under a level 2 heading '## Additional Course Information', violating heading hierarchy.",
+      "Content under 'Additional Course Information' starting with 'All assignments must be submitted through Canvas...' appears to be a bulleted list that has lost its bullet markers and is incorrectly indented."
     ],
     "metadata_accuracy": []
   },
-  "timing_s": 30.69,
-  "proposals": {
-    "new_false_positives": [
-      "Meeting Times:",
-      "Meeting Type:",
-      "Meeting Days:",
-      "Start Time:",
-      "End Time:",
-      "Start Date:",
-      "End Date:",
-      "Meeting Location:",
-      "Credit Hours:",
-      "Email:",
-      "Office Location:",
-      "Phone:",
-      "Office Hours",
-      "Preferred Contact Method",
-      "Webpage:",
-      "Prerequisite/Corequisite(s):",
-      "This material Is: Required",
-      "ISBN:",
-      "Authors:",
-      "Publisher:",
-      "Publication Date:",
-      "URL for Resource:",
-      "This material Is: Recommended"
-    ],
-    "new_boilerplate": [
-      "Special Course Designation\n\nNone",
-      "Work submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
-      "# E-mail is the primary method of communication. Include the course number in the subject line. Responses should not be expected after 5:00 PM, on weekends, or on holidays.",
-      "- All assignments must be submitted through Canvas. If technical issues prevent submission, send your assignment from your @tamu.edu email to the instructor's @tamu.edu email as a backup. The subject line must include the course number and assignment name.",
-      "- Excused absences apply only to attendance and in-class activities and do not extend assignment deadlines.",
-      "- Alternatives must be arranged prior to deadline.",
-      "- Audio or video recording of lectures or any portion of the course is prohibited without written instructor permission. Unauthorized recording constitutes a violation of student conduct."
-    ],
-    "text_cleanups": [
-      "&lt;"
-    ],
-    "reasoning": "The 'new_false_positives' are labels or short phrases that were incorrectly identified as headers by the parser; they should be treated as body text. The 'new_boilerplate' sections contain institutional policies or standard university text that is not specific to this course and likely appears verbatim across all syllabi, thus should be stripped entirely. The H1 header '# E-mail is the primary method of communication.' is included in boilerplate as it's part of a larger institutional text block. The 'text_cleanups' addresses an HTML entity that should be converted to its character equivalent for proper display."
-  }
+  "timing_s": 7.2,
+  "proposals": {}
 }

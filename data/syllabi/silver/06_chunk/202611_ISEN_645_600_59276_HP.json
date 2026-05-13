@@ -1,0 +1,128 @@
+{
+  "source_file": "202611_ISEN_645_600_59276_HP",
+  "pipeline_version": "v4",
+  "source": "howdy_portal",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 645",
+    "section": "600",
+    "term": "Spring 2026",
+    "crn": "59276",
+    "instructor": {
+      "name": "Dr. Michael Do",
+      "email": "mddo@tamu.edu",
+      "office": "ETB 4078",
+      "office_hours": "Wednesday & Friday, 3-4:30pm"
+    },
+    "teaching_assistants": null,
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3.0",
+    "syllabus_url": null
+  },
+  "course_summary": "ISEN 645 | Lean Engineering | Spring 2026\nInstructor: Dr. Michael Do | mddo@tamu.edu\nGrading: Class Discussions [25%], Assignments [15%], Practical Exercises (2x) [30%], Final Exam [30%] — A: 90-100%, B: 80-89.9%, C: 70-79.9%, D: 60-69.9%, F: below 60%\nTopics: Gemba Kaizen, Kata, Lean 6σ DMAIC, Lenses of Lean, Engineering the Cell - Flow, Engineering for Variability in the PS Flow, Lean Supply Chain, Engineering the Value Stream for Flow, Engineering the Value Stream for Control, Controlling the Flow, Characterizing Value in the Value Stream, 6σ (variability reduction), LPS design, lean manufacturing cell design, PS 'health' monitoring, waste accounting, factory physics methods, SE architecture, lean production system (LPS), lean-6σ culture, lean manufacturing quantitative modeling methodologies, core principles of lean production systems, principles of lean thinking, modern manufacturing systems, philosophical requirements, managerial requirements, organizational requirements, case study analysis, systems engineering, methods, models, production systems, interdependencies, knowledge, skills, experiences (KSEs), lean engineering, systems thinking, value, value stream, flow, control, perfection, reduce variation, systems operations, Culture\nTools: Canvas\nPrerequisites: ISEN 609 or by approval of instructor",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 9,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "ISEN 645-600 Lean Engineering (3.0 Credit Hours) Spring 2026\n\n# 2 GENERAL INFORMATION",
+      "header_path": "",
+      "token_count": 21,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## 2.1 COURSE DESCRIPTION\n\nIntroduces the principles of lean thinking in modern manufacturing systems; philosophical, managerial and organizational requirements studied; lean manufacturing quantitative modeling methodologies, lean manufacturing cell design and case study analysis.\n\n2.2 PREREQUISITES\n\nISEN 609 or by approval of instructor.",
+      "header_path": "2 GENERAL INFORMATION > 2.1 COURSE DESCRIPTION",
+      "token_count": 85,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 2,
+      "content": "## 2.3 LEARNING OBJECTIVES\n\nA lean production system (LPS) is one that generates goods and services with minimal buffering of products and resources. Systems engineering provides a compendium of methods and models to represent and characterize the complex nature of production systems and their interdependencies. The course is architected to expose the students to the knowledge, skills, and experiences (KSEs) of lean engineering supported by systems thinking.\n\nThe core principles of lean production systems are summarized as value, value stream, flow, control, and perfection. The lectures and class discussions have been organized around these 5-core principles. Like most systems, the LPS requires maintenance or it decays. The principle of perfection alludes to the never ending drive towards the 'lean production system upon a hill' - that is, true single-piece flow and quantity control enabled through quality control. But it is during LPS design that we must\n\ninstrument for waste accounting and PS 'health' monitoring. 6σ (variability reduction) is intrinsic to LPS design. Upon the completion of this course, the student will know how to:\n\n- Represent a System of interest using SE architecture, lean methods, and tools.\n\n- Analyze and Design, using SE and factory physics methods and tools, a production system with minimal buffering.\n\n- Leverage 6σ methods, tools, and techniques to reduce variation in both existing and proposed systems operations.\n\n- Architect, using SE methods, an organization that is congruent with a lean-6σ culture.",
+      "header_path": "2 GENERAL INFORMATION > 2.3 LEARNING OBJECTIVES",
+      "token_count": 388,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 3,
+      "content": "## 2.4 EXPECTATIONS\n\nThis is a course in Lean Engineering and students will not only learn how to think in terms of Lean but will also have a 'hands on' experience by working on practical exercises. Students will be placed in teams of 3-4 students, and each team will work the exercise to reinforce lean concepts. The teams will apply lean engineering to analyze and address manufacturing issues.",
+      "header_path": "2 GENERAL INFORMATION > 2.4 EXPECTATIONS",
+      "token_count": 99,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 4,
+      "content": "## 2.5 COMMUNICATION AND MEETING TIMES\n\nCommunication will be via Canvas and email. Students are expected to log onto the course daily and should carefully read all announcements and emails in their entirety. Course assignments needing grading will be submitted through Canvas, unless instructed otherwise. Students are expected to attend lectures in person.\n\n2.6 COURSE MATERIAL AVAILABILITY\n\nCourse lecture materials will be provided for this course.",
+      "header_path": "2 GENERAL INFORMATION > 2.5 COMMUNICATION AND MEETING TIMES",
+      "token_count": 113,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 5,
+      "content": "## 2.7 Optional Text\n\n- Lean Manufacturing [Lonnie Wilson] 2nd edition 2015",
+      "header_path": "2 GENERAL INFORMATION > 2.7 Optional Text",
+      "token_count": 19,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 6,
+      "content": "# 3 COURSE SCHEDULE\n\n| Week             | Topic                                            | Notes                     |\n| :--------------- | :----------------------------------------------- | :------------------------ |\n| Week 1 1/12/26   | Introduction/Course Syllabus Review/Introduction to Lean |                           |\n| Week 2 1/19/26   | Characterizing Value in the Value Stream; Lenses of Lean | No Class Monday - 1/19 (MLK) |\n| Week 3 1/26/26   | Engineering the Value Stream for Flow            |                           |\n| Week 4 2/02/26   | Engineering the Value Stream for Control         | Guest Speaker - 2/02      |\n| Week 5 2/09/26   | Engineering the Cell - Flow                      |                           |\n| Week 6 2/16/26   | Controlling the Flow                             | Guest Speaker - 2/18      |\n| Week 7 2/23/26   | Practical Exercise #1                            |                           |\n| Week 8 3/02/26   | Engineering for Variability in the PS Flow       |                           |\n| 09 - 13 March 26 | Spring Break                                     | No Classes                |\n| Week 9 3/16/26   | Lean Supply Chain                                |                           |\n| Week 10 3/23/26  | Lean Supply Chain                                | Guest Speaker - 3/23      |\n| Week 11 3/30/26  | Lean 6σ DMAIC                                    | Friday, 4/03 - No Classes |\n| Week 12 4/06/26  | Practical Exercise #2                            |                           |\n| Week 13 4/13/26  | Lean 6σ DMAIC                                    | Guest Speaker - 4/17      |\n| Week 14 4/20/26  | Gemba Kaizen and Kata; Culture                   |                           |\n| Week 15 4/27/26  | Gemba Kaizen and Kata; Culture                   | 4/28 - Last Day of Class  |\n| Week 16 5/04/26  | Final Exam                                       | 3:30-5:30pm               |\n\ntopics may be changed",
+      "header_path": "3 COURSE SCHEDULE",
+      "token_count": 490,
+      "has_table": true,
+      "flags": [
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 7,
+      "content": "# 4 EXAM SCHEDULE\n\nDate\n\nFinal Exam: 04 MAY 3:30-5:30pm\n\nThe final exam will be conducted in ZACHARY 211 and requires the student to come to class for proctoring purposes. The format of the exams is closed-book (closed everything!).",
+      "header_path": "4 EXAM SCHEDULE",
+      "token_count": 58,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 8,
+      "content": "# 5 GRADING POLICIES\n\n## 5.1 GRADE COMPONENTS\n\nThe grade for the course will be based on the following components:\n\n| Class Discussions:      | 25% |\n| :---------------------- | :-- |\n| Assignments:            | 15% |\n| Practical Exercises (2x): | 30% |\n| Final Exam:             | 30% |\n|                         | 100% |\n\n## 5.2 GRADE ASSIGNMENT\n\nThe course grade will be assigned based on Letter grades as follows: A for 90% - 100%, B for 80% 89.9%, C for 70% - 79.9%, D for 60% - 69.9%, F for below 60%. Grades will be maintained in the instructor's Gradebook.\n\nNote: Late assignments will be accepted but will lose 20% of its value. For the practical exercises (2x), students must be present in class (M-W-F) to receive a grade for the practical exercise component.",
+      "header_path": "5 GRADING POLICIES",
+      "token_count": 192,
+      "has_table": true,
+      "flags": [
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 3
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:56.050406"
+}

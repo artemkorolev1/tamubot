@@ -1,0 +1,156 @@
+{
+  "source_file": "202641_ISEN_630_600_21978",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 630",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "21978",
+    "instructor": {
+      "name": "Thomas Ferris",
+      "email": "tferris@tamu.edu",
+      "office": "4081 ETB",
+      "office_hours": "Thursday 3 - 5"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/b85qcrham/Fall-2026-College-Station-ISEN-630-600-%2821978%29?mode=view"
+  },
+  "course_summary": "ISEN 630 | Human Operator in Complex Systems | Fall 2026\nInstructor: Thomas Ferris | tferris@tamu.edu\nGrading: Assignments [40%], Exams [50%], Research report [10%] — A: 90-100% B: 80-89% C: 70-79% D: 60-69% F: 59% and lower\nTopics: Human-robot interaction (HRI), Human-AI teaming, Autonomous systems, Virtual reality (VR), Augmented reality (AR), Wearable technology, Artificial intelligence (AI), Cybersecurity human factors, Healthcare human factors, Aviation human factors, Transportation human factors, Manufacturing human factors, Human factors in",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 12,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nHuman Operator in Complex Systems. (3-0). Credit 3. Basic understanding of the theory and practice of human factors engineering; topics presented within the framework of humans as functioning systems and their requirements when incorporated in hardware and software systems.",
+      "header_path": "Catalog Description",
+      "token_count": 74,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Additional Course Details\n\nThis graduate course is an overview of the discipline of human factors engineering, covering topics of human cognition (perception, attention, information processing), and human physical properties (anthropometry, physiology, biomechanical capabilities, and injury risk), and emphasizing the implications for the design of human-centered work systems. Theory and methods will be balanced with examples drawn from familiar work domains, including manufacturing, medicine, aerospace, ground transportation, and computer interaction. Students will apply course principles to design problems and a semester-long research project will allow them to explore a relevant human factors engineering topic of interest.",
+      "header_path": "Additional Course Details",
+      "token_count": 184,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- demonstrate an understanding of the unique factors effecting human performance in sociotechnical systems,\n\n- apply human factors theory to the design or selection of system elements to support human performance and safety,\n\n- apply theory to calculate the severity of hazards due to exposure to visual, auditory, vibratory, and other environmental stimuli and identify redesign solutions for mitigating the hazards,\n\n- apply theory to determine ideal display, control, and physical layout characteristics for supporting an operator's cognitive and physical performance,\n\n- demonstrate communication skills in a semester-long writing assignment, and\n\n- demonstrate applied knowledge of course concepts in identifying humansystems interaction problems with an existing technology, and in proposing redesign solutions.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 236,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Recommended\n\nDesigning for People: An Introduction to Human Factors Engineering, Third Edition.\n\nAuthors: Lee, J.D., Wickens, C.D., Liu, Y., & Ng Boyle, L.\n\n## Grading Policy",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 58,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "### Grade determination\n\n40% Assignments (homework and online quizzes)\n\n50% Exams: midterm (25%) and final exam (25%)\n\n10% Research report\n\nGrades will be calculated according to total points earned. The points can be curved based on class average and may be lower than the following standard (out of a total of 100 percentage points).\n\nA: 90-100% B: 80-89% C: 70-79% D: 60-69% F: 59% and lower",
+      "header_path": "Grading Policy > Grade determination",
+      "token_count": 98,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "### Assignments\n\nThere will be approximately one Assignment (homework or quiz) released per lecture topic. These are designed to give you practice in applying methods, principles, and ideas learned in the course. Some but not all of the assignments will be graded. Generally, assignments will be posted at the beginning of each week (Monday or Tuesday), after that week's lecture material has been posted. All assignments will be completed and/or submitted via Canvas. Due dates for each assignment will be given when they are issued, but typically and will be due 1 week after they are posted. Unless otherwise specified, students are encouraged to work together with classmates as you complete written homework assignments (not quizzes), but every person must turn in an assignment with work shown clearly for each problem. The total homework/quiz grade will be based on total points, not on the average of percentage grades for each entry, and this total points score will contribute to 40% of the final grade for this course.\n\nGenerally, homework and quizzes that are submitted after the due date/time will not receive any credit. Exceptions can be made at the discretion of the instructor, in accordance with university-excused absence rules. In all of these cases, documentation of the circumstances will be required.",
+      "header_path": "Grading Policy > Assignments",
+      "token_count": 331,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "### Exams\n\nThere will be two exams, each worth 25% of the overall course grade. Each exam will be hosted in Canvas, and you will be asked to Zoom-record yourselves while taking the exam (Dr. Ferris will walk through the process of doing this if you haven't done it before). The exams will be timed (75 minutes apiece) and both will be open book, open note, open internet, but must be completed individually. The exams will be made available over a period of several days and can be taken at the time that is most convenient for you. Collaboration on exams with any other human is strictly forbidden and is considered a serious honor code violation (see Academic Integrity and Misconduct Policy section below for ISEN-mandated consequences).\n\nThe format for each exam will primarily be multiple choice, true/false, or short answer, and will include a small number of problems that will require written work, which should be scanned and submitted via Canvas separately upon completing the timed exam. The exams will emphasize material discussed in lecture and practiced in the homework; material exclusively in the text will not be tested but may aid in providing background information.\n\nExam dates will be flexible only in case of sickness, military service, jury duty, presentation at a professional conference, or death in the family (documentation required in all cases).",
+      "header_path": "Grading Policy > Exams",
+      "token_count": 344,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 7,
+      "content": "### Research report\n\nEach student will work individually to prepare an in-depth research paper on some topic relevant to the course, due a few weeks before the end of the semester (dates\n\nTBD). A proposal for this paper will be due around the 3 rd week of class, so that I can judge the relevance and depth of the topic and provide advice/guidance. Your completed report will be critically reviewed by other students (peer-reviews), and you will similarly review others' reports. The Research report and related review work is worth 10% of the overall grade, and the quality of your report as well as reviews will be assessed. Further details on this report will be given early in the semester.",
+      "header_path": "Grading Policy > Research report",
+      "token_count": 174,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 8,
+      "content": "### Re-grading Policy\n\nStudents have 1 week after grades are released for a homework, quiz, or exam to submit a re-grade request in writing. This request must not exceed 1 page (11 point font, single spacing), and must clearly indicate the relevant problem(s) and justification for why you think re-grading is warranted. Note that a requested re-grade may result in further point deductions if new errors are discovered.",
+      "header_path": "Grading Policy > Re-grading Policy",
+      "token_count": 105,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 9,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 10,
+      "content": "## Course Specific Late Work Policy\n\nDr. Ferris does not allow anything to be submitted late without a University-excused absence. Items that are submitted after the posted due date/time will not receive any credit. Exceptions can be made in accordance with university rules (https://studentrules.tamu.edu/rule07/). In these cases, documentation of the circumstances will be required.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 96,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 11,
+      "content": "## Course Schedule\n\n### Schedule of Topics\n\n| Topic                        | Lessons",
+      "header_path": "Course Schedule",
+      "token_count": 21,
+      "has_table": true,
+      "flags": [
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 5
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:57.542822"
+}

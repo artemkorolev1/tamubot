@@ -1,0 +1,94 @@
+{
+  "source_file": "202611_ISEN_617_700_48204",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 617",
+    "section": "700",
+    "term": "Spring 2026",
+    "crn": "48204",
+    "instructor": {
+      "name": "Joseph Geunes",
+      "email": "geunes@tamu.edu",
+      "office": "ETB 4024",
+      "office_hours": "TR 11:15am - 12:15pm"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "Meeting Type: LEC, Start Time: N/A, End Time: N/A, Start Date: 01/12/2026, End Date: 05/05/2026",
+    "location": "Online",
+    "format": "online",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/r8nwzhdlp/Spring-2026-College-Station-ISEN-617-700-%2848204%29?mode=view"
+  },
+  "course_summary": "ISEN 617 | Quantitative Models for Supply Chain Coordination | Spring 2026\nInstructor: Joseph Geunes | geunes@tamu.edu\nMeets: Online\nGrading: Homework Assignments [20%], Quiz 1 [20%], Quiz 2 [20%], Quiz 3 [20%], Quiz 4 [20%] — A: 90-100%, B: 80-89%, C: 70-79%, D: 60-69%, F: <60%\nTopics: The Traveling Salesman Problem, The Vehicle Routing Problem, The Bullwhip Effect, Economic Order Quantity, Power-of-Two Policies, Economic Production Quantity, Guaranteed Service Models, Multistage EOQ Type Models, Series Systems with Stochastic Demand, Periodic Review with Zero Fixed Costs, Periodic Review with Nonzero Fixed Costs, Continuous Review, Dynamic, Deterministic Demand, channel coordination models, vendor-managed inventory models, Deterministic Inventory Models, Stochastic Inventory Models, Multiechelon Inventory Models, Integrated Supply Chain Models, Demand Modeling, Forecasting: Classical Methods, Forecast Accuracy, Supply Chain Contracts, Facility Location Models, Pooling, Flexibility, Quantity Discounts, Backorders, Supply Uncertainty, inventory costs, transportation costs, multistage systems, operations tradeoffs, conflicting incentives, coordinate operations, model operations processes, supply chain management, complexities, models, concepts\nTools: ProQuest Ebook Central",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 6,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nQuantitative Models for Supply Chain Coordination. (3-0). Credit 3. Concepts, complexities, and models pertaining to supply chain management and relation of those to recent practical initiatives; includes channel coordination models, supply chain contracting, and vendor-managed, inventory models.",
+      "header_path": "Catalog Description",
+      "token_count": 80,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- model operations processes involving inventory and transportation costs in multistage systems;\n\n- understand operations tradeoffs and conflicting incentives at different stages in a supply chain;\n\n- apply a set of tools and policies needed to coordinate operations at different supply chain stages.\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 107,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Required\n\nFundamentals of Supply Chain Theory\n\nISBN:\n\n978-1-119-02484-2\n\nAuthors:\n\nL.V. Snyder and Z.-J.M. Shen\n\nPublisher:\n\nWiley\n\nPublication Date:\n\n2019\n\nEdition:\n\nSecond\n\nNotes:\n\nhttps://ebookcentral.proquest.com/lib/tamucs/detail.action?docID=5808411",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 78,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Grading Policy\n\n### Course Assessment\n\n- Homework Assignments: 20%\n\n- Four Quizzes: 20% each\n\n### Grading Scale:\n\nA = 90-100%\n\nB = 80-89%\n\nC = 70-79%\n\nD = 60-69%\n\nF = &lt;60%",
+      "header_path": "Grading Policy",
+      "token_count": 44,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Course Schedule\n\n### Covered topics in the course.\n\n#### Course Outline:\n\nTopic\n\nChapter(s)\n\nIntroduction\n\n1\n\nForecasting: Classical Methods and Forecast\n\nAccuracy\n\n2\n\nDemand Modeling\n\n2\n\nDeterministic Inventory Models: The Economic\n\nOrder Quantity\n\n3\n\n\n\nCourse Outline:\n\nDeterministic Inventory Models: Power-of-Two\n\nPolicies, Quantity Discounts, Backorders, and\n\nEconomic Production Quantity\n\n3\n\nDeterministic Inventory Models: Dynamic,\n\nDeterministic Demand\n\n3\n\nStochastic Inventory Models: Periodic Review\n\nwith Zero Fixed Costs\n\n4\n\nStochastic Inventory Models: Periodic Review\n\nwith Nonzero Fixed Costs\n\n4\n\nStochastic Inventory Models: Continuous Review\n\n5\n\nMultiechelon Inventory Models: Introduction\n\n6\n\nMultiechelon Inventory Models: Series Systems\n\nwith Stochastic Demand\n\n6\n\nMultiechelon Inventory Models: Multistage EOQ\n\nType Models\n\n6\n\nMultiechelon Inventory Models: Guaranteed\n\nService Models\n\n6\n\nPooling and Flexibility\n\n7\n\nFacility Location Models\n\n8\n\nSupply Uncertainty\n\n9\n\nThe Traveling Salesman Problem\n\n10\n\nThe Vehicle Routing Problem\n\n11\n\nIntegrated Supply Chain Models\n\n12\n\nThe Bullwhip Effect\n\n13\n\nSupply Chain Contracts\n\n14",
+      "header_path": "Course Schedule",
+      "token_count": 287,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:55.501305"
+}

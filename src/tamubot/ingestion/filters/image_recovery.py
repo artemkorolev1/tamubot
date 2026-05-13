@@ -127,6 +127,19 @@ def _recover_images(md_text: str, pdf_path: Path) -> tuple[str, dict[str, Any]]:
             "elapsed_s": round(elapsed, 1),
         }
 
+    # Safety: if output lost >50% of content, Gemini rewrote instead of patching
+    if len(result_text) < len(md_text) * 0.5:
+        return md_text, {
+            "recovered": False,
+            "reason": "content_loss",
+            "markers_before": markers_before,
+            "markers_after": markers_after,
+            "input_chars": len(md_text),
+            "output_chars": len(result_text),
+            "loss_pct": round((1 - len(result_text) / len(md_text)) * 100, 1),
+            "elapsed_s": round(elapsed, 1),
+        }
+
     return result_text, {
         "recovered": True,
         "markers_before": markers_before,
@@ -148,11 +161,16 @@ class ImageRecoveryFilter:
         input_dir: Path,
         output_dir: Path,
         config: dict[str, Any] | None = None,
+        report_path: Path | None = None,
     ) -> FilterResult:
         config = config or {}
         input_dir = Path(input_dir)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        if report_path is None:
+            from tamubot.ingestion.report_writer import get_report
+
+            report_path = get_report()
 
         result = FilterResult()
         md_files = sorted(input_dir.glob("*.md"))
@@ -229,6 +247,18 @@ class ImageRecoveryFilter:
                     }
                 )
 
+                # Log to Excel report immediately after each Gemini call
+                if report_path:
+                    from tamubot.ingestion.report_writer import update_image_recovery
+
+                    update_image_recovery(
+                        report_path,
+                        md_path.stem,
+                        info["markers_before"],
+                        markers_after,
+                        info.get("recovered", False),
+                    )
+
             except Exception as e:
                 # Pass-through on failure
                 shutil.copy2(md_path, output_dir / md_path.name)
@@ -244,6 +274,17 @@ class ImageRecoveryFilter:
                         "error": str(e),
                     }
                 )
+
+                if report_path:
+                    from tamubot.ingestion.report_writer import update_image_recovery
+
+                    update_image_recovery(
+                        report_path,
+                        md_path.stem,
+                        marker_count,
+                        marker_count,
+                        False,
+                    )
 
         result.metrics = {
             "files_recovered": files_recovered,

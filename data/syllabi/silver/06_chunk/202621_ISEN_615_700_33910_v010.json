@@ -1,0 +1,115 @@
+{
+  "source_file": "202621_ISEN_615_700_33910_v010",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 615",
+    "section": "700",
+    "term": "Summer 2026",
+    "crn": "33910",
+    "instructor": {
+      "name": "Alaa Elwany",
+      "email": "elwany@tamu.edu",
+      "office": "ETB 4045",
+      "office_hours": "Tuesdays 10:00 - 11:00 am"
+    },
+    "teaching_assistants": [],
+    "meeting_times": null,
+    "location": null,
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/dnu0n6fd8/Summer-2026-College-Station-ISEN-615-700-%2833910%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): ISEN 620; ISEN 609."
+  },
+  "course_summary": "ISEN 615 | Production and Inventory Control | Summer 2026\nInstructor: Alaa Elwany | elwany@tamu.edu\nGrading: Exam [25%], Exam [25%], Exam [25%], Exam [25%] — A: 90-100, B: 80-90, C: 70-80, D: 50-70, F: 0-50\nTopics: line balancing, dispatching, releasing, kitting, flexible manufacturing, assembly, certain/uncertain demand, push production systems, pull production systems, deterministic operations scheduling problems, basic project scheduling problems, production control models, MRP and Lot Sizing, just-in-time, MRP, lot sizing, inventory control systems, aggregate production and supply chain planning, operations management problems, production function, decision making in a production system, analytical methods, Model development, inventory management, production planning, scheduling, Forecasting, Aggregate Planning, Deterministic Inventory, Stochastic Inventory, Operations Scheduling, Project Scheduling\nPrerequisites: ISEN 620; ISEN 609",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 8,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## ISEN615 Syllabus\n\nSection 700 (33910) Production and Inventory Control Summer 2026 - College Station",
+      "header_path": "ISEN615 Syllabus",
+      "token_count": 26,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Catalog Description\n\nProduction and Inventory Control. (3-0). Credit 3. Model development for inventory management and for production planning; production control models for line balancing, lot sizing, dispatching, scheduling, releasing, kitting, MRP and just-in-time with treatment of flexible manufacturing and assembly. Prerequisites: ISEN 620; ISEN 609.",
+      "header_path": "Catalog Description",
+      "token_count": 90,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Course Learning Outcomes\n\nProvide an in-depth coverage of the analytical methods used to solve operations management problems and support the production function. Upon completion of this course, the learner will be able to:\n\n- describe different types and levels of decision making in a production system\n\n- model, formulate, solve, analyze problems arising in aggregate production and supply chain planning\n\n- model and analyze fundamental inventory control systems with certain/uncertain demand\n\n- describe and analyze push (MRP) and pull production systems (JIT)\n\n- model and solve deterministic operations scheduling problems\n\n- model and solve basic project scheduling problems\n\n## Special Course Designation\n\nNone",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 180,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "## Textbook and/or Resource Materials\n\nThis material Is: Optional\nProduction and Operations Analytics\nISBN: 9781478646303\nAuthors: Steven Nahmias, Tava Lennon Olsen\nPublisher: Waveland Press\nPublication Date: 2020-10-01\nEdition: 8th",
+      "header_path": "Textbook and/or Resource Materials",
+      "token_count": 58,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "## Grading Policy\n\nThere will be five exams:\n\n1. The first four exams are not comprehensive and will cover roughly one quarter of course materials.\n2. At the end of the course, one comprehensive final exam will be held.\n3. The lowest exam grade out of these five exams will be dropped, and the overall course grade will be based on the four remaining exam grades at 25% weight each\nFinal grades will be assigned as follows:\nA: [90,100] B: [80-90) C: [70,80) D: [50,70) F: [0,50)",
+      "header_path": "Grading Policy",
+      "token_count": 120,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 5,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "## Course Schedule\n\nWeek 1\nTopic: Introduction (Chapter 1); Forecasting (Chapter 2)\nVideo Modules: 2; 3-8\nWeek 2\nTopic: Forecasting (Chapter 2); Aggregate Planning (Chapter 3)\nVideo Modules: 1-6; 7-9\nHomework: HW 1\nWeek 3\nTopic: Aggregate Planning (Chapter 3); Deterministic Inventory (Chapter 4)\nVideo Modules: 1-7; 8-10\nHomework: HW 2\nExam: Exam 1 (6/12)\nCovers:\n    - Week 1 & 2: All Modules\n    - Week 3: Modules 1-7\nWeek 4\nTopic: Deterministic Inventory (Chapter 4)\nVideo Modules: 1-10\nHomework: HW 3\nWeek 5\nTopic: Stochastic Inventory (Chapter 5)\nVideo Modules: 1-11\nHomework: HW 4\nExam: Exam 2 (06/26)\nCovers:\n    - Week 3: Modules 8-10\n    - Week 4: All Modules\n    - Week 5: Modules 1-10\nWeek 6\nTopic: Stochastic Inventory; MRP and Lot Sizing (Chapter 6)\nVideo Modules: 1-9; 10\nHomework: HW 5, HW 6\nWeek 7\nTopic: MRP and Lot Sizing (Chapter 6)\nVideo Modules: 1-11\nHomework: HW 7\nExam: Exam 3 (7/10)\nCovers:\n    - Week 5: Module 1\n    - Week 6: All Modules\n    - Week 7: Modules 1-2\nWeek 8\nTopic: Operations Scheduling (Chapter 8)\nVideo Modules: 1-7\nHomework: HW 8\nWeek 9\nTopic: Project Scheduling (Chapter 9)\nVideo Modules: 1-6\nHomework: HW 9\nExam: Exam 4 (7/24)\nCovers:\n    - Week 7: Modules 3-11\n    - Week 8: Modules 1-7\nWeek 10\nTopic: Study for Exams\nExam: Exam 5 (08/06)\nCovers:\n    - Comprehensive: All Modules",
+      "header_path": "Course Schedule",
+      "token_count": 331,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 7,
+      "content": "## Course Specific Attendance Policy\n\nAttendance is not mandatory, but it is strongly encouraged. While there is no formal penalty for missing an individual class, the instructor may periodically record attendance to monitor participation. Important details regarding assignments, exam instructions, or date changes are often announced during class, and students are responsible for staying informed of any such information if they are absent.",
+      "header_path": "Course Specific Attendance Policy",
+      "token_count": 111,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:56.500349"
+}

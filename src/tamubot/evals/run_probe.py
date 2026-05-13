@@ -43,8 +43,6 @@ from tamubot.rag import run_pipeline_with_memory
 from tamubot.rag.graph.pipeline import run_pipeline
 from tamubot.rag.observability import (
     EvalInputs,
-    create_trace,
-    finalize_trace,
     get_langfuse,
     probe_config,
     run_evals,
@@ -53,6 +51,7 @@ from tamubot.rag.observability import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _sanitize(query: str, max_len: int = 40) -> str:
     """Collapse non-alphanumeric runs to underscores, trim to max_len."""
@@ -72,6 +71,7 @@ def _est_tokens(text: str) -> int:
 # ---------------------------------------------------------------------------
 # Core probe runner
 # ---------------------------------------------------------------------------
+
 
 def run_probe(
     query: str,
@@ -98,51 +98,51 @@ def run_probe(
     Returns:
         Summary dict with function, chunk count, trace URL, token estimates, etc.
     """
+    from tamubot.rag.observability import trace_context
+
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # --- Langfuse trace via observability config ---
     obs = probe_config(tag=tag, session_id=session_id or f"probe_{ts}", ragas=ragas)
     if memory:
         obs.tags.append("memory")
     obs.metadata.update({"tag": tag, "memory": memory})
-    trace, trace_id = create_trace(obs, query=query)
-    # For backward compat with pipeline trace= parameter
-    span = trace
 
     if get_langfuse() is None:
         print(
-            "  [WARNING] Langfuse not configured (LANGFUSE_PUBLIC_KEY unset) "
-            "— pipeline runs without tracing.",
+            "  [WARNING] Langfuse not configured (LANGFUSE_PUBLIC_KEY unset) — pipeline runs without tracing.",
             file=sys.stderr,
         )
 
-    # --- Pipeline (memory or stateless) ---
     t0 = time.time()
     answer = ""
+    reranked: list[dict] = []
+    router_result = None
+    trace_id = None
 
-    if memory:
-        effective_thread = thread_id or session_id or f"probe_{ts}"
-        thread_config = {"configurable": {"thread_id": effective_thread}}
-        reranked, router_result, data_gaps, data_integrity, _conflicted, answer_tokens = (
-            run_pipeline_with_memory(query, trace=span, thread_config=thread_config)
-        )
-        retrieval_elapsed = time.time() - t0
-        t1 = time.time()
-        answer = "".join(answer_tokens)
-        generation_elapsed = time.time() - t1
-    else:
-        reranked, router_result, data_gaps, data_integrity, _conflicted, answer, _timing = (
-            run_pipeline(query, trace=span, return_timing=True)
-        )
-        total_elapsed = time.time() - t0
-        # run_pipeline includes generation; split timing from timing_ms if available
-        retrieval_elapsed = (total_elapsed - _timing.get("generator_node", 0) / 1000)
-        generation_elapsed = _timing.get("generator_node", 0) / 1000
+    with trace_context(obs, query=query) as (trace, trace_id):
+        if memory:
+            effective_thread = thread_id or session_id or f"probe_{ts}"
+            thread_config = {"configurable": {"thread_id": effective_thread}}
+            reranked, router_result, _data_gaps, _data_integrity, _conflicted, answer_tokens = run_pipeline_with_memory(
+                query, thread_config=thread_config
+            )
+            retrieval_elapsed = time.time() - t0
+            t1 = time.time()
+            answer = "".join(answer_tokens)
+            generation_elapsed = time.time() - t1
+        else:
+            reranked, router_result, _data_gaps, _data_integrity, _conflicted, answer, _timing = run_pipeline(
+                query, return_timing=True
+            )
+            total_elapsed = time.time() - t0
+            retrieval_elapsed = total_elapsed - _timing.get("generator_node", 0) / 1000
+            generation_elapsed = _timing.get("generator_node", 0) / 1000
 
-    # Attach final answer to trace and flush
-    finalize_trace(trace, output=answer[:500])
+        # Set trace output before context manager exits
+        if trace is not None:
+            trace.update(output=answer[:500])
 
-    # --- Optional RAGAS evaluation via observability config ---
+    # --- Optional RAGAS evaluation (runs after trace finalized) ---
     if ragas and trace_id:
         contexts = [doc.get("content", "") for doc in reranked]
         run_evals(obs, EvalInputs(question=query, contexts=contexts, answer=answer, trace_id=trace_id))
@@ -158,13 +158,15 @@ def run_probe(
         answer_preview += "…"
 
     # --- Derive display values ---
-    courses_str = ", ".join(router_result.course_ids) if router_result.course_ids else "(none)"
+    courses_str = ", ".join(router_result.course_ids) if router_result and router_result.course_ids else "(none)"
     total_elapsed = retrieval_elapsed + generation_elapsed
 
     # --- Print summary ---
     print(f"\n[{index}/{total}] Q: {query}")
-    print(f"  → function: {router_result.function} | courses: {courses_str}")
-    print(f"  → {len(reranked)} chunks | retrieval: {retrieval_elapsed:.1f}s | generation: {generation_elapsed:.1f}s | total: {total_elapsed:.1f}s")
+    print(f"  → function: {router_result.function if router_result else 'unknown'} | courses: {courses_str}")
+    print(
+        f"  → {len(reranked)} chunks | retrieval: {retrieval_elapsed:.1f}s | generation: {generation_elapsed:.1f}s | total: {total_elapsed:.1f}s"
+    )
     print(f"  → ~{est_in} in-tokens | ~{est_out} out-tokens | {len(answer)} chars")
     print(f"  → A: {answer_preview}")
     if memory:
@@ -177,8 +179,8 @@ def run_probe(
 
     return {
         "query": query,
-        "function": router_result.function,
-        "course_ids": router_result.course_ids,
+        "function": router_result.function if router_result else "unknown",
+        "course_ids": router_result.course_ids if router_result else [],
         "n_chunks": len(reranked),
         "answer_len": len(answer),
         "answer_preview": answer_preview,
@@ -196,6 +198,7 @@ def run_probe(
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -246,9 +249,9 @@ def main() -> None:
 
     # Smoke suite — fast sanity check covering the three main paths
     SMOKE_QUERIES = [
-        "tell me about CSCE 638",                       # hybrid_course
-        "what should I take alongside CSCE 638?",       # recursive (5-step pipeline)
-        "compare CSCE 638 and CSCE 670",                # hybrid_course → generate_comparison
+        "tell me about CSCE 638",  # hybrid_course
+        "what should I take alongside CSCE 638?",  # recursive (5-step pipeline)
+        "compare CSCE 638 and CSCE 670",  # hybrid_course → generate_comparison
     ]
 
     # Build the list of queries to run

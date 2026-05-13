@@ -107,11 +107,16 @@ class BoilerplateFilter:
         input_dir: Path,
         output_dir: Path,
         config: dict[str, Any] | None = None,
+        report_path: Path | None = None,
     ) -> FilterResult:
         config = config or {}
         input_dir = Path(input_dir)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        if report_path is None:
+            from tamubot.ingestion.report_writer import get_report
+
+            report_path = get_report()
 
         result = FilterResult()
         md_files = sorted(input_dir.glob("*.md"))
@@ -248,6 +253,20 @@ class BoilerplateFilter:
             for e in strip_log:
                 cats = result.log_entries[-1]["by_category"]
                 cats[e["type"]] = cats.get(e["type"], 0) + 1
+
+            if report_path:
+                from tamubot.ingestion.report_writer import update_boilerplate
+
+                tokens_in = _estimate_tokens(text)
+                tokens_out = _estimate_tokens(filtered_md)
+                update_boilerplate(
+                    report_path,
+                    md_path.stem,
+                    len(strip_log),
+                    tokens_in,
+                    tokens_out,
+                    [e["header"] for e in strip_log if e["header"]],
+                )
 
         result.metrics = {
             "total_sections_stripped": sum(e["sections_stripped"] for e in result.log_entries),

@@ -4,31 +4,10 @@
     "content_preservation": [],
     "strip_completeness": [],
     "structural_coherence": [
-      "The table under 'Grading Policy' is not formatted as a proper markdown table (missing `|` and `---` delimiters).",
-      "The table under 'Course Schedule' is not formatted as a proper markdown table (missing `|` and `---` delimiters).",
-      "The table under 'Course Schedule' has a repeated header row 'Week Topic Notes' in the middle of the table."
+      "The 'Meeting Days' and 'Start Time' fields are incorrectly combined into a single line: 'Meeting Days: Start Time: N/A'. They should be separate fields."
     ],
-    "metadata_accuracy": [
-      "The 'Meeting Days' field under 'Course Information' is empty."
-    ]
+    "metadata_accuracy": []
   },
-  "timing_s": 21.33,
-  "proposals": {
-    "new_false_positives": [],
-    "new_boilerplate": [
-      "## Special Course Designation\n\nNone",
-      "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7)."
-    ],
-    "text_cleanups": [
-      {
-        "pattern": "Week\\n\\nTopic\\n\\nNotes",
-        "replacement": ""
-      },
-      {
-        "pattern": "\\u00a0",
-        "replacement": " "
-      }
-    ],
-    "reasoning": "new_false_positives: No headers were identified in the provided markdown that should be demoted to body text.\n\nnew_boilerplate:\n- '## Special Course Designation\\n\\nNone': This section is a common placeholder in university templates, often appearing even when there's no special designation. It's institutional boilerplate.\n- '## Late Work Policy\\n\\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).': This is a standard, university-wide policy statement regarding excused absences and makeup work, commonly found verbatim across syllabi.\n\ntext_cleanups:\n- 'Week\\\\n\\\\nTopic\\\\n\\\\nNotes': This pattern represents a repeated header row within the 'Course Schedule' table, which is a formatting error and should be removed to clean the table data.\n- '\\\\u00a0': This represents a non-breaking space character, which is often an artifact from PDF parsing and should be replaced with a standard space for consistent text representation."
-  }
+  "timing_s": 7.91,
+  "proposals": {}
 }

@@ -1,0 +1,158 @@
+{
+  "source_file": "202641_ISEN_689_600_66698",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "special_topics",
+  "course_metadata": {
+    "course_id": "ISEN 689",
+    "section": "600",
+    "term": "Fall 2026",
+    "crn": "66698",
+    "instructor": {
+      "name": "Farzan Sasangohar",
+      "email": "sasangohar@tamu.edu",
+      "office": "ETB 4079",
+      "office_hours": "Tuesdays: 11-12 or by appointment"
+    },
+    "teaching_assistants": null,
+    "meeting_times": "TR 2:20PM - 3:35PM",
+    "location": "ETB 1013",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/jj9tvka5e/Fall-2026-College-Station-ISEN-689-600-%2866698%29?mode=view",
+    "prerequisites": "Prerequisite/Corequisite(s): ISEN 330 or Approval of Instructor Approval of instructor."
+  },
+  "course_summary": "ISEN 689 | Special Topics in Healthcare Human-Systems Engineering | Fall 2026\nInstructor: Farzan Sasangohar | sasangohar@tamu.edu\nMeets: TR 2:20PM-3:35PM | ETB 1013\nGrading: Research report [40%], Homework assignments [30%], Reflections [20%], Practicum [10%] — A: 90-100% B: 80-89% C: 70-79% D: 60-69% F: 59% and lower\nTopics: Design for X (DfX) methodology, Hierarchical Task Analysis, Digital Prototyping, Usability Testing, Heuristic Evaluation, scoping review, narrative review, systems engineering methods, healthcare human-systems engineering, population-specific criteria (X's), designing a safe and usable healthcare ecosystem, Applications of Human Factors, critical and emergent issues in healthcare, patient safety, human factors and ergonomics (HFE), design and operational problems in healthcare domains, HFE solutions, HFE principles, design problems, role and scope of human factors/ergonomics in healthcare, human factors engineering methods, analysis of healthcare systems, design of healthcare systems, implementation of healthcare systems, evaluation of healthcare systems, emerging topics related to HF/E in healthcare, productivity in healthcare settings, safety in healthcare settings, wellness in healthcare settings, satisfaction in healthcare settings, healthcare applications, detailed case study, background research, application of HF/E, Medical Device Safety, Medication Safety, Digital Health, Mobile Health Technologies, eHealth, Telehealth, Effective Care Collaboration, Healthcare Systems: Critical Care, Healthcare Systems: Emergencies, Resilience in Healthcare, Collaborative Work, Healthcare Workflows, Interruptions, safety culture/climate, special populations, mental health, research project, teamwork, communication skills, research paper, research report proposal, conducting literature reviews, Practicum Presentations\nTools: Canvas, Figma\nPrerequisites: ISEN 330 or Approval of Instructor",
+  "chunk_config": {
+    "strategy": "semantic",
+    "flag_threshold": 500,
+    "min_chunk_tokens": 15
+  },
+  "total_chunks": 12,
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "## Catalog Description\n\nSpecial Topics in... Credit 1 to 4. Selected topics in an identified area of industrial engineering. May be repeated for credit. Prerequisite: Approval of instructor.",
+      "header_path": "Catalog Description",
+      "token_count": 48,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 1
+    },
+    {
+      "chunk_index": 1,
+      "content": "## Additional Course Details\n\nThis course is a survey of emerging topics in healthcare human-systems engineering. The course uses the Design for X (DfX) methodology to discuss a wide range of contexts, technologies, and population-specific criteria (X's) that must be considered in designing a safe and usable healthcare ecosystem. Applications of Human Factors delves into critical and emergent issues in healthcare and patient safety, and how the field of human factors and ergonomics (HFE) plays a role in this domain. Typical design and operational problems in healthcare domains, along with their HFE solutions, will be highlighted. Students will apply HFE principles to design problems, and a research project will allow them to explore a relevant HFE topic in depth.",
+      "header_path": "Additional Course Details",
+      "token_count": 193,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 2,
+      "content": "## Course Learning Outcomes\n\nUpon completion of this course, the learner will be able to:\n\n- The students will be able to describe the role and scope of human factors/ergonomics in healthcare.\n\n- The students will be able to apply human factors engineering methods to the analysis, design, implementation, and evaluation of healthcare systems.\n\n- The students will be able to critically examine several emerging topics related to HF/E in healthcare and their implications and consequences for productivity, safety, wellness, and satisfaction in healthcare settings.\n\n- The students will be able to exhibit effective teamwork and sharpen their communication skills.\n\n## Special Course Designation\n\nNone\n\n## Textbook and/or Resource Materials\n\n## Grading Policy",
+      "header_path": "Course Learning Outcomes",
+      "token_count": 190,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 2
+    },
+    {
+      "chunk_index": 3,
+      "content": "### Grade Determination:\n\n#### 40% Research report (individual)\n\n#### 30% Homework assignments (individual)\n\n#### 20% Reflections (individual)\n\n#### 10% Practicum (team)\n\nGrades will be calculated on the basis of total points earned. Grades may be curved based on class average, such that the point thresholds may be lowered from the following standard:\n\nA: 90-100% B: 80-89% C: 70-79% D: 60-69% F: 59% and lower\n\nResearch Report\n\nThis material Is: Recommended\n\nDesign for Health: Applications of Human Factors\n\nISBN: 978-0128164273\n\nAuthors: Sethumadhavan, A., Sasangohar, F.\n\nPublisher: Academic Press\n\nEdition:\n\n1st\n\nUndergraduate students will conduct an original scoping or narrative review. Graduate students will work individually to conduct an original study and will generate a research paper on a topic relevant to the course, due near the end of the semester. A research report proposal will be due around the 3 rd week of class, so we can assess the relevance and depth of the topic and provide guidance. Further details on this report will be given early in the semester.",
+      "header_path": "Grading Policy > Grade Determination:",
+      "token_count": 271,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 4,
+      "content": "### Homework assignment:\n\nThere will be approximately three homework assignments, designed to give you practice in applying human factors methods learned in the course. Some but not all of the assignments may be graded (the instructor will specify when they are graded). Assignments will be posted on Canvas and announced in lecture and/or via email. Due dates for each exam will be provided when they are issued and will generally be within 1 week. Unless otherwise specified, completed assignments should be submitted on Canvas.",
+      "header_path": "Grading Policy > Homework assignment:",
+      "token_count": 132,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 5,
+      "content": "### Reflections:\n\nStudents will work on five assignments that reflect on the topic of the week and research healthcare applications of the concepts discussed.",
+      "header_path": "Grading Policy > Reflections:",
+      "token_count": 40,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 6,
+      "content": "### Practicum:\n\nStudents will work in teams of 3 to prepare and deliver a detailed case study on one of the course topics. The lecture should cover background research and an in-depth case study that illustrates the application of HF/E to their chosen topic.",
+      "header_path": "Grading Policy > Practicum:",
+      "token_count": 64,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 3
+    },
+    {
+      "chunk_index": 7,
+      "content": "### Re-grading Policy:\n\nStudents have 1 week after grades are released to submit a re-grade request in writing. This request must not exceed 1 page (11-point font, single spacing) and must clearly indicate the relevant problem(s) and justification for why you think re-grading is warranted. Note that a requested re-grade may result in further point deductions if new errors are discovered.",
+      "header_path": "Grading Policy > Re-grading Policy:",
+      "token_count": 98,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 4
+    },
+    {
+      "chunk_index": 8,
+      "content": "## Late Work Policy\n\nWork submitted by a student as makeup work for an excused absence is not considered late work and is exempt from the late work policy (Student Rule 7).",
+      "header_path": "Late Work Policy",
+      "token_count": 43,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 9,
+      "content": "## Course Specific Late Work Policy\n\nReports that are submitted after the established deadline will not receive any credit.",
+      "header_path": "Course Specific Late Work Policy",
+      "token_count": 31,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 10,
+      "content": "## Course Schedule\n\nTentative Schedule\n\n| Topic                                | Text/source material and references         | Approximate Week/deadlines          |\n| :----------------------------------- | :------------------------------------------ | :---------------------------------- |\n| 0: Course Introduction               | none                                        |                                     |\n| 1: Introduction to HFE in Healthcare | none                                        | Week 1<br>Homework 0 Due 8/30       |\n| 2: Medical Device Safety             | Sethumadhavan & Sasangohar, Ch. 1           | Week 2<br>Reflection 1 Due 9/6      |\n| 3: Medication Safety                 | Sethumadhavan & Sasangohar, Ch. 2           | Week 3<br>Project Proposal Due 9/13 |\n| 4: Digital Health                    | Sethumadhavan & Sasangohar, Ch. 3<br>HTA Packet on Canvas | Week 4<br>Reflection 2 Due 9/20      |\n\n| Topic                                                               | Text/source material and references         | Approximate Week/deadlines          |\n| :------------------------------------------------------------------ | :------------------------------------------ | :---------------------------------- |\n| 5: Mobile Health Technologies<br>Methods Lecture: Hierarchical Task Analysis | Sethumadhavan & Sasangohar, Ch. 5           | Week 5<br>Project Outline Due 9/27  |\n| 6: eHealth and Telehealth<br>Methods Lecture: Digital Prototyping using Figma | Sethumadhavan & Sasangohar, Ch. 4           | Week 6                              |\n| Methods Lecture: Conducting Literature Reviews                      |                                             | Week 7<br>Homework 1 Due 10/11      |\n| 7: Effective Care Collaboration                                     | Sethumadhavan & Sasangohar, Ch. 6           |                                     |\n| 8: Healthcare Systems: Critical Care                                | Sethumadhavan & Sasangohar, Ch. 7           | Week 8                              |\n| 9: Healthcare Systems: Emergencies                                  | Sethumadhavan & Sasangohar, Ch. 8           | Week 9<br>Homework 2 Due 10/25      |\n| 10: Resilience in Healthcare<br>Methods Lecture: Usability Testing and Heuristic Evaluation | Sethumadhavan & Sasangohar, Ch. 9<br>Usability Testing Packet on Canvas | Week 10<br>Project Draft Due 11/1   |\n| 11: Collaborative Work                                              | Sethumadhavan & Sasangohar, Ch. 10          | Week 11<br>Reflection 3 Due 11/8    |\n\n| Topic                                                                                             | Text/source material and references | Approximate Week/deadlines          |\n| :------------------------------------------------------------------------------------------------ | :---------------------------------- | :---------------------------------- |\n| 12: Healthcare Workflows                                                                          | Sethumadhavan & Sasangohar, Ch. 13  | Week 12<br>Reflection 5 Due 11/15   |\n| 13: Other topics: Interruptions, safety culture/climate, systems engineering methods, special populations, mental health | Sethumadhavan & Sasangohar, Ch. 17  | Week 13<br>Homework 3 Due 11/22     |\n| No class on 11/25 & 11/27 (Reading Day & Thanksgiving)                                            |                                     | Week 14<br>Project Paper Due on 11/24 |\n| Practicum Presentations                                                                           |                                     | Week 15<br>Reviews Due on 12/3      |",
+      "header_path": "Course Schedule",
+      "token_count": 914,
+      "has_table": true,
+      "flags": [
+        "OVERSIZED",
+        "HAS_TABLE"
+      ],
+      "split_reason": "semantic",
+      "page": 5
+    },
+    {
+      "chunk_index": 11,
+      "content": "## Additional Course Information\n\nAll documents used in this course are copyrighted. Here, \"documents\" means all materials generated for this class, including, but not limited to, syllabi, quizzes, exams, problem sets, slide sets, and all materials appearing on the class website or sent to you via email. Because these materials are copyrighted, you do not have the right to copy any of them for any purpose other than your own personal academic use unless I expressly grant permission. In particular, course materials may not be given or sold to any for-profit enterprise.",
+      "header_path": "Additional Course Information",
+      "token_count": 144,
+      "has_table": false,
+      "flags": [],
+      "split_reason": "semantic",
+      "page": 7
+    }
+  ],
+  "_parsed_at": "2026-05-13T07:01:58.465771"
+}

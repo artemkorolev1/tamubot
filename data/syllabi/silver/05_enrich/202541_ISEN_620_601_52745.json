@@ -1,0 +1,112 @@
+{
+  "source_file": "202541_ISEN_620_601_52745",
+  "pipeline_version": "v4",
+  "source": "simple_syllabus",
+  "course_type": "course",
+  "course_metadata": {
+    "course_id": "ISEN 620",
+    "section": "601",
+    "term": "Fall 2025",
+    "crn": "52745",
+    "instructor": {
+      "name": "Sergiy Butenko",
+      "email": "butenko@tamu.edu",
+      "office": "ETB 4037",
+      "office_hours": "TR 10:00-11:00 AM or by appointment"
+    },
+    "teaching_assistants": [],
+    "meeting_times": "TR 2:20 PM - 3:35 PM",
+    "location": "ETB 2026",
+    "format": "in-person",
+    "credit_hours": "3",
+    "syllabus_url": "https://tamu.simplesyllabus.com/en-US/doc/4t1oybnyz/Fall-2025-College-Station-ISEN-620-601-%2852745%29?mode=view"
+  },
+  "course_summary": "ISEN 620 | Survey of Optimization | Fall 2025\nInstructor: Sergiy Butenko | butenko@tamu.edu\nMeets: TR 2:20 PM - 3:35 PM | ETB 2026\nGrading: Exams [20%], Homework Quizzes [15%], Lecture Quizzes [5%] — A: [90,100], B: [80,90), C: [70,80), D: [60,70), F: [0,60)\nTopics: Karush-Kuhn-Tucker Conditions, Conjugate Direction Methods, Newton's Method, Steepest Descent Method, Root Finding, Line Search, Simplex Method in Matrix Form, Complementary Slackness, Graphical Method, Simplex Method: Termination & Initialization, Simplex Method: An Introduction, FONC for Equality Constraints, Second Order Optimality Conditions, FONC for Unconstrained Problems, classical optimality conditions, LP Duality: Introduction, IP Modeling, LP Modeling, Sensitivity Analysis, Analysis of the Simplex Method, LP Assumptions, unconstrained nonlinear optimization, constrained nonlinear optimization, linear programming theory, nonlinear programming theory, linear programming, nonlinear optimization, numerical methods, optimization models, small-scale optimization problems, large-scale problems, optimization software, deterministic linear optimization, deterministic nonlinear optimization, LP Basics, Nonlinear Opt.: Preliminaries, Constrained Optimization\nTools: AMPL, Excel, Canvas, Zoom, GroupMe",
+  "headers": [
+    {
+      "text": "ISEN 620 Syllabus",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Information",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Instructor Details",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Description",
+      "level": 2,
+      "page": 1
+    },
+    {
+      "text": "Course Prerequisites",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Special Course Designation",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Course Learning Outcomes",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Textbook and/or Resource Materials",
+      "level": 2,
+      "page": 2
+    },
+    {
+      "text": "Additional Instructional Materials",
+      "level": 2,
+      "page": 3
+    },
+    {
+      "text": "Grading Policy",
+      "level": 2,
+      "page": 4
+    },
+    {
+      "text": "Late Work Policy",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Course Specific Late Work Policy",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Course Schedule",
+      "level": 2,
+      "page": 5
+    },
+    {
+      "text": "Additional Course Information",
+      "level": 2,
+      "page": 8
+    },
+    {
+      "text": "Course Format and Expectations",
+      "level": 3,
+      "page": 8
+    },
+    {
+      "text": "Expected Time Commitment",
+      "level": 3,
+      "page": 8
+    },
+    {
+      "text": "Communication",
+      "level": 3,
+      "page": 9
+    }
+  ]
+}
