@@ -53,12 +53,21 @@ def get_langfuse():
 def create_trace(
     obs_config: ObservabilityConfig,
     query: str,
+    trace_id: Optional[str] = None,
 ) -> tuple[Optional[object], Optional[str]]:
     """Create a Langfuse root observation (trace). Returns (span, trace_id) or (None, None).
 
     Uses start_as_current_observation() so the OTEL context is set — any
     @observe-decorated functions called while this trace is active will
     automatically nest as child spans instead of creating separate traces.
+
+    Args:
+        obs_config: Observability settings (trace name, tags, etc.)
+        query: The user query (used as trace input).
+        trace_id: Optional existing trace ID to resume.  When provided, the new
+                  observation is appended to the existing trace instead of
+                  creating a new one (useful for multi-step flows like advisory
+                  SCP collection → pipeline execution).
     """
     lf = get_langfuse()
     if lf is None:
@@ -68,14 +77,18 @@ def create_trace(
             **(obs_config.metadata or {}),
             "session_id": obs_config.session_id,
         }
-        ctx_manager = lf.start_as_current_observation(
+        kwargs: dict[str, Any] = dict(
             name=obs_config.trace_name,
             input=query,
             metadata=merged_meta,
             end_on_exit=False,
         )
+        if trace_id is not None:
+            kwargs["trace_context"] = {"trace_id": trace_id}
+
+        ctx_manager = lf.start_as_current_observation(**kwargs)
         span = ctx_manager.__enter__()
-        trace_id = span.trace_id
+        resolved_trace_id = span.trace_id
 
         # Store the context manager so finalize_trace can __exit__ it
         _active_ctx_managers[id(span)] = ctx_manager
@@ -84,11 +97,12 @@ def create_trace(
         if obs_config.tags:
             try:
                 lf._create_trace_tags_via_ingestion(
-                    trace_id=trace_id, tags=obs_config.tags,
+                    trace_id=resolved_trace_id,
+                    tags=obs_config.tags,
                 )
             except Exception:
                 pass  # tags are nice-to-have, not critical
-        return span, trace_id
+        return span, resolved_trace_id
     except Exception as e:
         logger.warning(f"Langfuse trace creation failed: {e}")
         return None, None

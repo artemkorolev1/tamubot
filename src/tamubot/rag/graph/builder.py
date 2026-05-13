@@ -1,4 +1,5 @@
 """Build the RAG LangGraph state machine."""
+
 from __future__ import annotations
 
 from typing import TypedDict
@@ -17,6 +18,7 @@ from tamubot.rag.state.pipeline_state import PipelineState
 # Conditional edge dispatcher (inlined from former edges/routing.py)
 # ---------------------------------------------------------------------------
 
+
 def route_after_router(state: PipelineState) -> str:
     """Dispatch to retrieval path based on function type."""
     function = state.get("function", "out_of_scope")
@@ -31,6 +33,7 @@ def route_after_router(state: PipelineState) -> str:
 # ---------------------------------------------------------------------------
 # Routing matrix — reference documentation only (not wired to graph routing)
 # ---------------------------------------------------------------------------
+
 
 class RoutingEntry(TypedDict):
     requires_retrieval: bool
@@ -125,6 +128,44 @@ def build_graph_eval():
     graph.add_edge("recursive_router", "retrieval")
     graph.add_edge("retrieval", END)
     graph.add_edge("out_of_scope", END)
+
+    return graph.compile()
+
+
+def _route_headless(state: PipelineState) -> str:
+    """Dispatch for headless graph — no out_of_scope path."""
+    function = state.get("function", "semantic_general")
+    if function == "recursive":
+        return "recursive_retrieval"
+    return "retrieval"
+
+
+def build_graph_headless():
+    """Build a router-less RAG graph: caller provides routing fields directly.
+
+    The caller must populate ``function``, ``course_ids``, ``retrieval_mode``,
+    ``rewritten_query``, and ``intent_type`` in the initial PipelineState.
+    The graph starts at retrieval (or recursive_retrieval for recursive queries).
+    """
+    graph = StateGraph(PipelineState)
+
+    graph.add_node("recursive_retrieval", recursive_retrieval_node)
+    graph.add_node("recursive_router", recursive_router_node)
+    graph.add_node("retrieval", retrieval_node)
+    graph.add_node("generator", generator_node)
+
+    graph.set_conditional_entry_point(
+        _route_headless,
+        {
+            "recursive_retrieval": "recursive_retrieval",
+            "retrieval": "retrieval",
+        },
+    )
+
+    graph.add_edge("recursive_retrieval", "recursive_router")
+    graph.add_edge("recursive_router", "retrieval")
+    graph.add_edge("retrieval", "generator")
+    graph.add_edge("generator", END)
 
     return graph.compile()
 
