@@ -83,6 +83,8 @@ def create_trace(
             metadata=merged_meta,
             end_on_exit=False,
         )
+        if obs_config.session_id:
+            kwargs["session_id"] = obs_config.session_id
         if trace_id is not None:
             kwargs["trace_context"] = {"trace_id": trace_id}
 
