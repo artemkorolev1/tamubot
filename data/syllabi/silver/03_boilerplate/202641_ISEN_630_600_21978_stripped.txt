@@ -1,9 +1,0 @@
-[DEPT_HEADER] College of Engineering (level 1, 25 chars)
-# College of Engineering
-
-[DEPT_HEADER] Industrial and Systems Engineering (level 2, 140 chars)
-## Industrial and Systems Engineering
-
-ISEN 630 Syllabus
-
-Section 600 (21978) Human Operator in Complex Systems Fall 2026 - College Station

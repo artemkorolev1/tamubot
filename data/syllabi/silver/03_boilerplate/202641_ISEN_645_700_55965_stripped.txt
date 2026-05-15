@@ -1,5 +1,0 @@
-[DEPT_HEADER] College of Engineering (level 1, 25 chars)
-# College of Engineering
-
-[DEPT_HEADER] Industrial and Systems Engineering (level 2, 38 chars)
-## Industrial and Systems Engineering

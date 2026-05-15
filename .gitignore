@@ -7,14 +7,34 @@
 .venv/
 __pycache__/
 *.py[cod]
+*.pyd
+*.egg
 *.egg-info/
+dist/
+build/
+
+# Test / lint / type-check caches
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Raw data (large files, regeneratable by running the scrapers)
 tamu_data/raw/syllabi/
 tamu_data/raw/catalog/
 tamu_data/csce_syllabuses_no_url.zip
+
+# Pipeline output (regeneratable)
+data/syllabi/bronze/
+data/syllabi/silver/
 
 # PDFs anywhere in the repo (debug/test files)
 *.pdf
@@ -34,6 +54,7 @@ tamu_data/logs/
 # LightRAG spike graph/vector storage (regeneratable by running ingest.py)
 lightrag/storage/
 lightrag/storage_*/
+_archive/lightrag/storage*/
 
 # Auto-generated timestamped eval reports and result dumps
 tamu_data/evals/reports/eval_report_*.md
@@ -62,6 +83,8 @@ Thumbs.db
 # Claude Code internal (keep skills — they're project-specific)
 .claude/*
 !.claude/skills/
+.ccstatusline-settings.json
+skills-lock.json
 
 # auto-claude framework
 .auto-claude/

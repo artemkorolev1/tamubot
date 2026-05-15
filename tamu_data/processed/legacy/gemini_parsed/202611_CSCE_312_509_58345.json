@@ -1,4 +1,0 @@
-{
-  "error": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'generativelanguage.googleapis.com'. (_ssl.c:1077)",
-  "_source_file": "202611_CSCE_312_509_58345.pdf"
-}
