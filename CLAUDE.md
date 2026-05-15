@@ -6,6 +6,14 @@ RAG chatbot for Texas A&M course/policy info. Module-level detail: `src/tamubot/
 
 Claude Code runs **inside** Docker container `tamubot-dev-1`. No Docker-in-Docker. Python packages installed container-wide (no `.venv`).
 
+## Dependencies — durable or it's gone
+
+Only `Dockerfile` + `requirements.txt` + `.env` survive container rebuilds. When you add a dep, log it there in the same step:
+
+- Python pkg → `requirements.txt` + `pip install`. Verify: `grep <pkg> requirements.txt`.
+- Env var → `.env`. OS pkg → `Dockerfile`.
+- **Never** wrap a runtime-critical import in `try/except ImportError: X = None` — fail loud instead.
+
 ## Commands
 
 ```bash
