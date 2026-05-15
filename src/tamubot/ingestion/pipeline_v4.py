@@ -448,6 +448,7 @@ def step_chunk(
     from tamubot.ingestion.chunker_v4 import (
         chunk_semantic,
     )
+    from tamubot.ingestion.filters.metadata_enrichment import generate_summary_statements
 
     output_dir = SILVER_DIRS["chunk"]
     enrichment_dir = SILVER_ROOT / "05_enrich"

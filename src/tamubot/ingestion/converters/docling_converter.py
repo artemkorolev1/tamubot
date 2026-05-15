@@ -20,11 +20,6 @@ from docling_core.transforms.serializer.markdown import (
 )
 from docling_core.types.doc.document import SectionHeaderItem, TitleItem
 
-try:
-    from hierarchical.postprocessor import ResultPostprocessor  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover — optional private module
-    ResultPostprocessor = None  # type: ignore[assignment,misc]
-
 log = logging.getLogger(__name__)
 
 HEADER_RE = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
@@ -86,7 +81,11 @@ def convert(
     output_dir: Path,
     converter: DocumentConverter | None = None,
 ) -> ConvertResult:
-    """Convert a PDF to markdown using Docling + hierarchical postprocessor."""
+    """Convert a PDF to markdown using Docling.
+
+    Note: heading hierarchy reconstruction happens downstream in
+    ``filters.hierarchy.HierarchyFilter`` (operates on the serialized markdown).
+    """
     if converter is None:
         converter = create_converter()
 
@@ -94,13 +93,8 @@ def convert(
 
     result = converter.convert(str(pdf_path))
 
-    # Reconstruct heading hierarchy from PDF outline / TOC (optional private module)
-    if ResultPostprocessor is not None:
-        ResultPostprocessor(result, source=str(pdf_path)).process()
-
-    # Serialize with custom heading formatter.
-    # The hierarchical postprocessor can leave the document hierarchy in a state
-    # that fails Pydantic validation, so use model_construct to skip validation.
+    # Serialize with custom heading formatter. Use model_construct to skip
+    # Pydantic validation, which can fail on some hierarchy states.
     try:
         serializer = MarkdownDocSerializer(
             doc=result.document,
@@ -132,6 +126,21 @@ def convert(
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{pdf_path.stem}.md"
     output_path.write_text(markdown, encoding="utf-8")
+
+    # Emit headers sidecar: text → page_no from Docling's provenance. Consumed by
+    # filters.metadata_enrichment to anchor chunks to PDF pages reliably
+    # (avoids fragile PyMuPDF text-matching that breaks on line-wrapped headers).
+    headers: list[dict] = []
+    for item, _level in result.document.iterate_items():
+        if isinstance(item, (TitleItem, SectionHeaderItem)):
+            text = (item.text or "").strip()
+            if not text:
+                continue
+            item_level = 1 if isinstance(item, TitleItem) else getattr(item, "level", 1)
+            page = item.prov[0].page_no if item.prov else None
+            headers.append({"text": text, "level": item_level, "page": page})
+    sidecar_path = output_dir / f"{pdf_path.stem}.headers.json"
+    sidecar_path.write_text(json.dumps(headers, indent=2, ensure_ascii=False), encoding="utf-8")
 
     header_count, hierarchy_depth = _count_headers(markdown)
 

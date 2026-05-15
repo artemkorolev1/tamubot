@@ -165,7 +165,7 @@ def _clean_replacement_chars(obj: Any) -> Any:
     return obj
 
 
-def _llm_call(client: Any, prompt: str, text: str) -> tuple[str, str]:
+def _llm_call(client: Any, prompt: str, text: str, max_tokens: int = 4096) -> tuple[str, str]:
     """Make an LLM call with retries. Returns (raw_response, error)."""
     user_message = f"{prompt}\n\n---\n\nSYLLABUS TEXT:\n{text}"
     for attempt in range(MAX_RETRIES + 1):
@@ -174,7 +174,7 @@ def _llm_call(client: Any, prompt: str, text: str) -> tuple[str, str]:
                 model=MODEL,
                 messages=[{"role": "user", "content": user_message}],
                 temperature=0.0,
-                max_tokens=4096,
+                max_tokens=max_tokens,
                 stream=True,
             )
             raw = "".join(c.choices[0].delta.content or "" for c in stream).strip()
@@ -184,6 +184,63 @@ def _llm_call(client: Any, prompt: str, text: str) -> tuple[str, str]:
                 return "", str(e)
             print(f"    WARN: LLM attempt {attempt + 1} failed ({e}), retrying...")
     return "", "unknown error"
+
+
+def _repair_statement_json(raw: str) -> list | None:
+    """Best-effort repair of a truncated JSON array of statement objects.
+
+    Walks the response keeping a running brace/bracket depth and string-state.
+    Returns the largest prefix that parses as a JSON array, or None.
+
+    Targets the common truncation pattern: array of `{"statement": "...", \
+    "supporting_chunk_indices": [...]}` cut mid-string when max_tokens hits.
+    """
+    # Find the start of the array
+    start = raw.find("[")
+    if start == -1:
+        return None
+    last_good_close = -1  # index of `}` after a complete object
+    depth_obj = 0
+    depth_arr = 0
+    in_string = False
+    escape = False
+    for i, ch in enumerate(raw[start:], start):
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth_obj += 1
+        elif ch == "}":
+            depth_obj -= 1
+            if depth_obj == 0 and depth_arr == 1:
+                last_good_close = i
+        elif ch == "[":
+            depth_arr += 1
+        elif ch == "]":
+            depth_arr -= 1
+            if depth_arr == 0 and depth_obj == 0:
+                # Full array closed cleanly — caller would have parsed it.
+                candidate = raw[start : i + 1]
+                try:
+                    return json.loads(candidate)
+                except Exception:
+                    pass
+    if last_good_close == -1:
+        return None
+    # Truncate at the last complete object and close the array.
+    candidate = raw[start : last_good_close + 1] + "]"
+    try:
+        return json.loads(candidate)
+    except Exception:
+        return None
 
 
 def dedup_course_summary(content: str) -> str:
@@ -327,6 +384,75 @@ def find_source_pdf(stem: str) -> Path | None:
     return None
 
 
+# Header lookup helpers (sidecar-first, PyMuPDF fallback) ───────────────────
+
+_LEADING_SECTION_NUM_RE = re.compile(r"^\d+(?:\.\d+)*\s+")
+
+
+def _norm_header(text: str) -> str:
+    """Lowercase + strip leading section numbers + collapse whitespace."""
+    t = text.strip().rstrip(":").lower()
+    t = _LEADING_SECTION_NUM_RE.sub("", t)
+    return " ".join(t.split())
+
+
+def _default_sidecar_dir(stem: str) -> Path | None:
+    """Infer the bronze directory holding the Docling headers sidecar.
+
+    Stems look like: ``<term>_<DEPT>_<num>_<section>_<crn>(_HP)?_v<NNN>``.
+    """
+    parts = stem.split("_")
+    if len(parts) < 2:
+        return None
+    dept = parts[1]
+    candidate = Path(f"data/syllabi/{dept}/bronze")
+    return candidate if candidate.is_dir() else None
+
+
+def _load_headers_sidecar(stem: str, sidecar_dir: Path | None) -> list[dict] | None:
+    """Return the sidecar header list if present, else None.
+
+    Sidecar format (per ``scripts/extract_docling_headers.py``):
+        [{"text": str, "level": int, "page": int}, ...]
+    """
+    if sidecar_dir is None:
+        sidecar_dir = _default_sidecar_dir(stem)
+    if sidecar_dir is None:
+        return None
+    path = sidecar_dir / f"{stem}.headers.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _build_headers_from_sidecar(markdown: str, sidecar: list[dict]) -> list[dict]:
+    """Walk markdown headers; resolve page via sidecar text→page lookup.
+
+    Levels come from the markdown (post-hierarchy filter); pages come from the
+    sidecar (Docling's authoritative ``prov[0].page_no``). Falls back to
+    page=None for headers absent from the sidecar (e.g. headers added by
+    hand-refinement after Docling extracted them).
+    """
+    text_to_page: dict[str, int] = {}
+    for entry in sidecar:
+        text = entry.get("text", "")
+        page = entry.get("page")
+        if not text or page is None:
+            continue
+        text_to_page.setdefault(_norm_header(text), page)
+
+    out: list[dict] = []
+    for m in _HEADER_RE.finditer(markdown):
+        text = m.group(2).strip()
+        level = len(m.group(1))
+        page = text_to_page.get(_norm_header(text))
+        out.append({"text": text, "level": level, "page": page})
+    return out
+
+
 def map_headers_to_pages(markdown: str, pdf_path: Path) -> list[dict]:
     """Map each markdown header to its page in the source PDF.
 
@@ -449,6 +575,24 @@ def generate_course_summary(
     return summary, ""
 
 
+def _parse_statement_items(raw: str) -> tuple[list | None, str | None]:
+    """Parse a raw LLM response into a list of statement items.
+
+    Returns (items, error). items is None on failure.
+    """
+    stripped = _strip_fences(raw)
+    try:
+        return json.loads(stripped), None
+    except json.JSONDecodeError as e1:
+        try:
+            return json.loads(_sanitize_json(stripped)), None
+        except json.JSONDecodeError as e2:
+            repaired = _repair_statement_json(stripped)
+            if repaired is not None:
+                return repaired, None
+            return None, str(e2 or e1)
+
+
 def generate_summary_statements(
     chunks: list[dict],
     course_id: str,
@@ -461,6 +605,9 @@ def generate_summary_statements(
     retrieval layer can cite it as [Source N, p.X] just like a chunk.
 
     Returns (statements, error). Each statement: {text, page, header_path}.
+
+    Retries once if the LLM returns an empty array or a parse error — the
+    TAMU proxy is observed to occasionally return `[]` non-deterministically.
     """
     if not chunks:
         return [], ""
@@ -475,21 +622,32 @@ def generate_summary_statements(
     chunks_text = "\n\n".join(chunk_lines)
 
     prompt = STATEMENTS_PROMPT.format(course_id=course_id, term=term)
-    raw, error = _llm_call(client, prompt, chunks_text)
-    if error:
+
+    def attempt() -> tuple[list[dict] | None, str]:
+        # A rich syllabus yields ~3k-6k tokens of JSON; give headroom so the
+        # last statement isn't truncated mid-string.
+        raw, error = _llm_call(client, prompt, chunks_text, max_tokens=16384)
+        if error:
+            return None, error
+        items, parse_error = _parse_statement_items(raw)
+        if items is None:
+            return None, f"json parse: {parse_error}"
+        if not isinstance(items, list):
+            return None, f"expected JSON array, got {type(items).__name__}"
+        return items, ""
+
+    items, error = attempt()
+    # Retry once if the model returned an empty array or failed to parse.
+    if (items is None) or (isinstance(items, list) and len(items) == 0):
+        print("    WARN: summary_statements empty/unparseable, retrying...")
+        items_retry, error_retry = attempt()
+        if items_retry is not None and len(items_retry) > 0:
+            items, error = items_retry, ""
+        elif items is None and items_retry is not None:
+            items, error = items_retry, ""
+
+    if items is None:
         return [], error
-
-    raw = _strip_fences(raw)
-    try:
-        try:
-            items = json.loads(raw)
-        except json.JSONDecodeError:
-            items = json.loads(_sanitize_json(raw))
-    except Exception as e:
-        return [], f"json parse: {e}"
-
-    if not isinstance(items, list):
-        return [], f"expected JSON array, got {type(items).__name__}"
 
     statements: list[dict] = []
     for item in items:
@@ -659,13 +817,25 @@ def enrich_file(md_path: Path, output_dir: Path, client: Any, scraped_meta: dict
     }
 
     # Step 6: Header-to-page mapping
-    pdf_path = find_source_pdf(stem)
-    if pdf_path:
-        headers = map_headers_to_pages(markdown, pdf_path)
+    # Prefer Docling-emitted sidecar (authoritative page provenance);
+    # fall back to PyMuPDF text-matching if no sidecar exists.
+    sidecar = _load_headers_sidecar(stem, sidecar_dir=None)
+    headers_source: str
+    if sidecar is not None:
+        headers = _build_headers_from_sidecar(markdown, sidecar)
+        headers_source = "docling_sidecar"
+        pdf_path = None  # not needed when sidecar available
     else:
-        headers = [
-            {"text": m.group(2).strip(), "level": len(m.group(1)), "page": None} for m in _HEADER_RE.finditer(markdown)
-        ]
+        pdf_path = find_source_pdf(stem)
+        if pdf_path:
+            headers = map_headers_to_pages(markdown, pdf_path)
+            headers_source = "pymupdf_fallback"
+        else:
+            headers = [
+                {"text": m.group(2).strip(), "level": len(m.group(1)), "page": None}
+                for m in _HEADER_RE.finditer(markdown)
+            ]
+            headers_source = "markdown_only"
 
     result = {
         "source_file": stem,
@@ -686,6 +856,7 @@ def enrich_file(md_path: Path, output_dir: Path, client: Any, scraped_meta: dict
         "llm_summary_error": llm_summary_error or None,
         "scraped_meta_found": scraped_found,
         "pdf_found": pdf_path is not None,
+        "headers_source": headers_source,
         "header_count": len(headers),
         "headers_with_page": sum(1 for h in headers if h["page"] is not None),
     }

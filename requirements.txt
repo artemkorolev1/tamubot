@@ -25,6 +25,7 @@ langchain-google-vertexai
 scrapy
 trafilatura
 pymupdf
+docling
 pydantic>=2.0
 
 # Dev / testing
