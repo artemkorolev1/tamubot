@@ -1,10 +1,11 @@
 """Recursive retrieval node — first-pass hybrid search on anchor course(s)."""
+
 from __future__ import annotations
 
 from tamubot.core import config
 from tamubot.rag.graph.middleware import error_guard_middleware, timing_middleware
 from tamubot.rag.state.pipeline_state import PipelineState
-from tamubot.rag.utils import compute_dynamic_k_recursive, make_cache_key
+from tamubot.rag.utils import compute_dynamic_k, make_cache_key
 
 
 @timing_middleware
@@ -19,7 +20,7 @@ def recursive_retrieval_node(state: PipelineState) -> dict:
     node_trace = list(state.get("node_trace", []))
     node_trace.append("recursive_retrieval")
 
-    dk = compute_dynamic_k_recursive(len(course_ids))
+    dk = compute_dynamic_k("recursive", len(course_ids), recursive_anchor=True)
     retrieve_k = dk["retrieve_k"]
     rerank_k = dk["rerank_k"]
 

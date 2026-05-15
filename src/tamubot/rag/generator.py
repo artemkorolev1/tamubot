@@ -28,6 +28,13 @@ _logger = logging.getLogger("tamubot")
 # config.LLM_MAX_OUTPUT_TOKENS.  No generator-level cap needed.
 
 
+def _resolve_thinking_budget(function: str, intent_type: str | None) -> int:
+    """Pick thinking budget: higher for advisory/semantic, lower for metadata extraction."""
+    if function in ("recursive", "semantic_general") or intent_type is not None:
+        return config.THINKING_BUDGET_SEMANTIC
+    return config.THINKING_BUDGET_METADATA
+
+
 # ---------------------------------------------------------------------------
 # Function-adaptive system prompt assembly
 # ---------------------------------------------------------------------------
@@ -117,13 +124,7 @@ def generate(
     else:
         user_message = f"{context_xml}\n\nQuestion: {question}"
 
-    # Determine thinking budget based on function type and intent.
-    # Advisory queries (intent_type set) on hybrid_course also benefit from thinking.
-    thinking_budget = (
-        config.THINKING_BUDGET_SEMANTIC
-        if function in ["recursive", "semantic_general"] or intent_type is not None
-        else config.THINKING_BUDGET_METADATA
-    )
+    thinking_budget = _resolve_thinking_budget(function, intent_type)
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -275,11 +276,7 @@ def generate_stream(
     else:
         user_message = f"{context_xml}\n\nQuestion: {question}"
 
-    thinking_budget = (
-        config.THINKING_BUDGET_SEMANTIC
-        if function in ["recursive", "semantic_general"] or intent_type is not None
-        else config.THINKING_BUDGET_METADATA
-    )
+    thinking_budget = _resolve_thinking_budget(function, intent_type)
 
     messages = [
         {"role": "system", "content": system_prompt},

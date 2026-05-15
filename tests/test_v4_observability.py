@@ -1,13 +1,15 @@
 """Tests for graph middleware and pipeline observability wiring."""
-from unittest.mock import MagicMock, patch
 
-from tamubot.rag.graph.exceptions import V4PipelineError
-from tamubot.rag.graph.middleware import error_guard_middleware, timing_middleware
+from unittest.mock import MagicMock
+
+from tamubot.rag.graph.middleware import V4PipelineError, error_guard_middleware, timing_middleware
 
 # ── timing_middleware tests ──────────────────────────────────────────────────
 
+
 def test_timing_middleware_populates_timing_ms():
     """timing_middleware must add node_name key to state['timing_ms']."""
+
     @timing_middleware
     def mock_node(state, registry=None):
         return {"answer": "hello"}
@@ -20,6 +22,7 @@ def test_timing_middleware_populates_timing_ms():
 
 def test_timing_middleware_merges_existing_timing():
     """timing_middleware must preserve existing timing_ms entries."""
+
     @timing_middleware
     def another_node(state, registry=None):
         return {}
@@ -31,8 +34,10 @@ def test_timing_middleware_merges_existing_timing():
 
 # ── error_guard_middleware tests ─────────────────────────────────────────────
 
+
 def test_error_guard_catches_v4_pipeline_error():
     """error_guard_middleware catches V4PipelineError and writes state['error']."""
+
     @error_guard_middleware
     def failing_node(state, registry=None):
         raise V4PipelineError("retrieval timeout")
@@ -44,6 +49,7 @@ def test_error_guard_catches_v4_pipeline_error():
 
 def test_error_guard_does_not_catch_non_v4_errors():
     """error_guard_middleware re-raises non-V4PipelineError exceptions."""
+
     @error_guard_middleware
     def buggy_node(state, registry=None):
         raise ValueError("unexpected bug")
@@ -57,6 +63,7 @@ def test_error_guard_does_not_catch_non_v4_errors():
 
 def test_error_guard_passes_through_successful_result():
     """error_guard_middleware returns result unchanged on success."""
+
     @error_guard_middleware
     def good_node(state, registry=None):
         return {"answer": "ok", "node_trace": ["good_node"]}
@@ -66,6 +73,7 @@ def test_error_guard_passes_through_successful_result():
 
 
 # ── Pipeline tracing wiring ────────────────────────────────────────────────
+
 
 def test_pipeline_does_not_inject_callbacks():
     """run_pipeline_with_memory no longer injects a CallbackHandler.

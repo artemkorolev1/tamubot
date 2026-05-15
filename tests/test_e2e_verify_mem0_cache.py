@@ -3,6 +3,7 @@
 Usage:
     python -m pytest tests/test_e2e_verify_mem0_cache.py
 """
+
 from __future__ import annotations
 
 import time
@@ -35,13 +36,13 @@ def run_and_inspect(query: str, label: str) -> dict:
     node_trace = state.get("node_trace", [])
     timing_ms = state.get("timing_ms", {})
 
-    print(f"{'─'*60}")
+    print(f"{'─' * 60}")
     print(f"{label}")
     print(f"  Query      : {query}")
     print(f"  Wall time  : {elapsed:.0f} ms")
     print(f"  node_trace : {node_trace}")
-    router_ms   = timing_ms.get("router_node", 0)
-    ret_ms      = timing_ms.get("retrieval_node", 0)
+    router_ms = timing_ms.get("router_node", 0)
+    ret_ms = timing_ms.get("retrieval_node", 0)
     print(f"  timing_ms  : router={router_ms:.0f}ms  retrieval={ret_ms:.0f}ms")
 
     hits = [n for n in node_trace if "cache_hit" in n]
@@ -54,7 +55,8 @@ def run_and_inspect(query: str, label: str) -> dict:
 
 
 def check_answer_cache(state: dict, query: str) -> None:
-    from tamubot.rag.graph.cache_utils import normalize_query
+    from tamubot.rag.utils import normalize_query
+
     answer_cache = state.get("answer_cache", {})
     key = normalize_query(query)
     if key in answer_cache:

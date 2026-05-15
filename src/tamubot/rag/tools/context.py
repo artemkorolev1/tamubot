@@ -23,14 +23,11 @@ def format_context_xml(results: list[dict]) -> str:
         return "<context>\nNo relevant documents found.\n</context>"
 
     # Apply primacy-recency reordering: [rank_1, ranks_3_to_N, rank_2]
-    if len(results) == 1:
+    # No reorder needed for 1-2 results; for 3+, rank 1 at start, rank 2 at end.
+    if len(results) <= 2:
         ordered_results = results
-        rank_mapping = [1]
-    elif len(results) == 2:
-        ordered_results = [results[0], results[1]]
-        rank_mapping = [1, 2]
+        rank_mapping = list(range(1, len(results) + 1))
     else:
-        # Rank 1 at start, Rank 2 at end, Ranks 3-N in middle (descending order)
         ordered_results = [results[0]] + results[2:] + [results[1]]
         rank_mapping = [1] + list(range(3, len(results) + 1)) + [2]
 

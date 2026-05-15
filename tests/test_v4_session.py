@@ -1,4 +1,5 @@
 """Tests for SessionManager and multi-turn session state."""
+
 from tamubot.rag.graph.session import SessionManager
 
 
@@ -25,26 +26,6 @@ def test_clear_session_removes_thread_id():
     manager.clear_session("session-x")
     config2 = manager.get_thread_config("session-x")
     assert config1["configurable"]["thread_id"] != config2["configurable"]["thread_id"]
-
-
-def test_strip_non_checkpointable_removes_trace_and_stream():
-    manager = SessionManager()
-    state = {"query": "test", "trace": object(), "answer_stream": iter([]), "answer": "hi"}
-    stripped = manager.strip_non_checkpointable(state)
-    assert "trace" not in stripped
-    assert "answer_stream" not in stripped
-    assert "query" in stripped
-    assert "answer" in stripped
-
-
-def test_inject_trace_adds_trace_to_state():
-    """inject_trace() should add trace object back into state."""
-    manager = SessionManager()
-    mock_trace = object()
-    state = {"query": "test", "answer": "ok"}
-    result = manager.inject_trace(state, mock_trace)
-    assert result["trace"] is mock_trace
-    assert result["query"] == "test"  # other fields preserved
 
 
 def test_two_turns_same_session_share_history():

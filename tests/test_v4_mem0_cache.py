@@ -1,4 +1,5 @@
 """Tests for mem0 integration and session cache (router, retrieval, answer caches)."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -7,24 +8,29 @@ from unittest.mock import MagicMock, patch
 # cache_utils
 # ---------------------------------------------------------------------------
 
+
 def test_normalize_query_lowercases_and_strips_punctuation():
-    from tamubot.rag.graph.cache_utils import normalize_query
+    from tamubot.rag.utils import normalize_query
+
     assert normalize_query("CSCE 221??") == "csce 221"
 
 
 def test_normalize_query_collapses_whitespace():
-    from tamubot.rag.graph.cache_utils import normalize_query
+    from tamubot.rag.utils import normalize_query
+
     assert normalize_query("  what   are  the  prereqs?  ") == "what are the prereqs"
 
 
 def test_normalize_query_identical_paraphrases_differ():
     """Two differently-phrased queries should NOT produce the same key (exact-match only)."""
-    from tamubot.rag.graph.cache_utils import normalize_query
+    from tamubot.rag.utils import normalize_query
+
     assert normalize_query("CSCE 221 grading") != normalize_query("CSCE 221 grading policy")
 
 
 def test_normalize_query_same_text_same_key():
-    from tamubot.rag.graph.cache_utils import normalize_query
+    from tamubot.rag.utils import normalize_query
+
     q = "What is the final exam date?"
     assert normalize_query(q) == normalize_query(q)
 
@@ -33,12 +39,14 @@ def test_normalize_query_same_text_same_key():
 # router_node — cache hit
 # ---------------------------------------------------------------------------
 
+
 def _base_router_state(**extra):
     return {"query": "CSCE 221 grading?", "node_trace": [], "timing_ms": {}, **extra}
 
 
 def _make_router_result(function="hybrid_course"):
     from tamubot.rag.router import RouterResult
+
     return RouterResult(
         course_ids=["202611_CSCE_221_500"],
         rewritten_query="CSCE 221 grading policy",
@@ -49,8 +57,8 @@ def _make_router_result(function="hybrid_course"):
 
 def test_router_cache_hit_skips_llm():
     """When router_cache contains the query key, classify_query() is never called."""
-    from tamubot.rag.graph.cache_utils import normalize_query
     from tamubot.rag.nodes.router_node import router_node
+    from tamubot.rag.utils import normalize_query
 
     cached_entry = {
         "function": "hybrid_course",
@@ -64,8 +72,10 @@ def test_router_cache_hit_skips_llm():
     query = "CSCE 221 grading?"
     state = _base_router_state(router_cache={normalize_query(query): cached_entry})
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.rag.router.classify_query") as mock_classify:
+    with (
+        patch("tamubot.core.config.SESSION_CACHE_ENABLED", True),
+        patch("tamubot.rag.router.classify_query") as mock_classify,
+    ):
         result = router_node(state)
 
     mock_classify.assert_not_called()
@@ -76,14 +86,16 @@ def test_router_cache_hit_skips_llm():
 
 def test_router_cache_miss_calls_llm_and_writes_cache():
     """On cache miss, classify_query() is called and the result is written to router_cache."""
-    from tamubot.rag.graph.cache_utils import normalize_query
     from tamubot.rag.nodes.router_node import router_node
+    from tamubot.rag.utils import normalize_query
 
     rr = _make_router_result()
     state = _base_router_state(router_cache={})
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.rag.router.classify_query", return_value=rr) as mock_classify:
+    with (
+        patch("tamubot.core.config.SESSION_CACHE_ENABLED", True),
+        patch("tamubot.rag.router.classify_query", return_value=rr) as mock_classify,
+    ):
         result = router_node(state)
 
     mock_classify.assert_called_once()
@@ -104,8 +116,10 @@ def test_router_cache_disabled_does_not_use_cache():
     # Pre-populate cache — should be ignored
     state = _base_router_state(router_cache={"csce 221 grading": {"function": "out_of_scope", "course_ids": []}})
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", False), \
-         patch("tamubot.rag.router.classify_query", return_value=rr) as mock_classify:
+    with (
+        patch("tamubot.core.config.SESSION_CACHE_ENABLED", False),
+        patch("tamubot.rag.router.classify_query", return_value=rr) as mock_classify,
+    ):
         result = router_node(state)
 
     # LLM must have been called because cache was disabled
@@ -118,6 +132,7 @@ def test_router_cache_disabled_does_not_use_cache():
 # ---------------------------------------------------------------------------
 # retrieval_node — cache
 # ---------------------------------------------------------------------------
+
 
 def _base_retrieval_state(function="hybrid_course", **extra):
     return {
@@ -140,14 +155,14 @@ def test_retrieval_cache_hit_skips_retrieval_hybrid():
     from tamubot.rag.nodes.retrieval_node import _make_retrieval_cache_key, retrieval_node
 
     fake_chunks = [{"content": "cached chunk", "score": 0.95}]
-    cache_key = _make_retrieval_cache_key(
-        "hybrid_course", ["202611_CSCE_221_500"], "CSCE 221 grading policy", ""
-    )
+    cache_key = _make_retrieval_cache_key("hybrid_course", ["202611_CSCE_221_500"], "CSCE 221 grading policy", "")
     state = _base_retrieval_state(retrieval_cache={cache_key: fake_chunks})
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.rag.tools.mongo.hybrid_search") as mock_hs, \
-         patch("tamubot.rag.tools.voyage.rerank") as mock_rr:
+    with (
+        patch("tamubot.core.config.SESSION_CACHE_ENABLED", True),
+        patch("tamubot.rag.tools.mongo.hybrid_search") as mock_hs,
+        patch("tamubot.rag.tools.voyage.rerank") as mock_rr,
+    ):
         result = retrieval_node(state)
 
     mock_hs.assert_not_called()
@@ -161,18 +176,18 @@ def test_retrieval_cache_hit_skips_retrieval_semantic():
     from tamubot.rag.nodes.retrieval_node import _make_retrieval_cache_key, retrieval_node
 
     fake_chunks = [{"content": "semantic cached", "score": 0.8}]
-    cache_key = _make_retrieval_cache_key(
-        "semantic_general", [], "CSCE 221 grading policy", ""
-    )
+    cache_key = _make_retrieval_cache_key("semantic_general", [], "CSCE 221 grading policy", "")
     state = _base_retrieval_state(
         function="semantic_general",
         course_ids=[],
         retrieval_cache={cache_key: fake_chunks},
     )
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.rag.tools.mongo.semantic_search") as mock_ss, \
-         patch("tamubot.rag.tools.voyage.rerank") as mock_rr:
+    with (
+        patch("tamubot.core.config.SESSION_CACHE_ENABLED", True),
+        patch("tamubot.rag.tools.mongo.semantic_search") as mock_ss,
+        patch("tamubot.rag.tools.voyage.rerank") as mock_rr,
+    ):
         result = retrieval_node(state)
 
     mock_ss.assert_not_called()
@@ -187,18 +202,18 @@ def test_retrieval_cache_miss_calls_retrieval_and_writes_cache():
     chunks = _default_chunks()
     state = _base_retrieval_state(retrieval_cache={})
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.rag.tools.mongo.hybrid_search", return_value=chunks) as mock_hs, \
-         patch("tamubot.rag.tools.voyage.rerank", side_effect=lambda q, c, top_k, **kwargs: c):
+    with (
+        patch("tamubot.core.config.SESSION_CACHE_ENABLED", True),
+        patch("tamubot.rag.tools.mongo.hybrid_search", return_value=chunks) as mock_hs,
+        patch("tamubot.rag.tools.voyage.rerank", side_effect=lambda q, c, top_k, **kwargs: c),
+    ):
         result = retrieval_node(state)
 
     mock_hs.assert_called_once()
     assert "retrieval_cache_hit" not in result["node_trace"]
 
     written_cache = result.get("retrieval_cache", {})
-    cache_key = _make_retrieval_cache_key(
-        "hybrid_course", ["202611_CSCE_221_500"], "CSCE 221 grading policy", ""
-    )
+    cache_key = _make_retrieval_cache_key("hybrid_course", ["202611_CSCE_221_500"], "CSCE 221 grading policy", "")
     assert cache_key in written_cache
 
 
@@ -219,6 +234,7 @@ def test_retrieval_cache_key_same_query_same_key():
 # history_update_node — answer cache
 # ---------------------------------------------------------------------------
 
+
 def _base_update_state(**extra):
     return {
         "query": "CSCE 221 grading?",
@@ -234,13 +250,12 @@ def _base_update_state(**extra):
 
 def test_history_update_writes_answer_cache():
     """history_update_node should write normalize(query) → answer to answer_cache."""
-    from tamubot.rag.graph.cache_utils import normalize_query
     from tamubot.rag.nodes.history_update_node import history_update_node
+    from tamubot.rag.utils import normalize_query
 
     state = _base_update_state()
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.core.config.MEM0_ENABLED", False):
+    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), patch("tamubot.core.config.MEM0_ENABLED", False):
         result = history_update_node(state)
 
     cache = result.get("answer_cache", {})
@@ -251,14 +266,13 @@ def test_history_update_writes_answer_cache():
 
 def test_history_update_answer_cache_merges_with_existing():
     """answer_cache should merge new entry with any pre-existing entries."""
-    from tamubot.rag.graph.cache_utils import normalize_query
     from tamubot.rag.nodes.history_update_node import history_update_node
+    from tamubot.rag.utils import normalize_query
 
     existing = {normalize_query("old question"): "old answer"}
     state = _base_update_state(answer_cache=existing)
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.core.config.MEM0_ENABLED", False):
+    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), patch("tamubot.core.config.MEM0_ENABLED", False):
         result = history_update_node(state)
 
     cache = result.get("answer_cache", {})
@@ -272,8 +286,7 @@ def test_history_update_no_answer_cache_when_disabled():
 
     state = _base_update_state()
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", False), \
-         patch("tamubot.core.config.MEM0_ENABLED", False):
+    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", False), patch("tamubot.core.config.MEM0_ENABLED", False):
         result = history_update_node(state)
 
     cache = result.get("answer_cache", {})
@@ -286,8 +299,7 @@ def test_history_update_no_answer_cache_when_query_empty():
 
     state = _base_update_state(query="", answer="some answer")
 
-    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), \
-         patch("tamubot.core.config.MEM0_ENABLED", False):
+    with patch("tamubot.core.config.SESSION_CACHE_ENABLED", True), patch("tamubot.core.config.MEM0_ENABLED", False):
         result = history_update_node(state)
 
     assert len(result.get("answer_cache", {})) == 0
@@ -296,6 +308,7 @@ def test_history_update_no_answer_cache_when_query_empty():
 # ---------------------------------------------------------------------------
 # history_inject_node — mem0 context path
 # ---------------------------------------------------------------------------
+
 
 def test_history_inject_skips_mem0_when_no_session_id():
     """When session_id is empty, mem0 path is skipped even if MEM0_ENABLED=True."""
@@ -315,8 +328,10 @@ def test_history_inject_skips_mem0_when_no_session_id():
         "timing_ms": {},
     }
 
-    with patch("tamubot.core.config.MEM0_ENABLED", True), \
-         patch("tamubot.rag.tools.mem0.get_mem0_manager", return_value=mock_manager):
+    with (
+        patch("tamubot.core.config.MEM0_ENABLED", True),
+        patch("tamubot.rag.tools.mem0.get_mem0_manager", return_value=mock_manager),
+    ):
         history_inject_node(state)
 
     mock_manager.search_context.assert_not_called()
@@ -325,6 +340,7 @@ def test_history_inject_skips_mem0_when_no_session_id():
 # ---------------------------------------------------------------------------
 # mem0_registry
 # ---------------------------------------------------------------------------
+
 
 def test_mem0_registry_register_and_get():
     import tamubot.rag.tools.mem0 as mem0_registry
@@ -338,6 +354,7 @@ def test_mem0_registry_register_and_get():
 
 def test_mem0_registry_get_missing_returns_none():
     import tamubot.rag.tools.mem0 as mem0_registry
+
     assert mem0_registry.get("nonexistent-session") is None
 
 

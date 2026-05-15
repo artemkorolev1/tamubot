@@ -28,7 +28,6 @@ from tamubot.core import config
 from tamubot.rag import RouterResult
 from tamubot.rag.generator import generate
 from tamubot.rag.router import (
-    FUNCTION_CATEGORY_STRATEGIES,
     classify_query,
     compute_dynamic_k,
     deduplicate_chunks,
@@ -624,9 +623,7 @@ def _do_retrieval(rr: RouterResult, query: str) -> list[dict]:
     if fn == "out_of_scope" or not course_ids:
         return []
 
-    # Determine categories via the canonical registry (single source of truth)
-    strategy = FUNCTION_CATEGORY_STRATEGIES.get(fn)
-    categories = strategy(rr) if strategy else list(config.DEFAULT_SUMMARY_CATEGORIES)
+    categories = list(config.DEFAULT_SUMMARY_CATEGORIES)
 
     # recurrent_* path: 5-step deterministic cardinality pipeline
     if fn.startswith("recurrent_"):

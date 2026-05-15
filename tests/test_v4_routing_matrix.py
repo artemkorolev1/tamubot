@@ -1,6 +1,6 @@
 """Tests for the routing matrix data contract."""
 
-from tamubot.rag.graph.routing_matrix import ROUTING_MATRIX
+from tamubot.rag.graph.builder import ROUTING_MATRIX
 
 
 def test_all_five_functions_present():

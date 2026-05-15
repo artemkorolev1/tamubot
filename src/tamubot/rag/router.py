@@ -101,18 +101,6 @@ class RouterResult:
         return bool(self.course_ids) or self.intent_type is not None
 
 
-_normalize_course_id = normalize_course_id  # backward-compat alias
-
-
-# ---------------------------------------------------------------------------
-# Retrieval category registry (pure Python, no LLM)
-# ---------------------------------------------------------------------------
-
-# Deprecated in v3 — categories no longer drive retrieval function selection.
-# Kept as empty dict to avoid import errors in existing callers.
-FUNCTION_CATEGORY_STRATEGIES: dict = {}
-
-
 # ---------------------------------------------------------------------------
 # Classification
 # ---------------------------------------------------------------------------
@@ -180,7 +168,7 @@ def classify_query(
     raw_ids = data.get("course_ids") or []
     if isinstance(raw_ids, str):
         raw_ids = [raw_ids]
-    course_ids = [_normalize_course_id(c) for c in raw_ids if c]
+    course_ids = [normalize_course_id(c) for c in raw_ids if c]
 
     valid_intent_types = {"ACADEMIC", "CAREER", "DIFFICULTY", "PLANNING", "ADMINISTRATIVE", "GENERAL"}
     intent_type = data.get("intent_type")
