@@ -7,11 +7,13 @@ Gate 2 (LLM, asynchronous): RAGAS ResponseGroundedness scoring via observability
 import re
 
 # Functions that require citation validation
-_FACTUAL_FUNCTIONS = frozenset([
-    "hybrid_course",
-    "recursive",
-    "semantic_general",
-])
+_FACTUAL_FUNCTIONS = frozenset(
+    [
+        "hybrid_course",
+        "recursive",
+        "semantic_general",
+    ]
+)
 
 
 def validate_citations_gate1(response_text: str) -> bool:
@@ -26,8 +28,8 @@ def validate_citations_gate1(response_text: str) -> bool:
     Returns:
         True if at least one citation is found, False otherwise.
     """
-    # Pattern matches [Source N], [Source N:], or [N] where N is a number
-    citation_pattern = r'\[(?:Source\s+)?(\d+)(?::\s*[^\]]*)?]'
+    # Pattern matches [Source N], [Source N:], [Source N, p.X], or [N]
+    citation_pattern = r"\[(?:Source\s+)?(\d+)[^\]]*\]"
     return re.search(citation_pattern, response_text) is not None
 
 
@@ -51,6 +53,7 @@ def validate_citations_with_trace(
 
     try:
         from langfuse import get_client as _lf_get_client
+
         _lf_get_client().score_current_trace(
             name="citation_gate1_pass",
             value=1 if citation_valid else 0,

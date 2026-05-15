@@ -36,25 +36,33 @@ _LEVEL2_HEADERS: frozenset[str] = frozenset(
         "Course Description",
         "Course Information",
         "Course Overview",
+        "Catalog Description",
         "Prerequisites",
+        "Course Prerequisites",
         "Corequisites",
         "Grading",
         "Grading Policy",
         "Schedule",
         "Course Schedule",
         "Tentative Schedule",
+        "Weekly Schedule",
         "Instructor Information",
         "Instructor",
+        "Instructor Details",
         "Contact Information",
         "Course Objectives",
         "Learning Outcomes",
+        "Course Learning Outcomes",
         "Required Materials",
         "Textbook",
         "Textbooks",
         "Required Textbooks",
+        "Textbook and/or Resource Materials",
         "Course Policies",
         "Attendance",
         "Attendance Policy",
+        "Late Work Policy",
+        "Course Specific Late Work Policy",
         "Academic Integrity",
         "University Policies",
         "Americans with Disabilities Act (ADA) Policy",
@@ -63,6 +71,9 @@ _LEVEL2_HEADERS: frozenset[str] = frozenset(
         "Exams",
         "Examinations",
         "Homework",
+        "Special Course Designation",
+        "Additional Course Information",
+        "Additional Course Details",
     ]
 )
 
@@ -86,11 +97,25 @@ _LEVEL3_HEADERS: frozenset[str] = frozenset(
         "Final Exam",
         "Final Project",
         "Participation",
+        "Class Participation",
         "Extra Credit",
         "Regrade Policy",
         "Regrading Policy",
+        "Quizzes",
+        "Projects",
+        "Standard Letter Grading Scale",
     ]
 )
+
+# Subsection patterns inside Course Schedule / multi-week breakdowns.
+# Used only when the input is flat-H1 (bronze had no Docling hierarchy info).
+_SCHEDULE_SUBSECTION_PATTERNS: list[re.Pattern] = [
+    re.compile(r"^Week\s+\d+\b", re.IGNORECASE),  # "Week 1 - ..."
+    re.compile(r"^Part\s+[IVX]+\b", re.IGNORECASE),  # "Part I:", "Part II:"
+    re.compile(r"^Module\s+\d+\b", re.IGNORECASE),  # "Module 3 - ..."
+    re.compile(r"^Unit\s+\d+\b", re.IGNORECASE),  # "Unit 4 - ..."
+    re.compile(r"^Lecture\s+\d+\b", re.IGNORECASE),  # "Lecture 5: ..."
+]
 
 
 def _known_level(header_text: str) -> int | None:
@@ -110,6 +135,12 @@ def _infer_level_from_numbering(header_text: str, base_level: int) -> int | None
         if pat.match(stripped):
             return base_level + depth
     return None
+
+
+def _is_schedule_subsection(header_text: str) -> bool:
+    """Detect Week/Part/Module/Unit/Lecture subsection patterns inside a schedule."""
+    stripped = header_text.strip()
+    return any(pat.match(stripped) for pat in _SCHEDULE_SUBSECTION_PATTERNS)
 
 
 def _estimate_tokens(text: str) -> int:
@@ -138,7 +169,10 @@ class HierarchyFilter:
             report_path = get_report()
 
         result = FilterResult()
-        md_files = sorted(input_dir.glob("*.md"))
+        pattern = config.get("file_pattern", "*.md")
+        md_files = sorted(input_dir.glob(pattern))
+        if limit := config.get("limit"):
+            md_files = md_files[:limit]
         result.input_count = len(md_files)
 
         for md_path in md_files:
@@ -168,12 +202,29 @@ class HierarchyFilter:
                 # For multi-level files, use 2 (standard ## base).
                 base_level = next(iter(distinct_levels)) if len(distinct_levels) == 1 else 2
 
+                # Flat-H1 input means Docling produced no hierarchy info (bronze
+                # has only H1 headers). Treat the first H1 as the doc title and
+                # default-promote the rest to H2, demoting known subsections to H3.
+                is_flat_h1 = distinct_levels == {1}
+                first_header_idx = headers[0][0] if headers else -1
+
                 out_lines = list(lines)
                 for line_idx, _old_level, header_text in headers:
-                    # Priority: known section map > numbering > keep original
+                    # Priority order:
+                    #   1. known section map (L2/L3 by name)
+                    #   2. numbering pattern (1.1.1 → +depth)
+                    #   3. (flat-H1 only) schedule subsection pattern → L3
+                    #   4. (flat-H1 only) default to L2 (or keep L1 for doc title)
                     new_level = _known_level(header_text)
                     if new_level is None:
                         new_level = _infer_level_from_numbering(header_text, base_level)
+                    if new_level is None and is_flat_h1:
+                        if line_idx == first_header_idx:
+                            new_level = 1  # preserve document title
+                        elif _is_schedule_subsection(header_text):
+                            new_level = 3
+                        else:
+                            new_level = 2
                     if new_level is not None and new_level != _old_level:
                         out_lines[line_idx] = f"{'#' * new_level} {header_text}"
                         corrected = True

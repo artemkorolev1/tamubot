@@ -251,8 +251,12 @@ def validate_directory(
     output_dir: Path | None = None,
     report_path: Path | None = None,
     version_label: str | None = None,
+    file_pattern: str = "*.md",
+    limit: int | None = None,
 ) -> list[ValidationResult]:
-    md_files = sorted(input_dir.glob("*.md"))
+    md_files = sorted(input_dir.glob(file_pattern))
+    if limit:
+        md_files = md_files[:limit]
     results: list[ValidationResult] = []
     if report_path is None:
         from tamubot.ingestion.report_writer import get_report

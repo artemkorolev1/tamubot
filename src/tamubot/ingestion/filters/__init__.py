@@ -5,6 +5,7 @@ from tamubot.ingestion.filters.boilerplate import BoilerplateFilter
 from tamubot.ingestion.filters.false_positive import FalsePositiveFilter
 from tamubot.ingestion.filters.hierarchy import HierarchyFilter
 from tamubot.ingestion.filters.image_recovery import ImageRecoveryFilter
+from tamubot.ingestion.filters.post_convert_cleanup import PostConvertCleanupFilter
 
 __all__ = [
     "BaseFilter",
@@ -13,4 +14,5 @@ __all__ = [
     "FalsePositiveFilter",
     "HierarchyFilter",
     "ImageRecoveryFilter",
+    "PostConvertCleanupFilter",
 ]

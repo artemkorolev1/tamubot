@@ -124,8 +124,20 @@ def retrieval_node(state: PipelineState) -> dict:
             return {"retrieved_chunks": reranked, "retrieval_cache": retrieval_cache_update, "node_trace": node_trace}
 
         elif function == "course_summary":
-            from tamubot.rag.tools.mongo import get_course_summary_chunks
+            from tamubot.rag.tools.mongo import (
+                get_course_summary_chunks,
+                get_summary_statement_chunks,
+            )
 
+            # Preferred: page-anchored statements (each one is its own source,
+            # citable as [Source N, p.X]).
+            summary_chunks = get_summary_statement_chunks(course_ids)
+            if summary_chunks:
+                node_trace.append("summary_statements_retrieval")
+                return {"retrieved_chunks": summary_chunks, "node_trace": node_trace}
+
+            # Back-compat: courses ingested before summary_statements existed
+            # still have the keyword-index course_summary blob.
             summary_chunks = get_course_summary_chunks(course_ids)
             if summary_chunks:
                 node_trace.append("course_summary_retrieval")

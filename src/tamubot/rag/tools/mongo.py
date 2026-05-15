@@ -52,6 +52,7 @@ def _projection() -> dict:
             "score": 1,
             "source": 1,
             "page": 1,
+            "source_file": 1,
             "instructor_name": 1,
             "pipeline_version": 1,
             "has_table": 1,
@@ -363,4 +364,56 @@ def get_course_summary_chunks(course_ids: list[str]) -> list[dict]:
                 "pipeline_version": "v4",
             }
         )
+    return chunks
+
+
+def get_summary_statement_chunks(course_ids: list[str]) -> list[dict]:
+    """Fetch page-anchored summary_statements and format as one chunk per statement.
+
+    Each returned chunk carries the statement text, the page it came from, and
+    the course's source_file — enough for the citation rewriter to build a
+    clickable [Source N, p.X] link to the syllabus PDF.
+
+    Returns an empty list if no statements exist; callers should fall back to
+    the keyword-index path via get_course_summary_chunks().
+    """
+    if not course_ids:
+        return []
+    db = _get_db()
+    docs = db[COURSES_COLLECTION].find(
+        {
+            "course_id": {"$in": list(set(course_ids))},
+            "summary_statements": {"$exists": True, "$ne": []},
+        },
+        {
+            "course_id": 1,
+            "section": 1,
+            "term": 1,
+            "source": 1,
+            "source_file": 1,
+            "instructor": 1,
+            "summary_statements": 1,
+            "_id": 0,
+        },
+    )
+    chunks: list[dict] = []
+    for doc in docs:
+        instructor = doc.get("instructor") or {}
+        instructor_name = instructor.get("name") if isinstance(instructor, dict) else None
+        for idx, stmt in enumerate(doc.get("summary_statements") or []):
+            chunks.append(
+                {
+                    "course_id": doc.get("course_id"),
+                    "section": doc.get("section", ""),
+                    "term": doc.get("term", ""),
+                    "content": stmt.get("text", ""),
+                    "header_path": stmt.get("header_path") or "Course Overview",
+                    "page": stmt.get("page"),
+                    "source": "course_summary",
+                    "source_file": doc.get("source_file"),
+                    "instructor_name": instructor_name,
+                    "chunk_index": idx,
+                    "pipeline_version": "v4",
+                }
+            )
     return chunks

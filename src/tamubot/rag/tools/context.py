@@ -62,6 +62,10 @@ def format_context_xml(results: list[dict]) -> str:
             attrs.append(f'instructor="{doc["instructor_name"]}"')
         if doc.get("term"):
             attrs.append(f'term="{doc["term"]}"')
+        if doc.get("page") is not None:
+            attrs.append(f'page="{doc["page"]}"')
+        if doc.get("source"):
+            attrs.append(f'origin="{html.escape(str(doc["source"]))}"')
 
         attr_str = " ".join(attrs)
         title = doc.get("title", "") or doc.get("header_text", "") or doc.get("header_path", "")

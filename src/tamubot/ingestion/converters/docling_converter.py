@@ -19,7 +19,11 @@ from docling_core.transforms.serializer.markdown import (
     MarkdownTextSerializer,
 )
 from docling_core.types.doc.document import SectionHeaderItem, TitleItem
-from hierarchical.postprocessor import ResultPostprocessor
+
+try:
+    from hierarchical.postprocessor import ResultPostprocessor  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover — optional private module
+    ResultPostprocessor = None  # type: ignore[assignment,misc]
 
 log = logging.getLogger(__name__)
 
@@ -90,8 +94,9 @@ def convert(
 
     result = converter.convert(str(pdf_path))
 
-    # Reconstruct heading hierarchy from PDF outline / TOC
-    ResultPostprocessor(result, source=str(pdf_path)).process()
+    # Reconstruct heading hierarchy from PDF outline / TOC (optional private module)
+    if ResultPostprocessor is not None:
+        ResultPostprocessor(result, source=str(pdf_path)).process()
 
     # Serialize with custom heading formatter.
     # The hierarchical postprocessor can leave the document hierarchy in a state

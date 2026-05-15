@@ -61,7 +61,12 @@ reformat, or summarize existing text.
 
 
 def _find_raw_pdf(md_stem: str) -> Path | None:
-    """Find the raw PDF corresponding to a bronze markdown file."""
+    """Find the raw PDF corresponding to a bronze markdown file.
+
+    Handles both:
+      - md and raw share the same version suffix (or both lack one)
+      - md has e.g. _v012 but raw has _v011 (copy bumps version, convert bumps again)
+    """
     candidate = RAW_ROOT / f"{md_stem}.pdf"
     if candidate.exists():
         return candidate
@@ -69,6 +74,9 @@ def _find_raw_pdf(md_stem: str) -> Path | None:
     candidate = RAW_ROOT / f"{base_stem}.pdf"
     if candidate.exists():
         return candidate
+    matches = sorted(RAW_ROOT.glob(f"{base_stem}_v???.pdf"))
+    if matches:
+        return matches[-1]
     return None
 
 
@@ -173,7 +181,10 @@ class ImageRecoveryFilter:
             report_path = get_report()
 
         result = FilterResult()
-        md_files = sorted(input_dir.glob("*.md"))
+        pattern = config.get("file_pattern", "*.md")
+        md_files = sorted(input_dir.glob(pattern))
+        if (limit := config.get("limit")):
+            md_files = md_files[:limit]
         result.input_count = len(md_files)
 
         total_markers_before = 0

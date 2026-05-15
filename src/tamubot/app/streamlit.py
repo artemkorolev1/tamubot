@@ -446,6 +446,11 @@ if prompt:
                     for token in answer_tokens:
                         answer += token
                         answer_placeholder.markdown(answer + "▌")
+
+                    # Rewrite [Source N, p.X] citations into clickable PDF links
+                    # before the final render and before we stash into history.
+                    if source_docs:
+                        answer = rewrite_citations(answer, source_docs)
                     answer_placeholder.markdown(answer)
                     logger.info(f"Generation complete, answer length: {len(answer)}")
 
@@ -477,8 +482,12 @@ if prompt:
                                 )
                             for i, doc in enumerate(source_docs):
                                 label = doc.get("course_id", doc.get("policy_name", "Unknown"))
-                                st.write(f"**Source {i + 1}:** {label}")
-                                if doc.get("category"):
+                                page = doc.get("page")
+                                page_suffix = f" — p.{page}" if page is not None else ""
+                                st.write(f"**Source {i + 1}:** {label}{page_suffix}")
+                                if doc.get("header_path"):
+                                    st.write(f"*Header: {doc['header_path']}*")
+                                elif doc.get("category"):
                                     st.write(f"*Category: {doc['category']}*")
                                 content = doc.get("content", doc.get("policy_name", ""))
                                 st.info(content[:500] + ("..." if len(content) > 500 else ""))

@@ -16,6 +16,7 @@ from typing import Any
 from tamubot.ingestion.boilerplate_stripper import (
     BODY_BOILERPLATE_HEADERS,
     classify_header,
+    strip_template_sentences,
 )
 from tamubot.ingestion.filters.base import FilterResult
 
@@ -119,15 +120,24 @@ class BoilerplateFilter:
             report_path = get_report()
 
         result = FilterResult()
-        md_files = sorted(input_dir.glob("*.md"))
+        pattern = config.get("file_pattern", "*.md")
+        md_files = sorted(input_dir.glob(pattern))
+        if (limit := config.get("limit")):
+            md_files = md_files[:limit]
         result.input_count = len(md_files)
 
         cat_totals: dict[str, int] = {}
         total_tokens_removed = 0
+        total_sentence_strips = 0
         all_new_candidates: list[str] = []
 
         for md_path in md_files:
             text = md_path.read_text(encoding="utf-8")
+            # Pre-pass: strip stray TAMU-template sentences from body text BEFORE
+            # the section parser runs, so they cannot survive in legitimate
+            # course-specific sections.
+            text, sentence_strip_count = strip_template_sentences(text)
+            total_sentence_strips += sentence_strip_count
             sections = _parse_sections(text)
 
             kept: list[str] = []
@@ -273,6 +283,7 @@ class BoilerplateFilter:
             "total_tokens_removed": total_tokens_removed,
             "by_category": cat_totals,
             "new_candidates": all_new_candidates,
+            "total_sentence_strips": total_sentence_strips,
         }
         return result
 

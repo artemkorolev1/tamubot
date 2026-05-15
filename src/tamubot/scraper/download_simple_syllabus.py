@@ -20,7 +20,7 @@ from playwright.sync_api import sync_playwright
 
 # ── Config ───────────────────────────────────────────────────────────────────
 
-DEPARTMENTS = {"ISEN"}
+DEPARTMENTS = {"CSCE", "ISEN"}
 GRADUATE_ONLY = True  # course number >= 600
 TARGET_TERMS = {"Summer 2025", "Fall 2025", "Spring 2026", "Summer 2026", "Fall 2026"}
 PAGE_SIZE = 50

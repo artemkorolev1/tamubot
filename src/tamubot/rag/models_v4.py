@@ -48,6 +48,17 @@ class ChunkDocV4(BaseModel):
     ingested_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class SummaryStatement(BaseModel):
+    """One page-anchored fact extracted from a course's chunks.
+
+    Together, a list of these forms the page-citable summary for a course.
+    """
+
+    text: str
+    page: Optional[int] = None
+    header_path: Optional[str] = None  # for diagnostics; not shown to user
+
+
 class CourseDocV4(BaseModel):
     """One document per course section (CRN) in *courses_v4*."""
 
@@ -69,6 +80,7 @@ class CourseDocV4(BaseModel):
     format: Optional[str] = None  # "in-person", "online", etc.
     prerequisites: Optional[str] = None
     course_summary: Optional[str] = None
+    summary_statements: list[SummaryStatement] = Field(default_factory=list)
     chunk_config: Optional[dict] = None
 
     # Housekeeping

@@ -46,10 +46,44 @@ LOGS_ROOT = DATA_ROOT / "logs"
 
 RAW_SOURCE = Path("tamu_data/raw/simple_syllabus")
 
+
+def setup_paths(dept: str | None) -> None:
+    """Re-point all medallion roots under data/syllabi/<DEPT>/ when a dept is given.
+
+    Leaves the shared data/syllabi/{raw,bronze,silver,gold,logs} layout in place
+    for backwards compatibility (existing ISEN files were ingested there).
+
+    Also propagates the new raw root to filters/image_recovery so its
+    _find_raw_pdf() lookup resolves under the per-dept tree.
+    """
+    global RAW_ROOT, BRONZE_ROOT, SILVER_ROOT, GOLD_ROOT, LOGS_ROOT, SILVER_DIRS
+    if not dept:
+        return
+    base = DATA_ROOT / dept.upper()
+    RAW_ROOT = base / "raw"
+    BRONZE_ROOT = base / "bronze"
+    SILVER_ROOT = base / "silver"
+    GOLD_ROOT = base / "gold"
+    LOGS_ROOT = base / "logs"
+    SILVER_DIRS = {
+        "post_convert": SILVER_ROOT / "00_post_convert",
+        "image_recovery": SILVER_ROOT / "01_image_recovery",
+        "false_positive": SILVER_ROOT / "02_false_positive",
+        "boilerplate": SILVER_ROOT / "03_boilerplate",
+        "hierarchy": SILVER_ROOT / "04_hierarchy",
+        "validate": SILVER_ROOT / "05_validate",
+        "chunk": SILVER_ROOT / "06_chunk",
+    }
+    from tamubot.ingestion.filters import image_recovery as _ir
+
+    _ir.RAW_ROOT = RAW_ROOT
+
+
 # Ordered list of pipeline step names
 ALL_STEPS = [
     "copy",
     "convert",
+    "post_convert",
     "image_recovery",
     "false_positive",
     "boilerplate",
@@ -65,6 +99,7 @@ _CODE_TO_SEASON = {"11": "Spring", "21": "Summer", "41": "Fall"}
 
 # Silver sub-step directories
 SILVER_DIRS = {
+    "post_convert": SILVER_ROOT / "00_post_convert",
     "image_recovery": SILVER_ROOT / "01_image_recovery",
     "false_positive": SILVER_ROOT / "02_false_positive",
     "boilerplate": SILVER_ROOT / "03_boilerplate",
@@ -277,16 +312,19 @@ def step_filter(
     input_dir: Path,
     output_dir: Path,
     version: str,
+    filter_config: dict | None = None,
 ) -> Path:
-    """Run a filter on all markdown files in input_dir."""
+    """Run a filter on all markdown files in input_dir matching the configured pattern."""
     from tamubot.ingestion.filters import (
         BoilerplateFilter,
         FalsePositiveFilter,
         HierarchyFilter,
         ImageRecoveryFilter,
+        PostConvertCleanupFilter,
     )
 
     filter_map = {
+        "post_convert": PostConvertCleanupFilter,
         "image_recovery": ImageRecoveryFilter,
         "false_positive": FalsePositiveFilter,
         "boilerplate": BoilerplateFilter,
@@ -295,7 +333,7 @@ def step_filter(
 
     filt = filter_map[filter_name]()
     print(f"  Running {filt.name} filter...")
-    result = filt.apply(input_dir, output_dir, {})
+    result = filt.apply(input_dir, output_dir, filter_config or {})
 
     logger = StepLogger(LOGS_ROOT / f"filter_{filter_name}_log")
     for entry in result.log_entries:
@@ -312,8 +350,14 @@ def step_filter(
     return output_dir
 
 
-def step_validate(input_dir: Path, version: str, version_label: str | None = None) -> Path:
-    """Run LLM validation on filtered markdown files."""
+def step_validate(
+    input_dir: Path,
+    version: str,
+    version_label: str | None = None,
+    file_pattern: str = "*.md",
+    limit: int | None = None,
+) -> Path:
+    """Run LLM validation on filtered markdown files matching the configured pattern."""
     from tamubot.ingestion.validators.llm_validator import validate_directory
 
     output_dir = SILVER_DIRS["validate"]
@@ -323,6 +367,8 @@ def step_validate(input_dir: Path, version: str, version_label: str | None = Non
         None,
         output_dir,
         version_label=version_label,
+        file_pattern=file_pattern,
+        limit=limit,
     )
 
     logger = StepLogger(LOGS_ROOT / "validate_log")
@@ -390,11 +436,14 @@ def step_chunk(
     max_chunk_tokens: int,
     min_chunk_tokens: int,
     split_level: int,
+    file_pattern: str = "*.md",
+    limit: int | None = None,
 ) -> Path:
     """Semantic chunking: one chunk per section, enriched with course metadata.
 
     Produces ingestion-ready JSON documents in 06_chunk/.
     """
+    from tamubot.core import config
     from tamubot.ingestion.chunk_report import generate_chunk_report
     from tamubot.ingestion.chunker_v4 import (
         chunk_semantic,
@@ -403,8 +452,11 @@ def step_chunk(
     output_dir = SILVER_DIRS["chunk"]
     enrichment_dir = SILVER_ROOT / "05_enrich"
     logger = StepLogger(LOGS_ROOT / "chunk_log")
+    llm_client = config.get_tamu_client()
 
-    md_files = sorted(input_dir.glob("*.md"))
+    md_files = sorted(input_dir.glob(file_pattern))
+    if limit:
+        md_files = md_files[:limit]
     print(f"  Chunking {len(md_files)} files (semantic mode)...")
 
     errors: list[dict] = []
@@ -438,6 +490,15 @@ def step_chunk(
             if prereq_match:
                 course_metadata["prerequisites"] = prereq_match.group(1).strip()
 
+            # Generate page-anchored summary statements from the chunks. One LLM
+            # call per file. Statements drive [Source N, p.X] citations on the
+            # summary path in the same way chunks do on the detailed path.
+            course_id = course_metadata.get("course_id", "")
+            term = course_metadata.get("term", "")
+            statements, stmt_error = generate_summary_statements(chunks, course_id, term, llm_client)
+            if stmt_error:
+                print(f"    WARN: summary_statements for {stem} failed: {stmt_error}")
+
             out_data = {
                 "source_file": stem,
                 "pipeline_version": "v4",
@@ -445,6 +506,7 @@ def step_chunk(
                 "course_type": enrichment.get("course_type", ""),
                 "course_metadata": course_metadata,
                 "course_summary": enrichment.get("course_summary", ""),
+                "summary_statements": statements,
                 "chunk_config": {
                     "strategy": "semantic",
                     "flag_threshold": max_chunk_tokens,
@@ -517,38 +579,54 @@ def step_gold(input_dir: Path, version: str) -> Path:
 # ── Orchestrator ─────────────────────────────────────────────────────────────
 
 
-def _input_dir_for_step(step: str, steps: list[str]) -> Path:
-    """Determine the input directory for a step based on what ran before."""
+def _input_dir_for_step(step: str, steps: list[str], file_pattern: str = "*.md") -> Path:
+    """Determine the input directory for a step based on what ran before.
+
+    For a step run alone (no filters earlier in the same invocation), fall back to
+    the deepest silver dir that actually has files matching file_pattern, instead
+    of going all the way back to bronze.
+    """
     if step == "copy":
         return RAW_SOURCE  # not used directly
     if step == "convert":
         return RAW_ROOT
+
+    filter_order = ["post_convert", "image_recovery", "false_positive", "boilerplate", "hierarchy"]
+
+    def _deepest_silver_with_files(upto_idx: int) -> Path:
+        """Return the latest silver dir (up to filter_order[upto_idx]) that has matching files."""
+        for prev in reversed(filter_order[: upto_idx + 1]):
+            sdir = SILVER_DIRS[prev]
+            if sdir.exists() and any(sdir.glob(file_pattern)):
+                return sdir
+        return BRONZE_ROOT
+
+    if step == "post_convert":
+        return BRONZE_ROOT
     if step == "image_recovery":
-        return BRONZE_ROOT
+        if "post_convert" in steps:
+            return SILVER_DIRS["post_convert"]
+        return _deepest_silver_with_files(0)
     if step == "false_positive":
-        if "image_recovery" in steps:
-            return SILVER_DIRS["image_recovery"]
-        return BRONZE_ROOT
-    if step == "boilerplate":
-        if "false_positive" in steps:
-            return SILVER_DIRS["false_positive"]
-        if "image_recovery" in steps:
-            return SILVER_DIRS["image_recovery"]
-        return BRONZE_ROOT
-    if step == "hierarchy":
-        if "boilerplate" in steps:
-            return SILVER_DIRS["boilerplate"]
-        if "false_positive" in steps:
-            return SILVER_DIRS["false_positive"]
-        if "image_recovery" in steps:
-            return SILVER_DIRS["image_recovery"]
-        return BRONZE_ROOT
-    if step in ("validate", "chunk"):
-        # Use the last filter output
-        for prev in reversed(["hierarchy", "boilerplate", "false_positive", "image_recovery"]):
+        for prev in ("image_recovery", "post_convert"):
             if prev in steps:
                 return SILVER_DIRS[prev]
-        return BRONZE_ROOT
+        return _deepest_silver_with_files(1)
+    if step == "boilerplate":
+        for prev in ("false_positive", "image_recovery", "post_convert"):
+            if prev in steps:
+                return SILVER_DIRS[prev]
+        return _deepest_silver_with_files(2)
+    if step == "hierarchy":
+        for prev in ("boilerplate", "false_positive", "image_recovery", "post_convert"):
+            if prev in steps:
+                return SILVER_DIRS[prev]
+        return _deepest_silver_with_files(3)
+    if step in ("validate", "chunk"):
+        for prev in reversed(filter_order):
+            if prev in steps:
+                return SILVER_DIRS[prev]
+        return _deepest_silver_with_files(4)
     if step == "gold":
         return SILVER_DIRS["chunk"]
     return BRONZE_ROOT
@@ -556,6 +634,7 @@ def _input_dir_for_step(step: str, steps: list[str]) -> Path:
 
 def run_pipeline(args: argparse.Namespace) -> None:
     """Execute the pipeline with the given configuration."""
+    setup_paths(args.department)
     _ensure_dirs()
     steps = resolve_steps(args)
     version = resolve_version(force_new=True)
@@ -592,7 +671,20 @@ def run_pipeline(args: argparse.Namespace) -> None:
         print(f"\n  No PDFs found for {args.department}" + (f" term {args.term}" if args.term else ""))
         sys.exit(1)
 
+    # Build a glob pattern that scopes every downstream step (filters, validate, chunk)
+    # to the same dept/term as copy/convert. Filenames look like:
+    #   <term_code>_<DEPT>_<course>_<section>_<crn>[_HP]_v<NNN>.md
+    dept = args.department.upper()
+    if term_code:
+        file_pattern = f"{term_code}_{dept}_*.md"
+    else:
+        file_pattern = f"*_{dept}_*.md"
+    filter_config = {"file_pattern": file_pattern}
+    if args.limit:
+        filter_config["limit"] = args.limit
+
     print(f"\n  Found {len(pdf_paths)} PDFs.")
+    print(f"  Filter scope: glob={file_pattern!r}" + (f", limit={args.limit}" if args.limit else ""))
     print("=" * 50)
 
     if not args.yes:
@@ -619,22 +711,24 @@ def run_pipeline(args: argparse.Namespace) -> None:
                 args.converter,
             )
 
-        elif step in ("image_recovery", "false_positive", "boilerplate", "hierarchy"):
-            input_dir = _input_dir_for_step(step, steps)
-            step_filter(step, input_dir, SILVER_DIRS[step], version)
+        elif step in ("post_convert", "image_recovery", "false_positive", "boilerplate", "hierarchy"):
+            input_dir = _input_dir_for_step(step, steps, file_pattern)
+            step_filter(step, input_dir, SILVER_DIRS[step], version, filter_config)
 
         elif step == "validate":
-            input_dir = _input_dir_for_step(step, steps)
-            step_validate(input_dir, version)
+            input_dir = _input_dir_for_step(step, steps, file_pattern)
+            step_validate(input_dir, version, file_pattern=file_pattern, limit=args.limit)
 
         elif step == "chunk":
-            input_dir = _input_dir_for_step(step, steps)
+            input_dir = _input_dir_for_step(step, steps, file_pattern)
             step_chunk(
                 input_dir,
                 version,
                 args.max_chunk_tokens,
                 args.min_chunk_tokens,
                 args.split_level,
+                file_pattern=file_pattern,
+                limit=args.limit,
             )
 
         elif step == "gold":

@@ -117,6 +117,35 @@ BODY_BOILERPLATE_HEADERS: list[str] = [
 ]
 
 
+# Sentence-level boilerplate that bleeds into course-specific sections.
+# Be conservative: only strip phrases that are verbatim TAMU template text and
+# that contribute no course-specific info. Avoid stripping phrases that just
+# *reference* Student Rule 7 alongside course-specific guidance.
+SENTENCE_STRIPS: list[str] = [
+    r"The university views class attendance and participation as an individual student responsibility[^.]*\.",
+    r"Please refer to Student Rule 7 in its entirety for information about excused absences[^.]*\.",
+    r"Please refer to Student Rule 7 in its entirety for information about makeup work[^.]*\.",
+]
+
+_SENTENCE_STRIP_PATTERNS: list[re.Pattern] = [re.compile(p, re.IGNORECASE) for p in SENTENCE_STRIPS]
+
+
+def strip_template_sentences(text: str) -> tuple[str, int]:
+    """Remove stray TAMU-template sentences anywhere they appear in body text.
+
+    Returns ``(new_text, sentence_strip_count)``.
+    """
+    total = 0
+    for pat in _SENTENCE_STRIP_PATTERNS:
+        text, n = pat.subn("", text)
+        total += n
+    # Collapse runs of 3+ blank lines that the strip can leave behind.
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    # Tidy doubled spaces left by mid-paragraph strips.
+    text = re.sub(r"  +", " ", text)
+    return text, total
+
+
 _LEADING_NUMBER_RE = re.compile(r"^[\d.]+\s+")
 
 

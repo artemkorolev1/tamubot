@@ -157,7 +157,10 @@ class FalsePositiveFilter:
             report_path = get_report()
 
         result = FilterResult()
-        md_files = sorted(input_dir.glob("*.md"))
+        pattern = config.get("file_pattern", "*.md")
+        md_files = sorted(input_dir.glob(pattern))
+        if (limit := config.get("limit")):
+            md_files = md_files[:limit]
         result.input_count = len(md_files)
 
         total_demoted = 0

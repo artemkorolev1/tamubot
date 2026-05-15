@@ -393,6 +393,7 @@ def build_course_doc_v4(data: dict, source_file: str) -> dict:
         format=meta.get("format"),
         prerequisites=meta.get("prerequisites"),
         course_summary=data.get("course_summary"),
+        summary_statements=data.get("summary_statements") or [],
         chunk_config=data.get("chunk_config"),
         source_file=source_file,
     )
@@ -529,7 +530,13 @@ def main():
     if args.source_dir:
         parsed_dir = Path(args.source_dir)
     elif args.v4:
+        # Prefer per-dept silver tree (data/syllabi/<DEPT>/silver/06_chunk),
+        # fall back to shared (data/syllabi/silver/06_chunk) for legacy ISEN.
         parsed_dir = PARSED_DIR_V4
+        if args.department:
+            dept_dir = Path("data/syllabi") / args.department.upper() / "silver" / "06_chunk"
+            if dept_dir.exists() and any(dept_dir.glob("*.json")):
+                parsed_dir = dept_dir
     elif args.v3 or getattr(args, "v3_result", False):
         parsed_dir = PARSED_DIR_V3
     else:

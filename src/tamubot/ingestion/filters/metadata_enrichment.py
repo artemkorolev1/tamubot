@@ -108,6 +108,35 @@ names verbatim.
 - Output the summary text only — no JSON, no markdown fences.
 """
 
+STATEMENTS_PROMPT = """\
+You are reading a Texas A&M syllabus broken into numbered, page-tagged chunks.
+Produce a JSON list of factual statements about the course. Each statement must \
+be tied back to the chunk it came from so the page can be cited.
+
+Output a JSON ARRAY of objects with this exact shape:
+[
+  {{"statement": "Late work loses 10% per day.", "supporting_chunk_indices": [3]}},
+  {{"statement": "The midterm is on October 15.", "supporting_chunk_indices": [5, 6]}}
+]
+
+Rules:
+- Each statement is ONE concrete fact in plain English. No keyword bags, no narrative \
+framing, no "this course will...".
+- `supporting_chunk_indices` lists the 0-based indices of chunks that explicitly \
+state the fact. Use only indices that appear in the input.
+- Prefer statements that a student would actually ask about: grading components and \
+weights, exam dates and formats, attendance/late/AI policies, required textbooks, \
+office hours, meeting times, prerequisites, major project deliverables, software/tools \
+in use, learning outcomes.
+- Drop boilerplate (academic integrity statements, university disclaimers, ADA \
+language) unless the syllabus customizes it.
+- Use only facts that are EXPLICITLY in the chunk text. Do not infer.
+- Target 10–25 statements per course. More for rich syllabi, fewer for sparse ones.
+- Output ONLY the JSON array. No prose, no markdown fences.
+
+The course is {course_id} ({term}).
+"""
+
 # ── JSON / LLM helpers ────────────────────────────────────────────────────────
 
 
@@ -420,6 +449,70 @@ def generate_course_summary(
     return summary, ""
 
 
+def generate_summary_statements(
+    chunks: list[dict],
+    course_id: str,
+    term: str,
+    client: Any,
+) -> tuple[list[dict], str]:
+    """Generate a page-anchored list of factual statements about a course.
+
+    Each statement is tied to the first supporting chunk's page, so the
+    retrieval layer can cite it as [Source N, p.X] just like a chunk.
+
+    Returns (statements, error). Each statement: {text, page, header_path}.
+    """
+    if not chunks:
+        return [], ""
+
+    # Format chunks as a numbered, page-tagged input for the LLM.
+    chunk_lines: list[str] = []
+    for i, c in enumerate(chunks):
+        header = c.get("header_path") or ""
+        page = c.get("page")
+        body = (c.get("content") or "").strip()
+        chunk_lines.append(f"[chunk {i} | page {page} | header: {header}]\n{body}")
+    chunks_text = "\n\n".join(chunk_lines)
+
+    prompt = STATEMENTS_PROMPT.format(course_id=course_id, term=term)
+    raw, error = _llm_call(client, prompt, chunks_text)
+    if error:
+        return [], error
+
+    raw = _strip_fences(raw)
+    try:
+        try:
+            items = json.loads(raw)
+        except json.JSONDecodeError:
+            items = json.loads(_sanitize_json(raw))
+    except Exception as e:
+        return [], f"json parse: {e}"
+
+    if not isinstance(items, list):
+        return [], f"expected JSON array, got {type(items).__name__}"
+
+    statements: list[dict] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        text = (item.get("statement") or "").strip()
+        if not text:
+            continue
+        indices = item.get("supporting_chunk_indices") or []
+        page: int | None = None
+        header_path: str | None = None
+        for idx in indices:
+            if isinstance(idx, int) and 0 <= idx < len(chunks):
+                page = chunks[idx].get("page")
+                header_path = chunks[idx].get("header_path")
+                break
+        if page is None:
+            continue  # drop statements we can't anchor to a page
+        statements.append({"text": text, "page": page, "header_path": header_path})
+
+    return _clean_replacement_chars(statements), ""
+
+
 # ── Scraped metadata ─────────────────────────────────────────────────────────
 
 
@@ -622,7 +715,11 @@ class MetadataEnrichmentFilter:
     ) -> FilterResult:
         client = config.get_tamu_client()
         scraped_meta = load_scraped_metadata()
-        md_files = sorted(input_dir.glob("*.md"))
+        config_dict = config_dict or {}
+        pattern = config_dict.get("file_pattern", "*.md")
+        md_files = sorted(input_dir.glob(pattern))
+        if limit := config_dict.get("limit"):
+            md_files = md_files[:limit]
 
         result = FilterResult(input_count=len(md_files))
         for md_file in md_files:
