@@ -349,33 +349,8 @@ def get_course_summary_chunks(course_ids: list[str]) -> list[dict]:
 
     Returns one pseudo-chunk per course with ``source="course_summary"``
     so downstream nodes (generator, context assembly) can identify them.
-    """
-    summaries = get_course_summaries(course_ids)
-    chunks: list[dict] = []
-    for cid, summary in summaries.items():
-        chunks.append(
-            {
-                "course_id": cid,
-                "content": summary,
-                "header_path": "Course Overview",
-                "section": "",
-                "source": "course_summary",
-                "chunk_index": 0,
-                "pipeline_version": "v4",
-            }
-        )
-    return chunks
-
-
-def get_summary_statement_chunks(course_ids: list[str]) -> list[dict]:
-    """Fetch page-anchored summary_statements and format as one chunk per statement.
-
-    Each returned chunk carries the statement text, the page it came from, and
-    the course's source_file — enough for the citation rewriter to build a
-    clickable [Source N, p.X] link to the syllabus PDF.
-
-    Returns an empty list if no statements exist; callers should fall back to
-    the keyword-index path via get_course_summary_chunks().
+    Carries ``source_file`` so the citation rewriter can link [Source N] to
+    the syllabus PDF (whole-document link; no page anchor).
     """
     if not course_ids:
         return []
@@ -383,37 +358,25 @@ def get_summary_statement_chunks(course_ids: list[str]) -> list[dict]:
     docs = db[COURSES_COLLECTION].find(
         {
             "course_id": {"$in": list(set(course_ids))},
-            "summary_statements": {"$exists": True, "$ne": []},
+            "course_summary": {"$exists": True, "$ne": None},
         },
-        {
-            "course_id": 1,
-            "section": 1,
-            "term": 1,
-            "source": 1,
-            "source_file": 1,
-            "instructor": 1,
-            "summary_statements": 1,
-            "_id": 0,
-        },
+        {"course_id": 1, "course_summary": 1, "source_file": 1, "_id": 0},
     )
     chunks: list[dict] = []
     for doc in docs:
-        instructor = doc.get("instructor") or {}
-        instructor_name = instructor.get("name") if isinstance(instructor, dict) else None
-        for idx, stmt in enumerate(doc.get("summary_statements") or []):
-            chunks.append(
-                {
-                    "course_id": doc.get("course_id"),
-                    "section": doc.get("section", ""),
-                    "term": doc.get("term", ""),
-                    "content": stmt.get("text", ""),
-                    "header_path": stmt.get("header_path") or "Course Overview",
-                    "page": stmt.get("page"),
-                    "source": "course_summary",
-                    "source_file": doc.get("source_file"),
-                    "instructor_name": instructor_name,
-                    "chunk_index": idx,
-                    "pipeline_version": "v4",
-                }
-            )
+        summary = doc.get("course_summary")
+        if not summary:
+            continue
+        chunks.append(
+            {
+                "course_id": doc["course_id"],
+                "content": summary,
+                "header_path": "Course Overview",
+                "section": "",
+                "source": "course_summary",
+                "source_file": doc.get("source_file"),
+                "chunk_index": 0,
+                "pipeline_version": "v4",
+            }
+        )
     return chunks

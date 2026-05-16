@@ -443,17 +443,14 @@ def step_chunk(
 
     Produces ingestion-ready JSON documents in 06_chunk/.
     """
-    from tamubot.core import config
     from tamubot.ingestion.chunk_report import generate_chunk_report
     from tamubot.ingestion.chunker_v4 import (
         chunk_semantic,
     )
-    from tamubot.ingestion.filters.metadata_enrichment import generate_summary_statements
 
     output_dir = SILVER_DIRS["chunk"]
     enrichment_dir = SILVER_ROOT / "05_enrich"
     logger = StepLogger(LOGS_ROOT / "chunk_log")
-    llm_client = config.get_tamu_client()
 
     md_files = sorted(input_dir.glob(file_pattern))
     if limit:
@@ -491,15 +488,6 @@ def step_chunk(
             if prereq_match:
                 course_metadata["prerequisites"] = prereq_match.group(1).strip()
 
-            # Generate page-anchored summary statements from the chunks. One LLM
-            # call per file. Statements drive [Source N, p.X] citations on the
-            # summary path in the same way chunks do on the detailed path.
-            course_id = course_metadata.get("course_id", "")
-            term = course_metadata.get("term", "")
-            statements, stmt_error = generate_summary_statements(chunks, course_id, term, llm_client)
-            if stmt_error:
-                print(f"    WARN: summary_statements for {stem} failed: {stmt_error}")
-
             out_data = {
                 "source_file": stem,
                 "pipeline_version": "v4",
@@ -507,7 +495,6 @@ def step_chunk(
                 "course_type": enrichment.get("course_type", ""),
                 "course_metadata": course_metadata,
                 "course_summary": enrichment.get("course_summary", ""),
-                "summary_statements": statements,
                 "chunk_config": {
                     "strategy": "semantic",
                     "flag_threshold": max_chunk_tokens,

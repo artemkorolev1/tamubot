@@ -3,7 +3,7 @@
 For each Gemini-skipped file in <dept>:
   1. Read current 04_hierarchy/<stem>.md and bronze/<stem>.headers.json sidecar.
   2. Rebuild headers field in 05_enrich/<stem>.json from sidecar (no LLM).
-  3. Re-run chunk + summary_statements (1 LLM call per file).
+  3. Re-run chunk (no LLM call).
 """
 
 from __future__ import annotations
@@ -17,12 +17,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from tamubot.core import config
 from tamubot.ingestion.chunker_v4 import chunk_semantic
 from tamubot.ingestion.filters.metadata_enrichment import (
     _build_headers_from_sidecar,
     _load_headers_sidecar,
-    generate_summary_statements,
 )
 
 _HEADER_RE = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
@@ -101,7 +99,6 @@ def rechunk_one(
     chunk_dir: Path,
     flag_threshold: int,
     min_chunk_tokens: int,
-    client,
 ) -> dict:
     md_path = hierarchy_dir / f"{stem}.md"
     enrich_path = enrich_dir / f"{stem}.json"
@@ -131,12 +128,6 @@ def rechunk_one(
     if prereq_match:
         course_metadata["prerequisites"] = prereq_match.group(1).strip()
 
-    course_id = course_metadata.get("course_id", "")
-    term = course_metadata.get("term", "")
-    statements, stmt_error = generate_summary_statements(chunks, course_id, term, client)
-    if stmt_error:
-        print(f"    WARN: summary_statements for {stem} failed: {stmt_error}")
-
     chunks_with_page = sum(1 for c in chunks if c.get("page") is not None)
 
     out_data = {
@@ -146,7 +137,6 @@ def rechunk_one(
         "course_type": enrichment.get("course_type", ""),
         "course_metadata": course_metadata,
         "course_summary": enrichment.get("course_summary", ""),
-        "summary_statements": statements,
         "chunk_config": {
             "strategy": "semantic",
             "flag_threshold": flag_threshold,
@@ -160,7 +150,6 @@ def rechunk_one(
     return {
         "chunks": len(chunks),
         "chunks_with_page": chunks_with_page,
-        "statements": len(statements),
         "flagged": sum(1 for c in chunks if c["flags"]),
         **log_info,
     }
@@ -185,7 +174,6 @@ def main() -> int:
         return 1
 
     print(f"Refreshing {len(stems)} files using Docling sidecars...\n")
-    client = config.get_tamu_client()
     t0 = time.monotonic()
 
     for i, stem in enumerate(stems, 1):
@@ -205,12 +193,8 @@ def main() -> int:
                 chunk_dir,
                 args.flag_threshold,
                 args.min_chunk_tokens,
-                client,
             )
-            print(
-                f"   chunks={res['chunks']} (with page={res['chunks_with_page']}) "
-                f"stmts={res['statements']} flagged={res['flagged']}"
-            )
+            print(f"   chunks={res['chunks']} (with page={res['chunks_with_page']}) flagged={res['flagged']}")
         except Exception as exc:
             print(f"   ERROR rechunk: {exc}")
 

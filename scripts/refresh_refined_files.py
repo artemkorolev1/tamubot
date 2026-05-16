@@ -5,9 +5,9 @@ Steps per refined file:
      Update only the `headers` field in 05_enrich/<stem>.json — preserves
      course_metadata and course_summary (which the manual edits didn't invalidate).
   2. Re-run step_chunk equivalent: regenerate chunks from refined markdown
-     using the freshened enrichment, including a new summary_statements call.
+     using the freshened enrichment.
 
-Budget: 1 LLM call per file (generate_summary_statements).
+Budget: zero LLM calls per file.
 """
 
 from __future__ import annotations
@@ -20,11 +20,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from tamubot.core import config
 from tamubot.ingestion.chunker_v4 import chunk_semantic
 from tamubot.ingestion.filters.metadata_enrichment import (
     find_source_pdf,
-    generate_summary_statements,
     map_headers_to_pages,
 )
 
@@ -101,7 +99,6 @@ def rechunk_one(
     chunk_dir: Path,
     flag_threshold: int,
     min_chunk_tokens: int,
-    client,
 ) -> dict:
     """Regenerate 06_chunk/<stem>.json from refined markdown + freshened enrichment."""
     md_path = hierarchy_dir / f"{stem}.md"
@@ -132,12 +129,6 @@ def rechunk_one(
     if prereq_match:
         course_metadata["prerequisites"] = prereq_match.group(1).strip()
 
-    course_id = course_metadata.get("course_id", "")
-    term = course_metadata.get("term", "")
-    statements, stmt_error = generate_summary_statements(chunks, course_id, term, client)
-    if stmt_error:
-        print(f"    WARN: summary_statements for {stem} failed: {stmt_error}")
-
     out_data = {
         "source_file": stem,
         "pipeline_version": "v4",
@@ -145,7 +136,6 @@ def rechunk_one(
         "course_type": enrichment.get("course_type", ""),
         "course_metadata": course_metadata,
         "course_summary": enrichment.get("course_summary", ""),
-        "summary_statements": statements,
         "chunk_config": {
             "strategy": "semantic",
             "flag_threshold": flag_threshold,
@@ -158,7 +148,6 @@ def rechunk_one(
     chunk_path.write_text(json.dumps(out_data, indent=2, ensure_ascii=False), encoding="utf-8")
     return {
         "chunks": len(chunks),
-        "statements": len(statements),
         "flagged": sum(1 for c in chunks if c["flags"]),
         **log_info,
     }
@@ -176,7 +165,6 @@ def main() -> int:
     enrich_dir = base / "05_enrich"
     chunk_dir = base / "06_chunk"
 
-    client = config.get_tamu_client()
     t0 = time.monotonic()
     print(f"Refreshing {len(REFINED_STEMS)} files in {args.dept}...\n")
 
@@ -198,9 +186,8 @@ def main() -> int:
                 chunk_dir,
                 args.flag_threshold,
                 args.min_chunk_tokens,
-                client,
             )
-            print(f"   chunks={res['chunks']} stmts={res['statements']} flagged={res['flagged']}")
+            print(f"   chunks={res['chunks']} flagged={res['flagged']}")
         except Exception as exc:
             print(f"   ERROR: {exc}")
 

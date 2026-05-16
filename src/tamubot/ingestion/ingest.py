@@ -393,7 +393,6 @@ def build_course_doc_v4(data: dict, source_file: str) -> dict:
         format=meta.get("format"),
         prerequisites=meta.get("prerequisites"),
         course_summary=data.get("course_summary"),
-        summary_statements=data.get("summary_statements") or [],
         chunk_config=data.get("chunk_config"),
         source_file=source_file,
     )
