@@ -48,6 +48,38 @@ SELECTION_TIME_NUDGE = (
 )
 
 
+# Date patterns that indicate a transient (term-bound) reference.
+# Items whose 'user_input' question matches any of these are dropped.
+_TRANSIENT_DATE_PATTERNS = [
+    # Full month names with day numbers, with or without year
+    re.compile(
+        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}",
+        re.IGNORECASE,
+    ),
+    # Day-of-week + date phrasing
+    re.compile(
+        r"\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(January|February|March|April|May|June|July|August|September|October|November|December)",
+        re.IGNORECASE,
+    ),
+    # Relative deadlines
+    re.compile(
+        r"\b(next|this|last|coming)\s+(week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+        re.IGNORECASE,
+    ),
+    # Compact dates
+    re.compile(r"\b\d{1,2}/\d{1,2}/(?:\d{2}|\d{4})\b"),
+    # Year-month-day
+    re.compile(r"\b\d{4}-\d{1,2}-\d{1,2}\b"),
+]
+
+
+def _has_transient_date(text: str) -> bool:
+    """Return True if `text` mentions a specific date or relative deadline."""
+    if not isinstance(text, str) or not text:
+        return False
+    return any(p.search(text) for p in _TRANSIENT_DATE_PATTERNS)
+
+
 def _apply_selection_time_nudge(synth) -> None:
     """Append SELECTION_TIME_NUDGE to the synthesizer's query-generation prompt."""
     prompts = synth.get_prompts()
@@ -475,18 +507,34 @@ def validate_testset(df, documents: list[Document], min_ratio: float = 0.7):
             except json.JSONDecodeError:
                 contexts = [contexts]
 
-        matched = False
-        for ctx in contexts:
-            if not isinstance(ctx, str) or not ctx.strip():
-                continue
-            ratio = difflib.SequenceMatcher(None, ctx[:500], all_content).quick_ratio()
-            if ratio >= min_ratio:
-                matched = True
-                break
-            # Fall back to substring check for short contexts
-            if ctx.strip()[:100] in all_content:
-                matched = True
-                break
+        synthesizer = (row.get("synthesizer_name") or "").lower()
+        is_multi_hop_abstract = "multi_hop_abstract" in synthesizer
+
+        if is_multi_hop_abstract:
+            # Multi-hop-abstract reference_contexts are synthesised paraphrases;
+            # they don't match source text verbatim. Trust Ragas's own grounding.
+            matched = bool(contexts)  # only drop if contexts is empty
+        else:
+            # Existing single-hop / multi-hop-specific path: fuzzy match against
+            # source corpus.
+            matched = False
+            for ctx in contexts:
+                if not isinstance(ctx, str) or not ctx.strip():
+                    continue
+                ratio = difflib.SequenceMatcher(None, ctx[:500], all_content).quick_ratio()
+                if ratio >= min_ratio:
+                    matched = True
+                    break
+                # Fall back to substring check for short contexts
+                if ctx.strip()[:100] in all_content:
+                    matched = True
+                    break
+
+        # NEW: drop items whose question references a specific calendar date.
+        question = row.get("user_input") or ""
+        if matched and _has_transient_date(question):
+            logger.debug("Row %s: question contains a transient date — dropping", idx)
+            matched = False
 
         keep_mask.append(matched)
 

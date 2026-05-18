@@ -110,3 +110,92 @@ def test_multi_hop_abstract_synthesizer_is_unmodified() -> None:
     # the single-hop-specific nudge marker.
     for prompt in multi_hop.get_prompts().values():
         assert "durable course attributes" not in prompt.instruction
+
+
+# ---------------------------------------------------------------------------
+# validate_testset filter regressions
+# ---------------------------------------------------------------------------
+
+
+def _make_doc(content: str, name: str = "doc.json"):
+    """Build a minimal LangChain Document for the validator."""
+    from langchain_core.documents import Document
+
+    return Document(page_content=content, metadata={"source_file": name, "crn": "00001"})
+
+
+def test_validate_drops_questions_with_specific_dates() -> None:
+    """A single-hop item that mentions a specific calendar date is dropped
+    even when its reference_contexts match the source corpus."""
+    import pandas as pd
+
+    from tamubot.evals.generate_ragas_testset import validate_testset
+
+    source_text = "Exam 1 is on Tuesday, February 24, 2026. Exam 2 is later in the term."
+    docs = [_make_doc(source_text)]
+    df = pd.DataFrame(
+        [
+            {
+                "user_input": "What happens if I miss Exam 1 on Tuesday, February 24, 2026?",
+                "reference_contexts": [source_text],
+                "synthesizer_name": "single_hop_specific_query_synthesizer",
+            },
+            {
+                "user_input": "What is the format of Exam 1?",
+                "reference_contexts": [source_text],
+                "synthesizer_name": "single_hop_specific_query_synthesizer",
+            },
+        ]
+    )
+
+    cleaned = validate_testset(df, docs)
+
+    assert len(cleaned) == 1
+    assert cleaned.iloc[0]["user_input"] == "What is the format of Exam 1?"
+
+
+def test_validate_keeps_multi_hop_abstract_items_without_source_match() -> None:
+    """Multi-hop-abstract items have paraphrased reference_contexts that do
+    not match source verbatim — they must NOT be dropped by the fuzzy gate."""
+    import pandas as pd
+
+    from tamubot.evals.generate_ragas_testset import validate_testset
+
+    docs = [_make_doc("CSCE 638 covers machine learning fundamentals.")]
+    df = pd.DataFrame(
+        [
+            {
+                "user_input": "Which courses cover machine learning topics?",
+                "reference_contexts": [
+                    "Several ISEN and CSCE courses include machine learning material as part of their curriculum."
+                ],
+                "synthesizer_name": "multi_hop_abstract_query_synthesizer",
+            },
+        ]
+    )
+
+    cleaned = validate_testset(df, docs)
+
+    assert len(cleaned) == 1
+
+
+def test_validate_still_drops_multi_hop_abstract_with_empty_contexts() -> None:
+    """Empty contexts must still drop the row, even for multi-hop-abstract."""
+    import pandas as pd
+
+    from tamubot.evals.generate_ragas_testset import validate_testset
+
+    docs = [_make_doc("anything")]
+    df = pd.DataFrame(
+        [
+            {
+                "user_input": "An abstract question.",
+                "reference_contexts": [],
+                "synthesizer_name": "multi_hop_abstract_query_synthesizer",
+            },
+        ]
+    )
+
+    cleaned = validate_testset(df, docs)
+
+    assert len(cleaned) == 0
