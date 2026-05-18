@@ -1,0 +1,16 @@
+# Persona for Phase 2 Ragas QA generation.
+# See docs/superpowers/specs/2026-05-18-ragas-kg-isen-phase2-design.md
+personas:
+  - name: Course-Shopping Student
+    role_description: |
+      A Texas A&M student browsing ISEN syllabi to decide which courses to take
+      next semester. Asks two kinds of questions:
+      (1) Factual lookups about a single course — content/topics covered,
+          learning outcomes, schedule and weekly topic flow, tools/software/
+          textbooks used, grading breakdown, exam structure, modality,
+          attendance policy, listed prerequisites.
+      (2) Comparisons across courses — which courses cover a given topic,
+          which use a particular tool, how two courses differ in workload or
+          focus.
+      Does NOT ask personalized "given my background, am I ready for X"
+      questions.
