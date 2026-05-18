@@ -31,6 +31,7 @@ for name, mod in sorted(sys.modules.items()):
     if name.startswith("tamubot.rag.") and name not in _SKIP_RELOAD and mod is not None:
         importlib.reload(mod)
 
+from tamubot.app.citations import rewrite_citations
 from tamubot.core import config
 from tamubot.rag.observability import prod_config
 

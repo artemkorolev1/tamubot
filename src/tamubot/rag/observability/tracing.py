@@ -81,56 +81,67 @@ def trace_context(
     if trace_id is not None:
         kwargs["trace_context"] = {"trace_id": trace_id}
 
-    attr_ctx = None
+    # Set up the observation. If setup fails, yield (None, None) so the caller
+    # can still proceed without tracing. Critically, do NOT wrap the user-code
+    # yield in this except — otherwise exceptions thrown into the generator
+    # (e.g. Streamlit's StopException) would be caught and we'd try to yield
+    # again, triggering "generator didn't stop after throw()".
     try:
-        with lf.start_as_current_observation(**kwargs) as span:
-            resolved_trace_id = span.trace_id
-
-            # Propagate session_id via OTEL attributes so all child spans inherit it.
-            if obs_config.session_id:
-                try:
-                    from langfuse._client.propagation import _propagate_attributes
-
-                    attr_ctx = _propagate_attributes(session_id=obs_config.session_id)
-                    attr_ctx.__enter__()
-                except Exception as e:
-                    logger.warning(f"Session propagation setup failed: {e}")
-                    attr_ctx = None
-
-            # Set tags on the trace (nice-to-have).
-            if obs_config.tags:
-                try:
-                    lf._create_trace_tags_via_ingestion(
-                        trace_id=resolved_trace_id,
-                        tags=obs_config.tags,
-                    )
-                except Exception:
-                    pass
-
-            try:
-                yield span, resolved_trace_id
-            finally:
-                # End span
-                try:
-                    span.end()
-                except Exception as e:
-                    logger.warning(f"span.end() failed: {e}")
-
-                # Exit attribute propagation before observation context exits
-                if attr_ctx is not None:
-                    try:
-                        attr_ctx.__exit__(None, None, None)
-                    except Exception as e:
-                        logger.warning(f"Attribute context exit failed: {e}")
-
-                # Flush buffered spans to Langfuse
-                try:
-                    lf.flush()
-                except Exception as e:
-                    logger.warning(f"Langfuse flush failed: {e}")
-    except GeneratorExit:
-        # Normal generator cleanup — re-raise without logging
-        raise
+        observation_cm = lf.start_as_current_observation(**kwargs)
+        span = observation_cm.__enter__()
     except Exception as e:
         logger.warning(f"Langfuse trace creation failed: {e}")
         yield None, None
+        return
+
+    attr_ctx = None
+    try:
+        resolved_trace_id = span.trace_id
+
+        # Propagate session_id via OTEL attributes so all child spans inherit it.
+        if obs_config.session_id:
+            try:
+                from langfuse._client.propagation import _propagate_attributes
+
+                attr_ctx = _propagate_attributes(session_id=obs_config.session_id)
+                attr_ctx.__enter__()
+            except Exception as e:
+                logger.warning(f"Session propagation setup failed: {e}")
+                attr_ctx = None
+
+        # Set tags on the trace (nice-to-have).
+        if obs_config.tags:
+            try:
+                lf._create_trace_tags_via_ingestion(
+                    trace_id=resolved_trace_id,
+                    tags=obs_config.tags,
+                )
+            except Exception:
+                pass
+
+        yield span, resolved_trace_id
+    finally:
+        # End span
+        try:
+            span.end()
+        except Exception as e:
+            logger.warning(f"span.end() failed: {e}")
+
+        # Exit attribute propagation before observation context exits
+        if attr_ctx is not None:
+            try:
+                attr_ctx.__exit__(None, None, None)
+            except Exception as e:
+                logger.warning(f"Attribute context exit failed: {e}")
+
+        # Exit the observation context manager
+        try:
+            observation_cm.__exit__(None, None, None)
+        except Exception as e:
+            logger.warning(f"Observation context exit failed: {e}")
+
+        # Flush buffered spans to Langfuse
+        try:
+            lf.flush()
+        except Exception as e:
+            logger.warning(f"Langfuse flush failed: {e}")

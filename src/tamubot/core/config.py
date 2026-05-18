@@ -45,7 +45,7 @@ USE_TAMU_API: bool = LLM_PROVIDER == "tamu"
 
 # --- LLM guardrails ---
 # Hard cap on output tokens (application-layer; TAMU gateway ignores max_tokens).
-LLM_MAX_OUTPUT_TOKENS: int = int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "2000"))
+LLM_MAX_OUTPUT_TOKENS: int = int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "8000"))
 # Max retries on transient API errors (429, 503, timeout).
 LLM_MAX_RETRIES: int = int(os.getenv("LLM_MAX_RETRIES", "3"))
 # Input token soft limit — log warning when exceeded, raise above hard limit.
