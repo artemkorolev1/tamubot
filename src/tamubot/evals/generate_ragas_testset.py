@@ -428,8 +428,8 @@ def generate_testset(kg, llm, embedding_model, query_distribution, testset_size:
     """Run RAGAS TestsetGenerator and return a DataFrame.
 
     If ``persona_list`` is a non-empty list of ragas.testset.persona.Persona
-    objects, it is forwarded to ``generator.generate``; otherwise Ragas falls
-    back to its internal default persona.
+    objects, it is passed to the TestsetGenerator constructor (Ragas 0.4.x API);
+    otherwise Ragas falls back to its internal default persona generation.
     """
     from ragas.testset import TestsetGenerator
 
@@ -437,15 +437,13 @@ def generate_testset(kg, llm, embedding_model, query_distribution, testset_size:
         llm=llm,
         embedding_model=embedding_model,
         knowledge_graph=kg,
+        persona_list=persona_list if persona_list else None,
     )
-    kwargs = {
-        "testset_size": testset_size,
-        "query_distribution": query_distribution,
-        "raise_exceptions": False,
-    }
-    if persona_list:
-        kwargs["persona_list"] = persona_list
-    testset = generator.generate(**kwargs)
+    testset = generator.generate(
+        testset_size=testset_size,
+        query_distribution=query_distribution,
+        raise_exceptions=False,
+    )
     return testset.to_pandas()  # type: ignore[union-attr]
 
 
