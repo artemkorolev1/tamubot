@@ -6,6 +6,8 @@ import contextvars
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from langfuse import observe
+
 from tamubot.core import config
 from tamubot.rag.graph.middleware import error_guard_middleware, timing_middleware
 from tamubot.rag.state.pipeline_state import PipelineState
@@ -17,6 +19,7 @@ def _make_retrieval_cache_key(function, course_ids, rewritten_query, eval_query=
     return make_cache_key("retrieval", course_ids, rewritten_query)
 
 
+@observe(name="pipeline.retrieval")
 @timing_middleware
 @error_guard_middleware
 def retrieval_node(state: PipelineState) -> dict:

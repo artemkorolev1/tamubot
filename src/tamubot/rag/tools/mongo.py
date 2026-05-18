@@ -344,6 +344,7 @@ def get_missing_sections(course_id: str) -> list[str]:
     return sorted(db[CHUNKS_COLLECTION].distinct("header_path", {"course_id": course_id}))
 
 
+@observe(name="pipeline.retrieval.course_summary")
 def get_course_summary_chunks(course_ids: list[str]) -> list[dict]:
     """Fetch course summaries and format as pseudo-chunks for the retrieval node.
 
@@ -352,24 +353,34 @@ def get_course_summary_chunks(course_ids: list[str]) -> list[dict]:
     Carries ``source_file`` so the citation rewriter can link [Source N] to
     the syllabus PDF (whole-document link; no page anchor).
     """
+    from langfuse import get_client as _lf
+
+    requested = list(set(course_ids or []))
     if not course_ids:
+        try:
+            _lf().update_current_span(metadata={"requested_ids": [], "found_ids": [], "missing_ids": []})
+        except Exception:
+            pass
         return []
     db = _get_db()
     docs = db[COURSES_COLLECTION].find(
         {
-            "course_id": {"$in": list(set(course_ids))},
+            "course_id": {"$in": requested},
             "course_summary": {"$exists": True, "$ne": None},
         },
         {"course_id": 1, "course_summary": 1, "source_file": 1, "_id": 0},
     )
     chunks: list[dict] = []
+    seen: set[str] = set()
     for doc in docs:
         summary = doc.get("course_summary")
-        if not summary:
+        cid = doc.get("course_id")
+        if not summary or cid in seen:
             continue
+        seen.add(cid)
         chunks.append(
             {
-                "course_id": doc["course_id"],
+                "course_id": cid,
                 "content": summary,
                 "header_path": "Course Overview",
                 "section": "",
@@ -379,4 +390,15 @@ def get_course_summary_chunks(course_ids: list[str]) -> list[dict]:
                 "pipeline_version": "v4",
             }
         )
+    found = sorted(seen)
+    try:
+        _lf().update_current_span(
+            metadata={
+                "requested_ids": requested,
+                "found_ids": found,
+                "missing_ids": sorted(set(requested) - set(found)),
+            }
+        )
+    except Exception:
+        pass
     return chunks
