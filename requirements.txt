@@ -11,6 +11,7 @@ opentelemetry-api
 langchain-google-genai
 langchain-openai
 ragas
+rapidfuzz  # required by ragas OverlapScoreBuilder for KG entity-overlap edges
 
 # MongoDB Atlas
 pymongo[srv]

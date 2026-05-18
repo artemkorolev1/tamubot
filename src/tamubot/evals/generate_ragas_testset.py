@@ -37,6 +37,8 @@ SYNTHESIZER_TO_FUNCTION: dict[str, str] = {
     "multi_hop_abstract_query_synthesizer": "semantic_general",
 }
 
+DISTRIBUTION_PRESETS = ("default", "balanced_50_50", "semantic_only")
+
 # ---------------------------------------------------------------------------
 # Step 1 — Document loading
 # ---------------------------------------------------------------------------
@@ -47,11 +49,14 @@ _FILENAME_RE = re.compile(
 )
 
 
-def load_corpus(corpus_dir: Path) -> list[Document]:
-    """Load v3_step3_flat JSON files as LangChain Documents.
+def load_corpus(corpus_dir: Path, include_terms: set[str] | None = None) -> list[Document]:
+    """Load v3_step3_flat / v4 06_chunk JSON files as LangChain Documents.
 
     Each document gets the full concatenated Markdown as page_content.
     RAGAS handles its own internal segmentation during KG construction.
+
+    If `include_terms` is provided, only files whose filename starts with one
+    of those term codes (e.g. {"202611", "202641"}) are loaded.
     """
     json_files = sorted(corpus_dir.glob("*.json"))
     if not json_files:
@@ -61,6 +66,10 @@ def load_corpus(corpus_dir: Path) -> list[Document]:
     for fp in json_files:
         if fp.name.startswith("_"):
             continue  # skip metadata files like _run_meta_*.json
+        if include_terms is not None:
+            term_prefix = fp.name.split("_", 1)[0]
+            if term_prefix not in include_terms:
+                continue
 
         with open(fp) as f:
             data = json.load(f)
@@ -109,22 +118,34 @@ def load_corpus(corpus_dir: Path) -> list[Document]:
 
 
 def build_llm(provider: str, temperature: float):
-    """Create a RAGAS-compatible LLM via llm_factory."""
+    """Create a RAGAS-compatible LLM via llm_factory.
+
+    Ragas 0.4.x requires a client instance — text-only mode was removed.
+    Google uses the Instructor adapter wrapping google.genai.Client.
+    """
     from ragas.llms import llm_factory
 
     if provider == "google":
+        from google import genai
+
+        client = genai.Client(api_key=config.GOOGLE_API_KEY)
         return llm_factory(
             "gemini-2.0-flash",
             provider="google",
+            client=client,
             temperature=temperature,
         )
 
     if provider == "tamu":
         from openai import OpenAI
 
-        client = OpenAI(
-            api_key=config.TAMU_API_KEY,
-            base_url=config.TAMU_BASE_URL,
+        from tamubot.evals.tamu_openai_workaround import wrap_for_tamu
+
+        client = wrap_for_tamu(
+            OpenAI(
+                api_key=config.TAMU_API_KEY,
+                base_url=config.TAMU_BASE_URL,
+            )
         )
         return llm_factory(
             config.TAMU_MODEL,
@@ -142,13 +163,19 @@ def build_llm(provider: str, temperature: float):
 
 
 def build_embeddings():
-    """Google text-embedding-004 wrapped for RAGAS."""
+    """Google gemini-embedding-001 wrapped for RAGAS.
+
+    Note: text-embedding-004 was removed from Google's v1beta endpoint
+    in 2026. gemini-embedding-001 is the current replacement (3072-dim).
+    TAMU's gateway has no embedding endpoint, so embeddings always go
+    to Google direct regardless of --provider.
+    """
     from langchain_google_genai import GoogleGenerativeAIEmbeddings
     from ragas.embeddings import LangchainEmbeddingsWrapper
 
     return LangchainEmbeddingsWrapper(
         GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
+            model="models/gemini-embedding-001",
             google_api_key=config.GOOGLE_API_KEY,
         )
     )
@@ -255,7 +282,9 @@ def build_transforms(llm, embedding_model, documents: list[Document]):
         )
 
     headline_extractor = HeadlinesExtractor(llm=llm, filter_nodes=lambda node: filter_long_docs(node))
-    splitter = HeadlineSplitter(min_tokens=500)
+    # Splitter must skip short docs that HeadlinesExtractor never set
+    # 'headlines' on — otherwise it raises ValueError and crashes the run.
+    splitter = HeadlineSplitter(min_tokens=500, filter_nodes=lambda node: filter_long_docs(node))
     summary_extractor = SummaryExtractor(llm=llm, filter_nodes=lambda node: filter_long_docs(node))
     node_filter = CustomNodeFilter(llm=llm, filter_nodes=lambda node: filter_chunks(node))
 
@@ -298,7 +327,7 @@ def build_or_load_kg(
     rebuild: bool,
 ):
     """Load cached KG or build from scratch."""
-    from ragas.testset.graph import KnowledgeGraph
+    from ragas.testset.graph import KnowledgeGraph, Node, NodeType
     from ragas.testset.transforms import apply_transforms
 
     if kg_path.exists() and not rebuild:
@@ -306,8 +335,19 @@ def build_or_load_kg(
         return KnowledgeGraph.load(str(kg_path))
 
     logger.info("Building Knowledge Graph from %d documents...", len(documents))
-    transforms = build_transforms(llm, embedding_model, documents)
     kg = KnowledgeGraph()
+    for doc in documents:
+        kg.nodes.append(
+            Node(
+                type=NodeType.DOCUMENT,
+                properties={
+                    "page_content": doc.page_content,
+                    "document_metadata": doc.metadata,
+                },
+            )
+        )
+    logger.info("Seeded KG with %d DOCUMENT nodes", len(kg.nodes))
+    transforms = build_transforms(llm, embedding_model, documents)
     apply_transforms(kg, transforms)
     kg_path.parent.mkdir(parents=True, exist_ok=True)
     kg.save(str(kg_path))
@@ -320,8 +360,14 @@ def build_or_load_kg(
 # ---------------------------------------------------------------------------
 
 
-def build_query_distribution(llm):
-    """50% single-hop, 30% multi-hop specific, 20% multi-hop abstract."""
+def build_query_distribution(llm, preset: str = "default"):
+    """Return a Ragas query_distribution list for the chosen preset.
+
+    Presets:
+      - "default":         50% single-hop / 30% multi-hop-specific / 20% multi-hop-abstract
+      - "balanced_50_50":  50% single-hop-specific / 50% multi-hop-abstract
+      - "semantic_only":   100% multi-hop-abstract (all → expected_function=semantic_general)
+    """
     from ragas.testset.synthesizers.multi_hop.abstract import (
         MultiHopAbstractQuerySynthesizer,
     )
@@ -332,6 +378,14 @@ def build_query_distribution(llm):
         SingleHopSpecificQuerySynthesizer,
     )
 
+    if preset == "balanced_50_50":
+        return [
+            (SingleHopSpecificQuerySynthesizer(llm=llm), 0.50),
+            (MultiHopAbstractQuerySynthesizer(llm=llm), 0.50),
+        ]
+    if preset == "semantic_only":
+        return [(MultiHopAbstractQuerySynthesizer(llm=llm), 1.0)]
+    # default
     return [
         (SingleHopSpecificQuerySynthesizer(llm=llm), 0.50),
         (MultiHopSpecificQuerySynthesizer(llm=llm), 0.30),
@@ -507,11 +561,43 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Output XLSX path (default: tamu_data/evals/golden_sets/ragas_{date}.xlsx)",
     )
+    # Legacy: kept for back-compat. If set and --target-size is the default, it
+    # acts as the target. Otherwise --target-size wins.
     p.add_argument(
         "--testset-size",
         type=int,
-        default=60,
-        help="Number of items to generate (default: 60, overgenerate for validation)",
+        default=None,
+        help="(Deprecated alias for --target-size)",
+    )
+    p.add_argument(
+        "--target-size",
+        type=int,
+        default=20,
+        help="Final validated item count desired (default: 20)",
+    )
+    p.add_argument(
+        "--batch-size",
+        type=int,
+        default=5,
+        help="Items generated per batch before validation+save (default: 5)",
+    )
+    p.add_argument(
+        "--max-batches",
+        type=int,
+        default=10,
+        help="Safety cap on number of generation batches (default: 10)",
+    )
+    p.add_argument(
+        "--distribution",
+        choices=list(DISTRIBUTION_PRESETS),
+        default="default",
+        help="Query distribution preset (default: 'default' = 50/30/20)",
+    )
+    p.add_argument(
+        "--include-terms",
+        type=str,
+        default=None,
+        help="Comma-separated term codes to include, e.g. 202611,202621,202641. If unset, all terms load.",
     )
     p.add_argument(
         "--kg-path",
@@ -523,6 +609,11 @@ def parse_args() -> argparse.Namespace:
         "--rebuild-kg",
         action="store_true",
         help="Force KG rebuild even if cache exists",
+    )
+    p.add_argument(
+        "--build-kg-only",
+        action="store_true",
+        help="Build/refresh KG, print stats, and exit before any question generation",
     )
     p.add_argument(
         "--provider",
@@ -552,8 +643,19 @@ def main() -> None:
 
     args = parse_args()
 
+    # Resolve target size: --target-size wins; --testset-size kept as legacy alias.
+    target_size = args.target_size
+    if args.testset_size is not None:
+        target_size = args.testset_size
+        print(f"[deprecation] --testset-size is an alias; using target_size={target_size}")
+
+    include_terms: set[str] | None = None
+    if args.include_terms:
+        include_terms = {t.strip() for t in args.include_terms.split(",") if t.strip()}
+        print(f"Filtering corpus to terms: {sorted(include_terms)}")
+
     # --- Load corpus ---
-    documents = load_corpus(args.corpus_dir)
+    documents = load_corpus(args.corpus_dir, include_terms=include_terms)
     print(f"\nCorpus: {len(documents)} documents from {args.corpus_dir}")
 
     if not documents:
@@ -597,24 +699,64 @@ def main() -> None:
         args.rebuild_kg,
     )
 
-    # --- Query distribution ---
-    query_distribution = build_query_distribution(llm)
+    # KG stats summary
+    try:
+        n_nodes = len(kg.nodes)
+        n_rels = len(kg.relationships)
+        node_types: dict[str, int] = {}
+        for n in kg.nodes:
+            t = getattr(n.type, "value", str(n.type))
+            node_types[t] = node_types.get(t, 0) + 1
+        print(f"\nKG: nodes={n_nodes} ({node_types}), relationships={n_rels}")
+    except Exception as e:  # noqa: BLE001
+        print(f"(could not introspect KG: {e})")
 
-    # --- Generate ---
-    print(f"\nGenerating {args.testset_size} items...")
-    df = generate_testset(kg, llm, embedding_model, query_distribution, args.testset_size)
-    print(f"Generated {len(df)} raw items")
-
-    # --- Validate ---
-    df = validate_testset(df, documents)
-    if len(df) == 0:
-        print("ERROR: No items survived validation. Check KG quality.")
+    if args.build_kg_only:
+        print(f"\n--build-kg-only: stopping after KG build. Cache at {args.kg_path}.")
         return
 
-    # --- Export ---
+    # --- Query distribution ---
+    query_distribution = build_query_distribution(llm, preset=args.distribution)
+    print(f"Distribution preset: {args.distribution}")
+
+    # --- Batched generation loop ---
+    import pandas as pd
+
     output_path = args.output or Path(f"tamu_data/evals/golden_sets/ragas_{datetime.now():%Y%m%d}.xlsx")
-    export_golden_set(df, documents, output_path)
-    print(f"\nDone! Golden set: {output_path}  ({len(df)} items)")
+    collected = pd.DataFrame()
+    for batch_num in range(1, args.max_batches + 1):
+        if len(collected) >= target_size:
+            break
+        remaining = target_size - len(collected)
+        # Ragas needs at least a few items per call to use multiple synthesizers
+        this_batch = max(min(args.batch_size, remaining + 2), 3)
+        print(
+            f"\n[batch {batch_num}/{args.max_batches}] "
+            f"generating {this_batch} (validated so far: {len(collected)}/{target_size})"
+        )
+        try:
+            raw = generate_testset(kg, llm, embedding_model, query_distribution, this_batch)
+        except Exception as e:  # noqa: BLE001
+            print(f"[batch {batch_num}] generation error: {e}")
+            continue
+
+        validated = validate_testset(raw, documents)
+        if len(validated) == 0:
+            print(f"[batch {batch_num}] no items survived validation, continuing")
+            continue
+
+        collected = pd.concat([collected, validated], ignore_index=True)
+        # Incremental save (trimmed to target_size if we overshot)
+        export_golden_set(collected.head(target_size), documents, output_path)
+        print(f"[batch {batch_num}] kept {len(validated)}, total {len(collected)} → saved {output_path}")
+
+    if len(collected) == 0:
+        print("ERROR: No items survived validation across all batches. Check KG quality.")
+        return
+
+    final = collected.head(target_size)
+    export_golden_set(final, documents, output_path)
+    print(f"\nDone! Golden set: {output_path}  ({len(final)} items)")
 
 
 if __name__ == "__main__":
