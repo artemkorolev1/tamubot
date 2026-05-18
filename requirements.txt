@@ -12,6 +12,7 @@ langchain-google-genai
 langchain-openai
 ragas
 rapidfuzz  # required by ragas OverlapScoreBuilder for KG entity-overlap edges
+pyyaml>=6.0,<7.0  # required by persona YAML loader
 
 # MongoDB Atlas
 pymongo[srv]
