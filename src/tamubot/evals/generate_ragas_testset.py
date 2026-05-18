@@ -424,8 +424,13 @@ def build_query_distribution(llm, preset: str = "default"):
 # ---------------------------------------------------------------------------
 
 
-def generate_testset(kg, llm, embedding_model, query_distribution, testset_size: int):
-    """Run RAGAS TestsetGenerator and return a DataFrame."""
+def generate_testset(kg, llm, embedding_model, query_distribution, testset_size: int, persona_list=None):
+    """Run RAGAS TestsetGenerator and return a DataFrame.
+
+    If ``persona_list`` is a non-empty list of ragas.testset.persona.Persona
+    objects, it is forwarded to ``generator.generate``; otherwise Ragas falls
+    back to its internal default persona.
+    """
     from ragas.testset import TestsetGenerator
 
     generator = TestsetGenerator(
@@ -433,11 +438,14 @@ def generate_testset(kg, llm, embedding_model, query_distribution, testset_size:
         embedding_model=embedding_model,
         knowledge_graph=kg,
     )
-    testset = generator.generate(
-        testset_size=testset_size,
-        query_distribution=query_distribution,
-        raise_exceptions=False,
-    )
+    kwargs = {
+        "testset_size": testset_size,
+        "query_distribution": query_distribution,
+        "raise_exceptions": False,
+    }
+    if persona_list:
+        kwargs["persona_list"] = persona_list
+    testset = generator.generate(**kwargs)
     return testset.to_pandas()  # type: ignore[union-attr]
 
 
@@ -654,6 +662,15 @@ def parse_args() -> argparse.Namespace:
         help="LLM temperature (default: 0.4)",
     )
     p.add_argument(
+        "--persona-file",
+        type=str,
+        default="tamu_data/evals/personas/course_shopping_student.yaml",
+        help=(
+            "Path to a persona YAML file (see src/tamubot/evals/personas.py). "
+            "Pass an empty string to skip personas and fall back to Ragas defaults."
+        ),
+    )
+    p.add_argument(
         "--dry-run",
         action="store_true",
         help="Load docs and print stats without generating",
@@ -745,6 +762,16 @@ def main() -> None:
     query_distribution = build_query_distribution(llm, preset=args.distribution)
     print(f"Distribution preset: {args.distribution}")
 
+    # --- Load personas (optional; empty path = Ragas defaults) ---
+    persona_list = None
+    if args.persona_file:
+        from tamubot.evals.personas import load_personas
+
+        persona_list = load_personas(Path(args.persona_file))
+        print(f"Loaded {len(persona_list)} persona(s): {[p.name for p in persona_list]}")
+    else:
+        print("No persona file provided — falling back to Ragas default persona.")
+
     # --- Batched generation loop ---
     import pandas as pd
 
@@ -761,7 +788,14 @@ def main() -> None:
             f"generating {this_batch} (validated so far: {len(collected)}/{target_size})"
         )
         try:
-            raw = generate_testset(kg, llm, embedding_model, query_distribution, this_batch)
+            raw = generate_testset(
+                kg,
+                llm,
+                embedding_model,
+                query_distribution,
+                this_batch,
+                persona_list=persona_list,
+            )
         except Exception as e:  # noqa: BLE001
             print(f"[batch {batch_num}] generation error: {e}")
             continue
