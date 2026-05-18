@@ -39,6 +39,23 @@ SYNTHESIZER_TO_FUNCTION: dict[str, str] = {
 
 DISTRIBUTION_PRESETS = ("default", "balanced_50_50", "semantic_only")
 
+SELECTION_TIME_NUDGE = (
+    "\n\nThe student is choosing courses for a future semester and is not "
+    "currently enrolled. Prefer questions about durable course attributes — "
+    "topics covered, learning outcomes, tools used, grading structure, "
+    "prerequisites. Avoid questions about specific term-bound deadlines "
+    "(e.g., 'when is the midterm scheduled' or 'what is due next week')."
+)
+
+
+def _apply_selection_time_nudge(synth) -> None:
+    """Append SELECTION_TIME_NUDGE to the synthesizer's query-generation prompt."""
+    prompts = synth.get_prompts()
+    prompt = prompts["query_answer_generation_prompt"]
+    prompt.instruction = prompt.instruction + SELECTION_TIME_NUDGE
+    synth.set_prompts(**{"query_answer_generation_prompt": prompt})
+
+
 # ---------------------------------------------------------------------------
 # Step 1 — Document loading
 # ---------------------------------------------------------------------------
@@ -363,10 +380,14 @@ def build_or_load_kg(
 def build_query_distribution(llm, preset: str = "default"):
     """Return a Ragas query_distribution list for the chosen preset.
 
+    Every SingleHopSpecificQuerySynthesizer in the returned list has
+    SELECTION_TIME_NUDGE appended to its query_answer_generation_prompt
+    instruction.
+
     Presets:
       - "default":         50% single-hop / 30% multi-hop-specific / 20% multi-hop-abstract
       - "balanced_50_50":  50% single-hop-specific / 50% multi-hop-abstract
-      - "semantic_only":   100% multi-hop-abstract (all → expected_function=semantic_general)
+      - "semantic_only":   100% multi-hop-abstract (all -> expected_function=semantic_general)
     """
     from ragas.testset.synthesizers.multi_hop.abstract import (
         MultiHopAbstractQuerySynthesizer,
@@ -378,16 +399,21 @@ def build_query_distribution(llm, preset: str = "default"):
         SingleHopSpecificQuerySynthesizer,
     )
 
+    def _single_hop():
+        s = SingleHopSpecificQuerySynthesizer(llm=llm)
+        _apply_selection_time_nudge(s)
+        return s
+
     if preset == "balanced_50_50":
         return [
-            (SingleHopSpecificQuerySynthesizer(llm=llm), 0.50),
+            (_single_hop(), 0.50),
             (MultiHopAbstractQuerySynthesizer(llm=llm), 0.50),
         ]
     if preset == "semantic_only":
         return [(MultiHopAbstractQuerySynthesizer(llm=llm), 1.0)]
     # default
     return [
-        (SingleHopSpecificQuerySynthesizer(llm=llm), 0.50),
+        (_single_hop(), 0.50),
         (MultiHopSpecificQuerySynthesizer(llm=llm), 0.30),
         (MultiHopAbstractQuerySynthesizer(llm=llm), 0.20),
     ]

@@ -23,6 +23,7 @@ def test_load_single_persona_from_yaml(tmp_path: Path) -> None:
 
 def test_load_personas_returns_ragas_persona_instances(tmp_path: Path) -> None:
     from ragas.testset.persona import Persona
+
     from tamubot.evals.personas import load_personas
 
     p = tmp_path / "p.yaml"
@@ -70,3 +71,42 @@ def test_load_multiple_personas(tmp_path: Path) -> None:
     personas = load_personas(p)
 
     assert [pp.name for pp in personas] == ["A", "B"]
+
+
+# ---------------------------------------------------------------------------
+# Prompt-nudge regression: build_query_distribution must attach a durable-
+# attribute instruction to the SingleHopSpecificQuerySynthesizer.
+# ---------------------------------------------------------------------------
+
+
+def test_single_hop_synthesizer_carries_durable_attribute_nudge() -> None:
+    """The single-hop synthesizer's instruction must mention durable attributes
+    and explicitly steer away from term-bound deadlines."""
+    from unittest.mock import MagicMock
+
+    from tamubot.evals.generate_ragas_testset import build_query_distribution
+
+    dist = build_query_distribution(llm=MagicMock(), preset="balanced_50_50")
+
+    single_hop, weight = dist[0]
+    assert weight == 0.50
+    instruction = single_hop.get_prompts()["query_answer_generation_prompt"].instruction
+
+    assert "durable course attributes" in instruction
+    assert "term-bound deadlines" in instruction
+
+
+def test_multi_hop_abstract_synthesizer_is_unmodified() -> None:
+    """The multi-hop abstract synthesizer must NOT receive the nudge."""
+    from unittest.mock import MagicMock
+
+    from tamubot.evals.generate_ragas_testset import build_query_distribution
+
+    dist = build_query_distribution(llm=MagicMock(), preset="balanced_50_50")
+
+    multi_hop, weight = dist[1]
+    assert weight == 0.50
+    # Inspect every prompt on the multi-hop synthesizer; none should carry
+    # the single-hop-specific nudge marker.
+    for prompt in multi_hop.get_prompts().values():
+        assert "durable course attributes" not in prompt.instruction
