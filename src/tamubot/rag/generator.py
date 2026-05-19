@@ -79,7 +79,7 @@ def build_system_prompt(
 # ---------------------------------------------------------------------------
 
 
-@observe(as_type="generation", name="pipeline.generator")
+@observe(as_type="generation", name="node.generator")
 def generate(
     results: list[dict],
     question: str,
@@ -170,7 +170,7 @@ def generate(
     return text
 
 
-@observe(as_type="generation", name="pipeline.generator.comparison")
+@observe(as_type="generation", name="node.generator.comparison")
 def generate_comparison(
     results: list[dict],
     question: str,
@@ -218,7 +218,7 @@ def generate_comparison(
 # ---------------------------------------------------------------------------
 
 
-@observe(as_type="generation", name="pipeline.generator")
+@observe(as_type="generation", name="node.generator")
 def generate_stream(
     results: list[dict],
     question: str,

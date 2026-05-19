@@ -30,32 +30,34 @@ Plots all RAGAS scores across traces over time. Filter by score name and date ra
 ### Generations tab
 **URL:** `/project/.../generations`
 
-Every `pipeline.generator` generation appears here with model name, token counts, and latency.
+Every `node.generator` generation appears here with model name, token counts, and latency.
 
 ---
 
 ## 2. The Trace Hierarchy — Span Naming
 
-All spans use dotted-lowercase naming:
+Spans are named `node.<node>[.<sub-op>]` to reflect that each is a single graph-node operation (renamed from `pipeline.*` in May 2026).
 
 ```
 tamubot.request  (Trace)
-├── pipeline.router                    (Generation)
-├── pipeline.retrieval.embed           (Span) — Voyage voyage-3 embedding
-├── pipeline.retrieval.search.hybrid   (Span) — MongoDB Atlas hybrid search
-├── pipeline.retrieval.search.semantic (Span) — MongoDB Atlas semantic search
-├── pipeline.retrieval.rerank          (Span) — Voyage rerank-2
-├── pipeline.generator                 (Generation) — main answer
-├── pipeline.generator.comparison      (Generation) — multi-course comparison
-├── pipeline.router.recursive          (Generation) — recursive routing
-└── pipeline.history.summary           (Generation) — conversation summary
+├── node.router                    (Generation)
+├── node.retrieval.embed           (Span) — Voyage voyage-3 embedding
+├── node.retrieval.search.hybrid   (Span) — MongoDB Atlas hybrid search
+├── node.retrieval.search.semantic (Span) — MongoDB Atlas semantic search
+├── node.retrieval.rerank          (Span) — Voyage rerank-2
+├── node.generator                 (Generation) — main answer
+├── node.generator.comparison      (Generation) — multi-course comparison
+├── node.router.recursive          (Generation) — recursive routing
+└── node.history.summary           (Generation) — conversation summary
 ```
 
 **Cache hits:** When a node hits the session cache, the span still appears but has `cache_hit: true` in metadata.
 
 **Absent spans mean:**
 - No retrieval spans → intent was `out_of_scope`
-- No `pipeline.generator` → retrieval crashed (check for errors)
+- No `node.generator` → retrieval crashed (check for errors)
+
+**Saved Langfuse filters:** any dashboard or saved search matching `pipeline.*` must be updated to `node.*` after this rename.
 
 ---
 

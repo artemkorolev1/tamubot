@@ -19,7 +19,7 @@ def _make_retrieval_cache_key(function, course_ids, rewritten_query, eval_query=
     return make_cache_key("retrieval", course_ids, rewritten_query)
 
 
-@observe(name="pipeline.retrieval")
+@observe(name="node.retrieval")
 @timing_middleware
 @error_guard_middleware
 def retrieval_node(state: PipelineState) -> dict:

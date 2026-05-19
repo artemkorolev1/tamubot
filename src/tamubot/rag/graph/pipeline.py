@@ -85,12 +85,14 @@ def run_pipeline(
     query: str,
     trace=None,
     return_timing: bool = False,
+    return_raw_state: bool = False,
 ) -> tuple:
     """Run the RAG pipeline (stateless), including generation.
 
     Returns:
         (chunks, router_result, data_gaps, data_integrity, conflicted_course_ids, answer)
-        or if return_timing=True: adds timing_ms dict as 7th element.
+        if return_timing=True: append timing_ms dict.
+        if return_raw_state=True: append the full LangGraph result dict (after timing_ms if present).
     """
     from tamubot.rag.router import deduplicate_chunks
 
@@ -111,21 +113,25 @@ def run_pipeline(
         result.get("answer", ""),
     )
     if return_timing:
-        return (*base, result.get("timing_ms", {}))
+        base = (*base, result.get("timing_ms", {}))
+    if return_raw_state:
+        base = (*base, result)
     return base
 
 
 def run_pipeline_eval(
     query: str,
     trace=None,
-) -> tuple[list[dict], Any, dict]:
+    return_raw_state: bool = False,
+) -> tuple:
     """Run router + retrieval only (no generator). For eval use.
 
     Tracing is handled by the OTEL context set in trace_context().
     Session cache is disabled via SESSION_CACHE_ENABLED env var at eval time.
 
     Returns:
-        (chunks, router_result, timing_ms)
+        (chunks, router_result, timing_ms) — or with the full LangGraph result dict
+        appended as a 4th element when return_raw_state=True.
     """
     from tamubot.rag.router import deduplicate_chunks
 
@@ -137,11 +143,14 @@ def run_pipeline_eval(
     followup = result.get("retrieved_chunks", [])
     combined = deduplicate_chunks(anchor + followup) if anchor else followup
 
-    return (
+    base = (
         combined,
         _build_router_result(result),
         result.get("timing_ms", {}),
     )
+    if return_raw_state:
+        return (*base, result)
+    return base
 
 
 def run_pipeline_with_memory(

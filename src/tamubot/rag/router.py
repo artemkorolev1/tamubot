@@ -106,7 +106,7 @@ class RouterResult:
 # ---------------------------------------------------------------------------
 
 
-@observe(as_type="generation", name="pipeline.router")
+@observe(as_type="generation", name="node.router")
 def classify_query(
     query: str,
     prior_course_ids: Optional[list[str]] = None,

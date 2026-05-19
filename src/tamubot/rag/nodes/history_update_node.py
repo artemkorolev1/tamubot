@@ -85,7 +85,7 @@ def history_update_node(state: PipelineState) -> dict:
     }
 
 
-@observe(as_type="generation", name="pipeline.history.summary")
+@observe(as_type="generation", name="node.history.summary")
 def _update_summary(existing_summary: str, user_msg: str, assistant_msg: str) -> str:
     """Call LLM to produce an updated concise session summary."""
     prior = f"Prior summary: {existing_summary}" if existing_summary else "No prior summary."

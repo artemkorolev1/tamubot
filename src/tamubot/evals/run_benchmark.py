@@ -49,8 +49,6 @@ if _col := _pre_arg("--chunks-collection"):
     os.environ.setdefault("TEXT_INDEX", f"text_index_{_suffix}")
 
 from tamubot.core import config
-from tamubot.evals.golden_set import append_run_column as _append_run_column
-from tamubot.evals.golden_set import load as _load_golden_set
 from tamubot.rag import RouterResult
 from tamubot.rag.graph.pipeline import run_pipeline as run_pipeline_v4
 from tamubot.rag.observability import (
@@ -788,85 +786,39 @@ def write_markdown(
 
 
 def main():
+    """Deprecated: full-pipeline benchmark. Delegates to tamubot.evals.run_eval.
+
+    The unified runner (run_eval) supports re-run-by-id, metric selection,
+    and per-node state capture in addition to everything this script did.
+    """
     parser = argparse.ArgumentParser(
-        description="Benchmark runner — runs golden set through pipeline, exports versioned reports"
+        description="DEPRECATED: use `python -m tamubot.evals.run_eval --with-generation` instead."
     )
     parser.add_argument("--golden-set", required=True, help="Path to golden set .xlsx")
-    parser.add_argument(
-        "--experiment-name", required=True, help="Experiment identifier embedded in output filename (e.g. cs600_ov100)"
-    )
-    parser.add_argument(
-        "--ragas", action="store_true", help="Run RAGAS faithfulness/relevancy scores (~30s per question)"
-    )
-    parser.add_argument(
-        "--chunks-collection",
-        type=str,
-        default=None,
-        help="MongoDB chunks collection to query (e.g. 'chunks_eval'). "
-        "Sets CHUNKS_COLLECTION/VECTOR_INDEX/TEXT_INDEX env vars before rag imports.",
-    )
+    parser.add_argument("--experiment-name", required=True, help="Experiment name")
+    parser.add_argument("--ragas", action="store_true", help="Enable RAGAS metrics")
+    parser.add_argument("--chunks-collection", type=str, default=None)
     args = parser.parse_args()
 
-    golden_path = Path(args.golden_set)
-    if not golden_path.exists():
-        print(f"ERROR: Golden set not found: {golden_path}")
-        sys.exit(1)
+    print("[deprecation] run_benchmark.py is a shim — forwarding to run_eval.py.")
+    from tamubot.evals.run_eval import default_metrics, run
+    from tamubot.rag.observability import resolve_metrics
 
-    items = _load_golden_set(golden_path)
-
-    from tamubot.rag.tools.mongo import CHUNKS_COLLECTION
-
-    print(f"\nBenchmark: {args.experiment_name}")
-    print(f"Golden set: {golden_path}  ({len(items)} items)")
-    print(f"Chunks collection: {CHUNKS_COLLECTION}")
-    if args.ragas:
-        print("RAGAS: enabled")
-
-    rows: list[BenchmarkRow] = []
-    for i, item in enumerate(items, start=1):
-        if i > 1:
-            time.sleep(2)  # avoid RPM spikes (proxy limit: 30/min)
-        q_preview = item.get("question", "")[:60]
-        print(f"\n[{i:3d}/{len(items)}] {q_preview}...", flush=True)
-        row = run_one(item, do_ragas=args.ragas, question_id=i, experiment_name=args.experiment_name)
-        rows.append(row)
-        fn_ok = "v" if row.router_function_correct else "x"
-        status = row.error or "OK"
-        print(f"         fn={fn_ok} pipeline={row.pipeline_ms:.0f}ms gen={row.generator_ms:.0f}ms  [{status}]")
-
-    # Write reports
-    ts = datetime.now().strftime("%Y%m%d")
-    base_name = f"benchmark_{args.experiment_name}_{ts}"
-    xlsx_path = REPORTS_DIR / f"{base_name}.xlsx"
-    md_path = REPORTS_DIR / f"{base_name}.md"
-
-    print("\nWriting reports...")
-    write_excel(rows, args.experiment_name, str(golden_path), xlsx_path, args.ragas)
-    write_markdown(rows, args.experiment_name, md_path)
-
-    # Append pipeline answers as a run column in the golden set Excel
-    question_to_id = {item.get("question", ""): item.get("id") for item in items}
-    run_col_results = {}
-    for row in rows:
-        qid = question_to_id.get(row.question)
-        if qid is not None and row.answer_full:
-            run_col_results[qid] = row.answer_full
-    if run_col_results:
-        _append_run_column(golden_path, args.experiment_name, run_col_results)
-        print(f"Run column appended to {golden_path}  (run:{args.experiment_name})")
-
-    # Final summary
-    n = len(rows)
-    n_correct = sum(1 for r in rows if r.router_function_correct)
-    print(f"\n{'=' * 55}")
-    print(f"  Experiment:      {args.experiment_name}")
-    print(f"  Questions:       {n}")
-    if n:
-        print(f"  Router accuracy: {n_correct / n:.1%} ({n_correct}/{n})")
-    errors = sum(1 for r in rows if r.error)
-    if errors:
-        print(f"  Errors:          {errors}")
-    print(f"{'=' * 55}")
+    metrics = resolve_metrics(None, default_metrics(with_generation=True)) if args.ragas else []
+    run(
+        golden_path=Path(args.golden_set),
+        experiment=args.experiment_name,
+        with_generation=True,
+        metrics=metrics,
+        ids=None,
+        capture_state=False,
+        description=None,
+        top_k=None,
+        threshold=0.35,
+        chunks_collection=args.chunks_collection,
+        chunk_tag=None,
+        dataset_name=None,
+    )
 
 
 if __name__ == "__main__":

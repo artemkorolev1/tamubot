@@ -86,3 +86,20 @@ def chunking_config(
         eval_async=False,
         enable_generator=False,
     )
+
+
+def eval_config(
+    experiment: str,
+    run_name: str,
+    with_generation: bool,
+    metrics: list[str],
+) -> ObservabilityConfig:
+    """run_eval.py — unified config: caller picks generation on/off and metric list."""
+    return ObservabilityConfig(
+        trace_name="tamubot.benchmark",
+        tags=["eval", experiment, run_name] + (["with_generation"] if with_generation else ["retrieval_only"]),
+        metadata={"experiment": experiment, "run_name": run_name, "with_generation": with_generation},
+        eval_blocks=list(metrics),
+        eval_async=False,
+        enable_generator=with_generation,
+    )

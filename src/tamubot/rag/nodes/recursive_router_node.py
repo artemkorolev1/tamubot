@@ -18,7 +18,7 @@ from tamubot.rag.state.pipeline_state import PipelineState
 _VALID_FUNCTIONS = {"semantic_general", "hybrid_course"}
 
 
-@observe(as_type="generation", name="pipeline.router.recursive")
+@observe(as_type="generation", name="node.router.recursive")
 def _classify_recursive(prompt: str) -> dict:
     """Call the LLM to synthesize a follow-up routing decision from anchor chunks."""
     from tamubot.rag.tools.llm import call_llm

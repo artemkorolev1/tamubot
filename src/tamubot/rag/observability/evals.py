@@ -114,6 +114,31 @@ def _ensure_registry_loaded() -> None:
         import tamubot.rag.observability.ragas_blocks  # noqa: F401
 
 
+def available_metrics() -> list[str]:
+    """Return all registered eval block names."""
+    _ensure_registry_loaded()
+    return sorted(_REGISTRY.keys())
+
+
+def resolve_metrics(selection: Optional[str], default: list[str]) -> list[str]:
+    """Resolve a user --metrics selection string against the registry.
+
+    Accepts: None (returns default), "all" (returns every registered block),
+    or a comma-separated list. Unknown names raise ValueError listing what's available.
+    """
+    _ensure_registry_loaded()
+    if selection is None:
+        return list(default)
+    sel = selection.strip()
+    if sel.lower() == "all":
+        return available_metrics()
+    requested = [s.strip() for s in sel.split(",") if s.strip()]
+    unknown = [m for m in requested if m not in _REGISTRY]
+    if unknown:
+        raise ValueError(f"Unknown metric(s): {unknown}. Available: {available_metrics()}")
+    return requested
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -123,6 +148,7 @@ def _disable_litellm_budget() -> None:
     """Disable litellm's $5 budget cap that trips on TAMU gateway pricing."""
     try:
         import litellm
+
         litellm.max_budget = None
     except Exception:
         pass
@@ -166,9 +192,7 @@ def _run_evals_sync(
                                 trace_id=inputs.trace_id,
                                 name=metric_name,
                                 value=float(value),
-                                comment="RAGAS automated evaluation"
-                                if value >= 0
-                                else "RAGAS evaluation failed",
+                                comment="RAGAS automated evaluation" if value >= 0 else "RAGAS evaluation failed",
                             )
                         except Exception as e:
                             logger.warning(f"Failed to post score '{metric_name}': {e}")

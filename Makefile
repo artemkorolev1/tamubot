@@ -1,7 +1,8 @@
 .PHONY: run scrape-catalog scrape-classes scrape-simple-syllabus setup-atlas ingest ingest-dept \
         ingest-corpus test typecheck lint format probe probe-v3 probe-full \
         eval-draft import-draft bench bench-ragas test-v4 probe-v4 \
-        eval-chunking ragas-testset sandbox-up sandbox-down sandbox-shell agent
+        eval eval-gen eval-chunking diff-runs ragas-testset \
+        sandbox-up sandbox-down sandbox-shell agent
 
 # --- App ---
 run:
@@ -86,11 +87,49 @@ eval-chunking:
 		$(if $(RAGAS),--ragas,) \
 		$(if $(TOP_K),--top-k $(TOP_K),) \
 		$(if $(THRESHOLD),--threshold $(THRESHOLD),) \
-		$(if $(CHUNK_SIZE),--chunk-size $(CHUNK_SIZE),) \
-		$(if $(CHUNK_OVERLAP),--chunk-overlap $(CHUNK_OVERLAP),) \
 		$(if $(CHUNKS_COL),--chunks-collection $(CHUNKS_COL),) \
-		$(if $(DESC),--description "$(DESC)",) \
-		$(if $(OUTPUT),--output $(OUTPUT),)
+		$(if $(DESC),--description "$(DESC)",)
+
+# --- Unified eval runner (recommended) -------------------------------------
+# Required: GOLDEN, EXP
+# Optional: METRICS=faithfulness,context_recall  IDS=3,7,12  CAPTURE=1
+#           TOP_K=  THRESHOLD=  CHUNKS_COL=  CHUNK_TAG=  DESC="..."
+eval:
+	SESSION_CACHE_ENABLED=false python -m tamubot.evals.run_eval \
+		--golden-set $(GOLDEN) \
+		--experiment $(EXP) \
+		$(if $(METRICS),--metrics $(METRICS),) \
+		$(if $(IDS),--ids $(IDS),) \
+		$(if $(CAPTURE),--capture-state,) \
+		$(if $(TOP_K),--top-k $(TOP_K),) \
+		$(if $(THRESHOLD),--threshold $(THRESHOLD),) \
+		$(if $(CHUNKS_COL),--chunks-collection $(CHUNKS_COL),) \
+		$(if $(CHUNK_TAG),--chunk-tag $(CHUNK_TAG),) \
+		$(if $(DESC),--description "$(DESC)",)
+
+eval-gen:
+	SESSION_CACHE_ENABLED=false python -m tamubot.evals.run_eval \
+		--golden-set $(GOLDEN) \
+		--experiment $(EXP) \
+		--with-generation \
+		$(if $(METRICS),--metrics $(METRICS),) \
+		$(if $(IDS),--ids $(IDS),) \
+		$(if $(CAPTURE),--capture-state,) \
+		$(if $(TOP_K),--top-k $(TOP_K),) \
+		$(if $(THRESHOLD),--threshold $(THRESHOLD),) \
+		$(if $(CHUNKS_COL),--chunks-collection $(CHUNKS_COL),) \
+		$(if $(CHUNK_TAG),--chunk-tag $(CHUNK_TAG),) \
+		$(if $(DESC),--description "$(DESC)",)
+
+# Compare two run:<exp> columns from a golden set.
+# Required: GOLDEN, LEFT (e.g. run:foo), RIGHT (e.g. run:bar), OUTPUT
+diff-runs:
+	python -m tamubot.evals.diff_runs \
+		--golden-set $(GOLDEN) \
+		--left $(LEFT) \
+		--right $(RIGHT) \
+		--output $(OUTPUT) \
+		$(if $(METRIC),--metric $(METRIC),)
 
 # --- Docker Sandbox ---
 sandbox-up:

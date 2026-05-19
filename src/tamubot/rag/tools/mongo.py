@@ -128,7 +128,7 @@ def _rrf_fuse(result_lists: list[list[dict]], k: int = 60) -> list[dict]:
     return fused
 
 
-@observe(name="pipeline.retrieval.search.hybrid")
+@observe(name="node.retrieval.search.hybrid")
 def hybrid_search(query: str, course_id: str, k: int) -> list[dict]:
     """RRF hybrid search (vector + BM25) filtered to one course."""
     from langfuse import get_client as _lf
@@ -179,7 +179,7 @@ def hybrid_search(query: str, course_id: str, k: int) -> list[dict]:
     return results
 
 
-@observe(name="pipeline.retrieval.search.semantic")
+@observe(name="node.retrieval.search.semantic")
 def semantic_search(query: str, k: int) -> list[dict]:
     """Corpus-wide hybrid search (vector + BM25)."""
     from langfuse import get_client as _lf
@@ -344,7 +344,7 @@ def get_missing_sections(course_id: str) -> list[str]:
     return sorted(db[CHUNKS_COLLECTION].distinct("header_path", {"course_id": course_id}))
 
 
-@observe(name="pipeline.retrieval.course_summary")
+@observe(name="node.retrieval.course_summary")
 def get_course_summary_chunks(course_ids: list[str]) -> list[dict]:
     """Fetch course summaries and format as pseudo-chunks for the retrieval node.
 

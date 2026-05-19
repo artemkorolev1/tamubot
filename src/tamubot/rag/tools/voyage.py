@@ -79,7 +79,7 @@ def _embed_query_cached(text: str) -> tuple[float, ...]:
         return emb
 
 
-@observe(name="pipeline.retrieval.embed")
+@observe(name="node.retrieval.embed")
 def embed_query(text: str) -> list[float]:
     """Embed a query string using Voyage AI voyage-3.
 
@@ -124,7 +124,7 @@ def knee_filter(
     return chunks
 
 
-@observe(name="pipeline.retrieval.rerank")
+@observe(name="node.retrieval.rerank")
 def rerank(query: str, chunks: list[dict], top_k: int, *, apply_knee: bool = True) -> list[dict]:
     """Cross-encoder rerank chunks by relevance to query, return top_k.
 

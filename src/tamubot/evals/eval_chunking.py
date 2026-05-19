@@ -17,7 +17,6 @@ Usage:
 
 import argparse
 import hashlib
-import json
 import logging
 import os
 import sys
@@ -49,8 +48,6 @@ if _col := _pre_arg("--chunks-collection"):
 if _ct := _pre_arg("--chunk-tag"):
     os.environ.setdefault("CHUNK_TAG_FILTER", _ct)
 
-from tamubot.evals.golden_set import append_run_column as _append_run_column  # noqa: E402
-from tamubot.evals.golden_set import load as _load_golden_set  # noqa: E402
 
 logger = logging.getLogger("tamubot.eval_chunking")
 
@@ -137,7 +134,6 @@ from tamubot.rag.graph.pipeline import run_pipeline_eval  # noqa: E402
 from tamubot.rag.observability import (  # noqa: E402
     EvalInputs,
     chunking_config,
-    get_langfuse,
     run_evals,
     trace_context,
 )
@@ -545,162 +541,40 @@ def print_summary(results: list[dict], run_name: str, aggregates: dict) -> None:
 
 
 def main() -> None:
+    """Deprecated: retrieval-only chunking eval. Delegates to tamubot.evals.run_eval."""
     parser = argparse.ArgumentParser(
-        description="Retrieval-only chunking benchmark — compare chunking strategies by retrieval quality"
+        description="DEPRECATED: use `python -m tamubot.evals.run_eval` (no --with-generation) instead."
     )
-    parser.add_argument(
-        "--golden-set",
-        type=Path,
-        required=True,
-        help="Path to golden set .xlsx (e.g. tamu_data/evals/golden_sets/golden_*.xlsx)",
-    )
-    parser.add_argument(
-        "--experiment",
-        default="chunking_eval",
-        help="Experiment name in Langfuse (default: chunking_eval)",
-    )
-    parser.add_argument(
-        "--dataset",
-        help="Langfuse dataset name to upsert items into (default: stem of --golden-set filename)",
-    )
-    parser.add_argument(
-        "--top-k",
-        type=int,
-        default=None,
-        help="Override rerank_k; default uses compute_dynamic_k() per query",
-    )
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=0.35,
-        help="Voyage-3 cosine similarity threshold for relevance labels (default: 0.35)",
-    )
-    parser.add_argument(
-        "--ragas",
-        action="store_true",
-        help="Enable RAGAS ContextPrecision + ContextRecall (costs LLM tokens, ~30s/query)",
-    )
-    parser.add_argument(
-        "--chunks-collection",
-        type=str,
-        default=None,
-        help="MongoDB chunks collection to query (e.g. 'chunks_eval'). "
-        "Sets CHUNKS_COLLECTION/VECTOR_INDEX/TEXT_INDEX env vars before rag imports.",
-    )
-    parser.add_argument(
-        "--chunk-tag",
-        type=str,
-        default=None,
-        help="Filter retrieval to chunks with this chunk_tag field "
-        "(e.g. '300t_50o', 'semantic_v1'). Sets CHUNK_TAG_FILTER env var.",
-    )
-    parser.add_argument(
-        "--chunk-size",
-        type=int,
-        default=None,
-        help="Chunk token size used during ingestion (stored in Langfuse run metadata)",
-    )
-    parser.add_argument(
-        "--chunk-overlap",
-        type=int,
-        default=None,
-        help="Chunk overlap tokens used during ingestion (stored in Langfuse run metadata)",
-    )
-    parser.add_argument(
-        "--description",
-        type=str,
-        default=None,
-        help="Human-readable goal or notes for this run (stored in Langfuse run description)",
-    )
-    parser.add_argument(
-        "--output",
-        type=Path,
-        help="Write JSON results to this path (optional)",
-    )
+    parser.add_argument("--golden-set", type=Path, required=True, help="Path to golden set .xlsx")
+    parser.add_argument("--experiment", default="chunking_eval", help="Experiment name")
+    parser.add_argument("--dataset", help="Langfuse dataset name (default: golden-set stem)")
+    parser.add_argument("--top-k", type=int, default=None)
+    parser.add_argument("--threshold", type=float, default=0.35)
+    parser.add_argument("--ragas", action="store_true", help="Enable context_precision/context_recall")
+    parser.add_argument("--chunks-collection", type=str, default=None)
+    parser.add_argument("--chunk-tag", type=str, default=None)
+    parser.add_argument("--description", type=str, default=None)
     args = parser.parse_args()
 
-    if not args.golden_set.exists():
-        print(f"ERROR: Golden set not found: {args.golden_set}")
-        sys.exit(1)
+    print("[deprecation] eval_chunking.py is a shim — forwarding to run_eval.py.")
+    from tamubot.evals.run_eval import default_metrics, run
+    from tamubot.rag.observability import resolve_metrics
 
-    dataset_name = args.dataset or args.golden_set.stem
-
-    # Auto-detect chunk_size/chunk_overlap from MongoDB when not provided
-    chunk_size = args.chunk_size
-    chunk_overlap = args.chunk_overlap
-    if chunk_size is None or chunk_overlap is None:
-        try:
-            from pymongo import MongoClient
-
-            from tamubot.core import config
-            from tamubot.rag.tools.mongo import CHUNKS_COLLECTION
-
-            _client = MongoClient(config.MONGODB_URI)
-            _db = _client[config.MONGODB_DB]
-            sample = _db[CHUNKS_COLLECTION].find_one(
-                {"chunk_size": {"$ne": None}},
-                {"chunk_size": 1, "chunk_overlap": 1},
-            )
-            if sample:
-                if chunk_size is None and sample.get("chunk_size"):
-                    chunk_size = sample["chunk_size"]
-                if chunk_overlap is None and sample.get("chunk_overlap"):
-                    chunk_overlap = sample["chunk_overlap"]
-                print(
-                    f"  Auto-detected from {CHUNKS_COLLECTION}: chunk_size={chunk_size}, chunk_overlap={chunk_overlap}"
-                )
-        except Exception as e:
-            logger.warning(f"Could not auto-detect chunk config: {e}")
-
-    print(f"\nLoading golden set: {args.golden_set}")
-    golden_items = _load_golden_set(args.golden_set)
-    print(f"  {len(golden_items)} items loaded")
-
-    lf = get_langfuse()
-    print(f"  Langfuse: {'connected' if lf else 'not configured (logging skipped)'}")
-    print(
-        f"  Dataset:  {dataset_name}"
-        f"  |  experiment: {args.experiment}"
-        f"  |  threshold: {args.threshold}"
-        f"  |  top_k: {args.top_k or 'auto'}"
-        f"  |  ragas: {'yes' if args.ragas else 'no'}"
-        f"  |  chunk_size: {chunk_size or '?'}"
-        f"  |  chunk_overlap: {chunk_overlap or '?'}"
-    )
-
-    results, run_name, run_col_results = run_eval(
-        golden_items=golden_items,
+    metrics = resolve_metrics(None, default_metrics(with_generation=False)) if args.ragas else []
+    run(
+        golden_path=args.golden_set,
         experiment=args.experiment,
-        dataset_name=dataset_name,
+        with_generation=False,
+        metrics=metrics,
+        ids=None,
+        capture_state=False,
+        description=args.description,
         top_k=args.top_k,
         threshold=args.threshold,
-        ragas_enabled=args.ragas,
-        lf=lf,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        description=args.description,
+        chunks_collection=args.chunks_collection,
+        chunk_tag=args.chunk_tag,
+        dataset_name=args.dataset,
     )
-
-    if not results:
-        print("No results produced. Check golden set and pipeline connectivity.")
-        sys.exit(1)
-
-    aggregates = _compute_aggregates(results)
-    print_summary(results, run_name, aggregates)
-
-    if run_col_results:
-        _append_run_column(args.golden_set, run_name, run_col_results)
-        print(f"Run column appended to {args.golden_set}  (run:{run_name})")
-
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        with args.output.open("w", encoding="utf-8") as f:
-            json.dump(
-                {"run_name": run_name, "aggregates": aggregates, "items": results},
-                f,
-                indent=2,
-            )
-        print(f"Results written to {args.output}")
 
 
 if __name__ == "__main__":

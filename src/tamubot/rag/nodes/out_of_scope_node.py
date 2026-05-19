@@ -17,7 +17,7 @@ from tamubot.rag.tools.llm import stream_llm
 from tamubot.rag.utils import OOS_FALLBACK as _OOS_FALLBACK
 
 
-@observe(as_type="generation", name="pipeline.out_of_scope")
+@observe(as_type="generation", name="node.out_of_scope")
 def _generate_oos_response(query: str) -> list[str]:
     """Call the LLM to generate a polite, query-aware out-of-scope reply."""
     messages = [
