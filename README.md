@@ -106,62 +106,66 @@ cp .env.example .env
 # Fill in your API keys in .env
 
 # One-time: create MongoDB Atlas indexes
-python -m ingestion_pipeline.setup_atlas
+python -m tamubot.ingestion.setup_atlas
 
 # Ingest parsed syllabi into MongoDB
-python -m ingestion_pipeline.ingest
+python -m tamubot.ingestion.ingest
 
 # Start the app
-streamlit run app.py --server.headless true
+streamlit run src/tamubot/app/streamlit.py --server.headless true
 ```
 
 ## Project Structure
 
 ```
 tamubot/
-├── app.py                        # Streamlit chat UI
-├── config.py                     # Env config + LLM client factory
-├── Makefile                      # Dev targets
-├── Dockerfile                    # Python 3.14-slim container
-├── docker-compose.yml            # App + API proxy
+├── Makefile                       # Dev targets (run, ingest, probe, bench, ...)
+├── Dockerfile                     # Python 3.14-slim container
+├── docker-compose.yml             # App + API proxy
+├── pyproject.toml                 # Project metadata + tool config
+├── requirements.txt               # Pinned runtime dependencies
 │
-├── rag/                          # Query-time RAG pipeline
-│   ├── models.py                 # Pydantic v2 schemas (ChunkDoc, CourseDoc, PolicyDoc)
-│   ├── router.py                 # Variable extraction + function derivation
-│   ├── generator.py              # Function-adaptive prompts + citations
-│   ├── prompts.py                # System prompt templates
-│   ├── graph/                    # LangGraph orchestration
-│   │   ├── builder.py            # State machine construction
-│   │   ├── pipeline.py           # Pipeline entry points
-│   │   ├── session.py            # Session management
-│   │   ├── middleware.py         # Timing + error handling
-│   │   └── routing_matrix.py    # Function → retrieval config
-│   ├── nodes/                    # Graph nodes (router, retrieval, generator, etc.)
-│   ├── edges/                    # Conditional routing logic
-│   ├── tools/                    # MongoDB, Voyage, mem0, LLM clients
-│   ├── state/                    # LangGraph state definitions
-│   └── observability/            # Langfuse tracing + RAGAS evaluation
+├── src/tamubot/                   # Main package
+│   ├── app/                       # Streamlit chat UI
+│   │   ├── streamlit.py           # Entry point
+│   │   └── citations.py           # [Source N] rendering
+│   ├── core/                      # Shared config + env loading
+│   │   └── config.py
+│   ├── rag/                       # Query-time RAG pipeline
+│   │   ├── router.py              # Variable extraction + function derivation
+│   │   ├── generator.py           # Function-adaptive prompts + citations
+│   │   ├── prompts.py             # System prompt templates
+│   │   ├── graph/                 # LangGraph state machine
+│   │   ├── nodes/                 # Router, retrieval, generator nodes
+│   │   ├── edges/                 # Conditional routing logic
+│   │   ├── tools/                 # MongoDB, Voyage, mem0, LLM clients
+│   │   ├── state/                 # LangGraph state definitions
+│   │   └── observability/         # Langfuse tracing + RAGAS evaluation
+│   ├── ingestion/                 # ETL: scrape → parse → embed → store
+│   │   ├── process_syllabi.py     # Gemini PDF → structured JSON
+│   │   ├── ingest.py              # Validate + embed + MongoDB upsert
+│   │   ├── setup_atlas.py         # Create Atlas indexes
+│   │   ├── chunker_v4.py          # Token-aware chunker
+│   │   ├── converters/            # Docling, Gemini PDF backends
+│   │   ├── validators/            # Schema + content checks
+│   │   └── filters/               # Boilerplate stripping
+│   ├── evals/                     # Evaluation suite
+│   │   ├── run_probe.py           # Smoke + full end-to-end probes
+│   │   ├── run_benchmark.py       # Golden-set benchmarking
+│   │   ├── eval_chunking.py       # Chunking strategy comparison
+│   │   └── golden_set.py          # Golden set management
+│   ├── scraper/                   # Scrapy spiders + Playwright downloaders
+│   └── advisory/                  # Intent-aware advisory overlays
 │
-├── ingestion_pipeline/           # ETL: scrape → parse → embed → store
-│   ├── process_syllabi.py        # Gemini PDF → structured JSON
-│   ├── ingest.py                 # Validate + embed + MongoDB upsert
-│   ├── setup_atlas.py            # Create Atlas indexes
-│   └── refine_errors.py          # Retry failed PDF parses
+├── tamu_data/                     # Scraped data, parsed JSONs, logs (gitignored payloads)
+│   ├── processed/                 # Structured JSON outputs
+│   ├── raw/                       # PDFs + JSONL
+│   └── evals/                     # Golden sets + reports
 │
-├── evals/                        # Evaluation suite
-│   ├── run_probe.py              # Smoke + full end-to-end probes
-│   ├── run_benchmark.py          # Golden-set benchmarking
-│   ├── eval_chunking.py          # Chunking strategy comparison
-│   └── golden_set.py             # Golden set management
-│
-├── tamu_data/                    # Scraped data, parsed JSONs, logs
-│   ├── scraper/                  # Scrapy spiders + Playwright downloaders
-│   ├── processed/                # Structured JSON outputs
-│   └── raw/                      # PDFs + JSONL (gitignored)
-│
-├── tools/api-proxy/              # Rate-limiting reverse proxy
-├── tests/                        # pytest suite
-└── docs/                         # Internal documentation
+├── tools/api-proxy/               # Rate-limiting reverse proxy
+├── scripts/                       # One-off maintenance + reporting scripts
+├── tests/                         # pytest suite
+└── docs/                          # Architecture diagram + public docs
 ```
 
 ## Data Pipeline
@@ -177,17 +181,17 @@ make scrape-classes
 make scrape-simple-syllabus
 
 # 3. Parse PDFs with Gemini
-GOOGLE_API_KEY=... python ingestion_pipeline/process_syllabi.py
+GOOGLE_API_KEY=... python -m tamubot.ingestion.process_syllabi
 
 # 4. Create Atlas indexes + ingest
-python -m ingestion_pipeline.setup_atlas
-python -m ingestion_pipeline.ingest
+python -m tamubot.ingestion.setup_atlas
+python -m tamubot.ingestion.ingest
 
 # Single department only
-python -m ingestion_pipeline.ingest --department CSCE
+python -m tamubot.ingestion.ingest --department CSCE
 
 # Preview without writing to DB
-python -m ingestion_pipeline.ingest --dry-run
+python -m tamubot.ingestion.ingest --dry-run
 ```
 
 ## Evaluation

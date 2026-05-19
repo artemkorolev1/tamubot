@@ -1,7 +1,13 @@
 [project]
 name = "tamubot"
 version = "0.1.0"
+description = "RAG-based academic assistant for Texas A&M course and policy queries"
+readme = "README.md"
 requires-python = ">=3.14"
+authors = [{ name = "Artem Korolev" }]
+
+[project.urls]
+Repository = "https://github.com/artemkorolev1/tamubot"
 
 [project.optional-dependencies]
 v4 = [

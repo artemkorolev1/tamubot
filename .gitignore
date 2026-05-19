@@ -96,3 +96,26 @@ skills-lock.json
 
 # One-off test scripts
 test_hooks.sh
+
+# Archived spikes and legacy code (kept locally for reference)
+_archive/
+
+# Personal tooling / notifications
+.claude_notify.py
+.dagster_home/
+
+# Local zip + extracted department bundles (regeneratable)
+tamu_data/csce_syllabuses_no_url/
+tamu_data/csce_syllabuses_no_url.zip
+
+# Internal-only docs (kept local, not published)
+docs/superpowers/
+docs/tamubot_status.pptx
+docs/MAIN_DRAWING.md
+docs/research_prompt.md
+docs/research_prompts.md
+docs/DEV_ERRORS.md
+docs/OUTAGE_REMEDIATION_PLAN.md
+
+# Stale agent guidance file
+GEMINI.md
