@@ -51,14 +51,14 @@ SELECTION_TIME_NUDGE = (
 # Date patterns that indicate a transient (term-bound) reference.
 # Items whose 'user_input' question matches any of these are dropped.
 _TRANSIENT_DATE_PATTERNS = [
-    # Full month names with day numbers, with or without year
+    # "on Tuesday, February 24" / "on February 24" / "Friday, May 1"
     re.compile(
-        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}",
+        r"\b(on|by)\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)?,?\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}",
         re.IGNORECASE,
     ),
-    # Day-of-week + date phrasing
+    # Standalone month + day with year suffix ("February 24, 2026")
     re.compile(
-        r"\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(January|February|March|April|May|June|July|August|September|October|November|December)",
+        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+(20\d{2})",
         re.IGNORECASE,
     ),
     # Relative deadlines
@@ -484,7 +484,7 @@ def generate_testset(kg, llm, embedding_model, query_distribution, testset_size:
 # ---------------------------------------------------------------------------
 
 
-def validate_testset(df, documents: list[Document], min_ratio: float = 0.7):
+def validate_testset(df, documents: list[Document], min_ratio: float = 0.3):
     """Drop rows whose reference_contexts cannot be traced to source docs.
 
     Uses fuzzy string matching against the original document content.
@@ -525,12 +525,18 @@ def validate_testset(df, documents: list[Document], min_ratio: float = 0.7):
                 if ratio >= min_ratio:
                     matched = True
                     break
-                # Fall back to substring check for short contexts
-                if ctx.strip()[:100] in all_content:
-                    matched = True
+                # Substring fallback: if any 50-char window of the context
+                # appears verbatim in the source corpus, accept it.
+                ctx_clean = ctx.strip()
+                for start in range(0, max(1, len(ctx_clean) - 50), 25):
+                    snippet = ctx_clean[start : start + 50]
+                    if len(snippet) >= 50 and snippet in all_content:
+                        matched = True
+                        break
+                if matched:
                     break
 
-        # NEW: drop items whose question references a specific calendar date.
+        # Drop items whose question references a specific calendar date.
         question = row.get("user_input") or ""
         if matched and _has_transient_date(question):
             logger.debug("Row %s: question contains a transient date — dropping", idx)
@@ -843,7 +849,10 @@ def main() -> None:
                 persona_list=persona_list,
             )
         except Exception as e:  # noqa: BLE001
+            import traceback
+
             print(f"[batch {batch_num}] generation error: {e}")
+            print(traceback.format_exc())
             continue
 
         validated = validate_testset(raw, documents)

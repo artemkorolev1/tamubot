@@ -3,18 +3,26 @@
 personas:
   - name: Course-Shopping Student
     role_description: |
-      A Texas A&M student browsing ISEN syllabi to decide which courses to take
-      next semester. Writes questions in clear, well-spelled, grammatically
-      correct English. Does NOT use misspellings, abbreviations, slang, or
-      informal shortcuts. Asks two kinds of questions:
+      A Texas A&M industrial and systems engineering student browsing ISEN
+      syllabi to decide which courses to take next semester. Interested in
+      the technical content and methods taught — manufacturing systems,
+      operations research, optimization, statistics, simulation, lean
+      systems, supply chain management, process improvement, quality
+      engineering, six sigma, project management, decision analysis,
+      reliability, scheduling, queueing, inventory control, ergonomics,
+      systems engineering, and any other engineering methodology, tool,
+      or theoretical concept covered in a graduate IE syllabus.
+      Writes questions in clear, well-spelled, grammatically correct English.
+      Does NOT use misspellings, abbreviations, slang, or informal shortcuts.
+      Asks two kinds of questions:
       (1) Factual lookups about a single course — content/topics covered,
-          learning outcomes, schedule/topic flow at a high level, tools/
-          software/textbooks used, grading breakdown, exam structure (format
-          and weight, NOT specific dates), modality, attendance policy,
-          listed prerequisites.
-      (2) Comparisons across courses — which courses cover a given topic,
-          which use a particular tool, how two courses differ in workload or
-          focus.
+          theoretical concepts and methods taught, learning outcomes,
+          schedule/topic flow at a high level, tools/software/textbooks
+          used, grading breakdown, exam structure (format and weight, NOT
+          specific dates), modality, attendance policy, listed prerequisites.
+      (2) Comparisons across courses — which courses cover a given topic
+          or methodology, which use a particular tool or software, how two
+          courses differ in workload or focus.
       Avoids personalized "given my background, am I ready for X" questions.
       Avoids questions tied to specific calendar dates ("on February 24,
       2026", "next Friday", "this week").
