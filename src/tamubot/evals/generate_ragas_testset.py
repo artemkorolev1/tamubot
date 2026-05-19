@@ -35,7 +35,160 @@ SYNTHESIZER_TO_FUNCTION: dict[str, str] = {
     "single_hop_specific_query_synthesizer": "hybrid_course",
     "multi_hop_specific_query_synthesizer": "recursive",
     "multi_hop_abstract_query_synthesizer": "semantic_general",
+    "course_discovery_query_synthesizer": "semantic_general",
 }
+
+
+# Content-domain taxonomy distilled from `multi_persona_isen.yaml` personas.
+# Used by CourseDiscoveryByTopic to generate "which course teaches X" questions.
+# Keys are user-facing topic labels; values are keywords matched (case-insensitive,
+# word-boundary) against CHUNK page_content to find covering courses.
+TOPIC_TAXONOMY: dict[str, list[str]] = {
+    "optimization": [
+        "linear programming",
+        "integer programming",
+        "simplex method",
+        "duality",
+        "sensitivity analysis",
+        "nonlinear programming",
+        "dynamic programming",
+        "network optimization",
+        "Lagrange",
+        "KKT",
+        "operations research",
+        "decision analysis",
+        "constrained optimization",
+        "unconstrained optimization",
+        "Gurobi",
+        "CPLEX",
+        "mathematical programming",
+    ],
+    "human factors": [
+        "human factors",
+        "ergonomics",
+        "biomechanics",
+        "cognitive engineering",
+        "sociotechnical",
+        "musculoskeletal",
+        "human performance",
+        "human-systems integration",
+        "man-machine",
+        "work-system design",
+        "human-centered",
+        "cognitive workload",
+        "situation awareness",
+    ],
+    "lean and manufacturing": [
+        "lean manufacturing",
+        "lean engineering",
+        "lean thinking",
+        "value stream mapping",
+        "six sigma",
+        "kaizen",
+        "kanban",
+        "CONWIP",
+        "factory physics",
+        "supply chain",
+        "just-in-time",
+        "DMAIC",
+        "production system",
+        "manufacturing system",
+        "Toyota Production System",
+    ],
+    "data and statistics": [
+        "design of experiments",
+        "DOE",
+        "ANOVA",
+        "regression analysis",
+        "hypothesis testing",
+        "factorial design",
+        "response surface",
+        "applied statistics",
+        "data analysis",
+        "data science",
+        "machine learning",
+        "scikit-learn",
+        "pandas",
+        "statistical analysis",
+        "model adequacy",
+    ],
+    "reliability and risk": [
+        "reliability engineering",
+        "reliability analysis",
+        "risk analysis",
+        "fault tree",
+        "FMEA",
+        "Markov model",
+        "Weibull",
+        "accelerated life testing",
+        "probabilistic risk",
+        "decision-making under uncertainty",
+        "life-data analysis",
+    ],
+    "simulation": [
+        "discrete event simulation",
+        "Monte Carlo",
+        "queueing theory",
+        "stochastic process",
+        "Markov chain",
+        "Simio",
+        "Arena",
+        "AnyLogic",
+        "simulation modeling",
+        "variate generation",
+        "random number generation",
+    ],
+    "materials and processes": [
+        "mechanical behavior of materials",
+        "finite element method",
+        "FEM",
+        "casting",
+        "solidification",
+        "metalworking",
+        "deformation",
+        "heat transfer",
+        "manufacturing process",
+    ],
+    "systems engineering and management": [
+        "systems engineering",
+        "project management",
+        "engineering management",
+        "management of engineering",
+        "leadership in engineering",
+    ],
+    "engineering economy": [
+        "engineering economy",
+        "capital investment",
+        "depreciation",
+        "discounted cash flow",
+        "break-even analysis",
+        "rate of return",
+        "time value of money",
+        "engineering economic analysis",
+    ],
+}
+
+
+# Pre-compile per-topic regexes with word-boundaries to avoid false-positives
+# (e.g. "LP" wouldn't match "help"; "DOE" matches as a word, not inside "DOES").
+_TOPIC_REGEX: dict[str, "re.Pattern[str]"] = {
+    topic: re.compile(
+        r"\b(?:" + "|".join(re.escape(kw) for kw in kws) + r")\b",
+        re.IGNORECASE,
+    )
+    for topic, kws in TOPIC_TAXONOMY.items()
+}
+
+
+COURSE_DISCOVERY_NUDGE = (
+    "\n\nThe persona is choosing courses and wants to know which ones cover a specific "
+    "topic. The 'combination' field names that topic. Generate a question that asks "
+    "WHICH course(s) teach this topic (e.g., 'I want to study <topic>. Which course "
+    "should I take?'), and an answer that ENUMERATES every course represented in the "
+    "provided contexts by its course code (e.g., 'ISEN 620'), each with a one-sentence "
+    "justification drawn from the syllabus content. Do not invent courses not in the "
+    "contexts."
+)
 
 DISTRIBUTION_PRESETS = ("default", "balanced_50_50", "semantic_only", "course_coverage")
 
@@ -229,7 +382,39 @@ _TRANSIENT_DATE_PATTERNS = [
     re.compile(r"\b\d{1,2}/\d{1,2}/(?:\d{2}|\d{4})\b"),
     # Year-month-day
     re.compile(r"\b\d{4}-\d{1,2}-\d{1,2}\b"),
+    # Day-letter + M/D with no year ("T 10/6", "R 11/10", "F 9/3")
+    re.compile(r"\b[MTWRFSU]\s+\d{1,2}/\d{1,2}\b"),
+    # Lecture/Lec. + number ("Lec. 12", "Lecture 12")
+    re.compile(r"\bLec(?:ture|\.)?\s+\d+\b", re.IGNORECASE),
+    # Homework deadline phrases ("Homework #3 due")
+    re.compile(r"\bHomework\s+#?\d+\s+(?:is\s+)?due\b", re.IGNORECASE),
+    # Exam scheduling phrases ("Exam 3 is scheduled", "Exam 3 scheduled")
+    re.compile(r"\bExam\s+\d+\s+(?:is\s+)?scheduled\b", re.IGNORECASE),
 ]
+
+
+# Phrases that frame two contexts as a single-course internal contradiction.
+# Used to reject multi-CRN multi-hop items where the LLM has invented a
+# "discrepancy" by conflating two different courses' policies.
+_SINGLE_COURSE_FRAMING_PATTERNS = [
+    re.compile(r"\bdiscrepancy\b", re.IGNORECASE),
+    re.compile(r"\binconsistency\b", re.IGNORECASE),
+    re.compile(r"\b(one|another|the\s+other|a\s+different)\s+section\b", re.IGNORECASE),
+    re.compile(r"\bmentioned\s+elsewhere\b", re.IGNORECASE),
+    re.compile(r"\blisted\s+in\s+one\b", re.IGNORECASE),
+    re.compile(r"\bis\s+the\s+correct\b", re.IGNORECASE),
+    re.compile(r"\bconflicting\s+\w+", re.IGNORECASE),
+]
+
+
+# Course-code injection: detect already-named course codes, and detect stems
+# that need a course identifier prepended.
+_COURSE_CODE_RE = re.compile(r"\b[A-Z]{2,5}\s*\d{3,4}[A-Z]?(?:/\d{3,4})?\b")
+_NEEDS_COURSE_CONTEXT_RE = re.compile(
+    r"\b(this|the)\s+(course|class|syllabus|assignments?|final\s+exam|midterm|readings?|"
+    r"grading(?:\s+policy)?|policy|exam)\b",
+    re.IGNORECASE,
+)
 
 
 def _has_transient_date(text: str) -> bool:
@@ -239,12 +424,51 @@ def _has_transient_date(text: str) -> bool:
     return any(p.search(text) for p in _TRANSIENT_DATE_PATTERNS)
 
 
+def _has_single_course_framing(text: str) -> bool:
+    """Return True if `text` frames its content as a single-course contradiction.
+
+    Used to reject multi-CRN items whose stem asserts internal consistency
+    (e.g. "in one section vs. elsewhere", "the discrepancy") — those are
+    almost always synthesizer hallucinations conflating two courses.
+    """
+    if not isinstance(text, str) or not text:
+        return False
+    return any(p.search(text) for p in _SINGLE_COURSE_FRAMING_PATTERNS)
+
+
 def _apply_selection_time_nudge(synth) -> None:
     """Append SELECTION_TIME_NUDGE to the synthesizer's query-generation prompt."""
     prompts = synth.get_prompts()
     prompt = prompts["query_answer_generation_prompt"]
     prompt.instruction = prompt.instruction + SELECTION_TIME_NUDGE
     synth.set_prompts(**{"query_answer_generation_prompt": prompt})
+
+
+def _apply_course_discovery_nudge(synth) -> None:
+    """Append COURSE_DISCOVERY_NUDGE to the synthesizer's prompt.
+
+    Tries common Ragas prompt names; logs which one was patched. Safe no-op
+    if no matching prompt is found (the synth will fall back to default
+    generation behavior, which usually still produces sensible output given
+    the topic in `combination`).
+    """
+    try:
+        prompts = synth.get_prompts()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("course-discovery nudge: get_prompts failed: %s", e)
+        return
+
+    for key in ("query_answer_generation_prompt", "abstract_query_prompt"):
+        if key in prompts:
+            prompt = prompts[key]
+            prompt.instruction = prompt.instruction + COURSE_DISCOVERY_NUDGE
+            synth.set_prompts(**{key: prompt})
+            logger.info("course-discovery nudge applied to prompt '%s'", key)
+            return
+    logger.warning(
+        "course-discovery nudge: no recognized prompt key on synth (available: %s)",
+        list(prompts.keys()),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -749,7 +973,90 @@ def _build_custom_synthesizers(llm):
                 scenarios.extend(self.convert_to_scenario(s) for s in selected)
             return scenarios
 
-    return CourseCoverageSingleHop(llm=llm), CourseCoveragePairwiseMultiHop(llm=llm)
+    @dataclass
+    class CourseDiscoveryByTopic(MultiHopQuerySynthesizer):
+        """Topic → courses discovery scenarios ("Which course teaches X?").
+
+        For each topic in TOPIC_TAXONOMY, scans every CHUNK's page_content for
+        keyword matches (case-insensitive, word-boundary). Groups matches by
+        parent DOCUMENT, keeping the best-matching chunk per doc. Topics
+        covered by ≥2 documents become scenarios; each scenario contains one
+        anchor chunk per matching course. The LLM is prompted (via
+        _apply_course_discovery_nudge) to enumerate every covering course in
+        the answer.
+        """
+
+        name: str = "course_discovery_query_synthesizer"
+        theme_persona_matching_prompt: ThemesPersonasMatchingPrompt = field(
+            default_factory=ThemesPersonasMatchingPrompt
+        )
+
+        async def _generate_scenarios(self, n, knowledge_graph, persona_list, callbacks):
+            from ragas.testset.synthesizers.base import QueryLength, QueryStyle
+
+            child_rels = [r for r in knowledge_graph.relationships if r.type == "child"]
+            chunk_to_doc = {r.target.id: r.source for r in child_rels}
+
+            topic_scenarios: list[tuple[str, list]] = []
+            for topic, regex in _TOPIC_REGEX.items():
+                # Group by course_id (not source_file) so multiple sections of
+                # the same course collapse to one anchor — discovery questions
+                # need distinct courses, not distinct CRNs.
+                course_best: dict[str, tuple] = {}
+                for node in knowledge_graph.nodes:
+                    if node.type.name != "CHUNK":
+                        continue
+                    content = node.properties.get("page_content", "")
+                    matches = len({m.group(0).lower() for m in regex.finditer(content)})
+                    if matches == 0:
+                        continue
+                    parent = chunk_to_doc.get(node.id)
+                    if not parent:
+                        continue
+                    course_id = parent.properties.get("document_metadata", {}).get("course_id", "")
+                    if not course_id:
+                        continue
+                    cur = course_best.get(course_id)
+                    if cur is None or matches > cur[1]:
+                        course_best[course_id] = (node, matches)
+                if len(course_best) >= 2:
+                    anchor_chunks = [info[0] for info in course_best.values()]
+                    topic_scenarios.append((topic, anchor_chunks))
+
+            logger.info(
+                "CourseDiscoveryByTopic: %d topics with ≥2 matching courses: %s",
+                len(topic_scenarios),
+                {t: len(chunks) for t, chunks in topic_scenarios},
+            )
+
+            random.shuffle(topic_scenarios)
+            styles = list(QueryStyle)
+            lengths = list(QueryLength)
+            scenarios: list = []
+            for topic, anchor_chunks in topic_scenarios:
+                if len(scenarios) >= n:
+                    break
+                for persona in persona_list:
+                    if len(scenarios) >= n:
+                        break
+                    scenarios.append(
+                        self.convert_to_scenario(
+                            {
+                                "combination": (topic,),
+                                "persona": persona,
+                                "nodes": anchor_chunks,
+                                "style": random.choice(styles),
+                                "length": random.choice(lengths),
+                            }
+                        )
+                    )
+            return scenarios
+
+    return (
+        CourseCoverageSingleHop(llm=llm),
+        CourseCoveragePairwiseMultiHop(llm=llm),
+        CourseDiscoveryByTopic(llm=llm),
+    )
 
 
 def build_query_distribution(llm, preset: str = "default", multi_hop_relation: str = "entities_overlap_score"):
@@ -795,13 +1102,16 @@ def build_query_distribution(llm, preset: str = "default", multi_hop_relation: s
     if preset == "semantic_only":
         return [(_multi_hop_abstract(), 1.0)]
     if preset == "course_coverage":
-        # Custom synthesizers iterate 1-per-doc (single-hop) and every
-        # entities_overlap pair (multi-hop) — bypasses Ragas's 10-cluster ceiling.
-        cc_single, cc_multi = _build_custom_synthesizers(llm)
+        # Custom synthesizers: single-hop iterates 1-per-doc, pairwise iterates
+        # entities_overlap pairs cross-CRN, discovery iterates content-topic
+        # taxonomy mapping topics → covering courses.
+        cc_single, cc_multi, cc_discovery = _build_custom_synthesizers(llm)
         _apply_selection_time_nudge(cc_single)
+        _apply_course_discovery_nudge(cc_discovery)
         return [
-            (cc_single, 0.50),
-            (cc_multi, 0.50),
+            (cc_single, 0.40),
+            (cc_multi, 0.40),
+            (cc_discovery, 0.20),
         ]
     # default
     return [
@@ -844,14 +1154,18 @@ def generate_testset(kg, llm, embedding_model, query_distribution, testset_size:
 # ---------------------------------------------------------------------------
 
 
-def validate_testset(df, documents: list[Document], min_ratio: float = 0.3):
+def validate_testset(df, documents: list[Document], min_ratio: float = 0.3, kg=None):
     """Drop rows whose reference_contexts cannot be traced to source docs.
 
     Uses fuzzy string matching against the original document content.
+    If ``kg`` is provided, also drops cross-CRN items whose stem uses
+    single-course framing language (false-premise multi-hops).
     Returns the filtered DataFrame.
     """
     source_texts = {doc.metadata["source_file"]: doc.page_content for doc in documents}
     all_content = "\n\n".join(source_texts.values())
+
+    chunk_index = _build_chunk_crn_index(kg) if kg is not None else None
 
     keep_mask = []
     for idx, row in df.iterrows():
@@ -869,10 +1183,12 @@ def validate_testset(df, documents: list[Document], min_ratio: float = 0.3):
 
         synthesizer = (row.get("synthesizer_name") or "").lower()
         is_multi_hop_abstract = "multi_hop_abstract" in synthesizer
+        is_course_discovery = "course_discovery" in synthesizer
 
-        if is_multi_hop_abstract:
-            # Multi-hop-abstract reference_contexts are synthesised paraphrases;
-            # they don't match source text verbatim. Trust Ragas's own grounding.
+        if is_multi_hop_abstract or is_course_discovery:
+            # Multi-hop-abstract / discovery reference_contexts may be
+            # paraphrased or aggregated across multiple chunks; trust Ragas's
+            # grounding rather than fuzzy-matching against source text.
             matched = bool(contexts)  # only drop if contexts is empty
         else:
             # Existing single-hop / multi-hop-specific path: fuzzy match against
@@ -901,6 +1217,31 @@ def validate_testset(df, documents: list[Document], min_ratio: float = 0.3):
         if matched and _has_transient_date(question):
             logger.debug("Row %s: question contains a transient date — dropping", idx)
             matched = False
+
+        # Also drop if the reference answer itself contains transient-date
+        # markers (e.g. "T 10/6", "Lec. 12") — the expected response would
+        # be tied to a specific term. Don't scan contexts: syllabi routinely
+        # include schedule sections, so context dates would over-filter.
+        if matched:
+            answer = row.get("reference") or ""
+            if _has_transient_date(str(answer)):
+                logger.debug(
+                    "Row %s: reference answer contains a transient date — dropping",
+                    idx,
+                )
+                matched = False
+
+        # Cross-CRN single-course-framing check: reject items that pair contexts
+        # from different courses but frame them as one course's internal
+        # contradiction ("discrepancy", "one section vs elsewhere").
+        if matched and chunk_index is not None and not is_course_discovery:
+            crns = _attribute_crns(contexts, chunk_index)
+            if len(crns) > 1 and _has_single_course_framing(question):
+                logger.debug(
+                    "Row %s: cross-CRN item with single-course framing — dropping",
+                    idx,
+                )
+                matched = False
 
         keep_mask.append(matched)
 
@@ -1153,6 +1494,63 @@ def _attribute_crn(ref_contexts, chunk_index: list[tuple[str, str]]) -> str:
     """Compatibility wrapper: returns first CRN as string (legacy single-CRN callers)."""
     crns = _attribute_crns(ref_contexts, chunk_index)
     return crns[0] if crns else ""
+
+
+def _build_crn_to_course_id(kg) -> dict[str, str]:
+    """Return ``{crn: course_id}`` from DOCUMENT-node metadata."""
+    out: dict[str, str] = {}
+    for node in kg.nodes:
+        if node.type.name != "DOCUMENT":
+            continue
+        m = node.properties.get("document_metadata", {}) or {}
+        crn = str(m.get("crn", "") or "")
+        course_id = m.get("course_id", "") or ""
+        if crn and course_id:
+            out[crn] = course_id
+    return out
+
+
+def inject_course_codes(df, kg):
+    """Prepend course identifier to single-syllabus stems that don't name one.
+
+    Multi-CRN comparative items already name multiple courses, so they're
+    left alone. For single-CRN items whose stem references generic
+    "the course"/"the assignments"/"the final exam" without a dept-code
+    (e.g. "ISEN 689"), prepend "In <COURSE_ID>, ...".
+    """
+    if "reference_contexts" not in df.columns or len(df) == 0:
+        return df
+
+    chunk_index = _build_chunk_crn_index(kg)
+    crn_to_course = _build_crn_to_course_id(kg)
+
+    new_questions: list[str] = []
+    rewritten = 0
+    for _, row in df.iterrows():
+        question = str(row.get("user_input") or "")
+        rc = row.get("reference_contexts")
+        if isinstance(rc, str):
+            try:
+                rc = json.loads(rc)
+            except json.JSONDecodeError:
+                rc = [rc]
+        crns = _attribute_crns(rc, chunk_index)
+
+        if len(crns) == 1 and not _COURSE_CODE_RE.search(question) and _NEEDS_COURSE_CONTEXT_RE.search(question):
+            course_id = crn_to_course.get(crns[0], "")
+            if course_id:
+                first = question[0] if question else ""
+                if first.isupper() and not question[:4].isupper():
+                    question = first.lower() + question[1:]
+                question = f"In {course_id}, {question}"
+                rewritten += 1
+
+        new_questions.append(question)
+
+    df = df.copy()
+    df["user_input"] = new_questions
+    logger.info("Course-code injection: rewrote %d / %d stems", rewritten, len(df))
+    return df
 
 
 def export_golden_set(df, documents: list[Document], output_path: Path, kg=None) -> None:
@@ -1559,10 +1957,12 @@ def main() -> None:
             print(traceback.format_exc())
             continue
 
-        validated = validate_testset(raw, documents)
+        validated = validate_testset(raw, documents, kg=kg)
         if len(validated) == 0:
             print(f"[batch {batch_num}] no items survived validation, continuing")
             continue
+
+        validated = inject_course_codes(validated, kg)
 
         collected = pd.concat([collected, validated], ignore_index=True)
         collected = cap_per_crn(collected, kg, max_per_crn=args.max_per_crn)
