@@ -1,0 +1,158 @@
+# Multiple specialized personas for ISEN Ragas QA generation.
+# Each persona targets a different ISEN content cluster; together they
+# unlock theme matching across many more clusters than a single persona.
+# Shared style/tone rules are repeated per persona because Ragas applies
+# role_description independently per persona.
+
+personas:
+  - name: Optimization Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi to decide which courses to take next semester.
+      Most interested in mathematical optimization, linear programming
+      (LP), integer programming (IP), the simplex method, duality and
+      sensitivity analysis, unconstrained and constrained optimization,
+      nonlinear programming, dynamic programming, network optimization,
+      mathematical programming, operations research methods, decision
+      analysis, and optimization software tools.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions: which courses cover specific
+      optimization methods, what software (Gurobi, CPLEX, Python pulp,
+      AMPL) a course teaches, prerequisites, textbooks, grading
+      breakdown, exam structure (format and weight, NOT specific dates).
+      Avoids questions tied to specific calendar dates ("on February 24",
+      "next Friday", "this week").
+
+  - name: Human Factors Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in human
+      factors engineering, ergonomics, occupational biomechanics,
+      cognitive engineering, sociotechnical systems, musculoskeletal
+      disorders, human-systems interaction, human performance and safety,
+      human cognition and information processing, man-machine systems
+      design, work-system design, hazard mitigation, and human-centered
+      design.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about course topics, learning outcomes,
+      methods taught, textbooks, software used (CogTool, Cogulator),
+      grading breakdown, exam structure (format and weight, NOT specific
+      dates), and cross-course comparisons. Avoids transient calendar
+      dates.
+
+  - name: Manufacturing and Lean Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in lean
+      engineering, lean thinking, modern manufacturing systems,
+      production systems, value stream mapping, six sigma, lean six
+      sigma DMAIC, kaizen / Gemba kaizen, kanban, CONWIP, factory
+      physics, operations science, supply chain management, lean supply
+      chain, variability in production systems, buffer engineering,
+      process improvement, quality engineering, just-in-time, value /
+      flow / pull / perfection (lean principles), cell design, and
+      throughput.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about course content, methods, tools,
+      textbooks (Toyota Production System, The Lean Toolbox, Factory
+      Physics), prerequisites, grading breakdown, exam structure,
+      and cross-course comparisons. Avoids transient calendar dates.
+
+  - name: Data and Statistics Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in
+      statistics, statistical data analysis, design of experiments
+      (DOE), industrial experimental design, ANOVA, regression analysis,
+      probability theory, mathematical statistics, model building, data
+      analysis, data science, applied statistics, hypothesis testing,
+      experimental design principles, model adequacy checking, response
+      surface methodology, factorial designs, R statistical software,
+      Python for data analysis, pandas, scikit-learn, machine learning,
+      and statistical software in general.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about which statistical methods are
+      taught, software used, textbooks, prerequisites (STAT 211, 212,
+      601, 603), grading breakdown, exam structure, and cross-course
+      comparisons. Avoids transient calendar dates.
+
+  - name: Reliability and Risk Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in
+      reliability engineering, reliability analysis, risk analysis,
+      reliability and risk analysis, decision analysis, decision-making
+      under uncertainty, fault tree analysis, failure mode and effects
+      analysis (FMEA), Markov models, life-data analysis, accelerated
+      life testing, Weibull and exponential distributions, system
+      reliability, probabilistic risk assessment, and quantitative risk
+      management.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about course methods, software,
+      textbooks, prerequisites, grading structure, exam format, and
+      cross-course comparisons. Avoids transient calendar dates.
+
+  - name: Simulation and Stochastic Modeling Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in
+      discrete event simulation, simulation methods and applications,
+      simulation modeling, Monte Carlo simulation, queueing theory,
+      stochastic processes, Markov chains, random number generation,
+      variate generation, statistical analysis of model output, input
+      analysis, verification and validation, output analysis, commercial
+      simulation languages and software (Simio, Arena, AnyLogic),
+      scheduling, and inventory simulation.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about simulation methods taught,
+      software used, textbooks (Averill M. Law's Simulation Modeling and
+      Analysis), prerequisites, grading structure, exam format, and
+      cross-course comparisons. Avoids transient calendar dates.
+
+  - name: Materials and Manufacturing Processes Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in
+      mechanical behavior of materials, deformation and forming
+      processes, solidification of metals and alloys, heat transfer and
+      conduction, finite element method (FEM), manufacturing process
+      modeling, structural analysis, materials science applied to
+      manufacturing, casting and molding, metalworking, and
+      computational mechanics.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about course content, FEM software
+      (ANSYS, Abaqus), textbooks, prerequisites, grading structure,
+      exam format, and cross-course comparisons. Avoids transient
+      calendar dates.
+
+  - name: Systems and Project Management Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in
+      engineering management, project management, systems engineering,
+      systems thinking, systems design, systems modeling, model-based
+      systems engineering (MBSE), systems dynamics modeling, management
+      control systems, requirements engineering, AI-enabled management,
+      project scheduling (PERT, CPM, Gantt), project planning, scope
+      management, and engineering economics for project decisions.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about course content, methods taught,
+      software (SysML, MS Project), textbooks (Project Management: A
+      Strategic Managerial Approach by Meredith and Shafer),
+      prerequisites, grading structure, exam format, and cross-course
+      comparisons. Avoids transient calendar dates.
+
+  - name: Engineering Economy Student
+    role_description: |
+      A Texas A&M industrial and systems engineering graduate student
+      browsing ISEN syllabi for next semester. Most interested in
+      engineering economy, engineering economic analysis, capital
+      investment analysis, time value of money, net present value
+      (NPV), internal rate of return (IRR), payback period, depreciation
+      and tax considerations, cost estimation, life-cycle costing,
+      breakeven analysis, replacement analysis, and economic
+      decision-making for engineering projects.
+      Writes clear, well-spelled, grammatically correct English. Asks
+      durable factual questions about course content, methods, textbook,
+      prerequisites, grading structure, exam format, and cross-course
+      comparisons. Avoids transient calendar dates.

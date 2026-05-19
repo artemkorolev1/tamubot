@@ -37,7 +37,166 @@ SYNTHESIZER_TO_FUNCTION: dict[str, str] = {
     "multi_hop_abstract_query_synthesizer": "semantic_general",
 }
 
-DISTRIBUTION_PRESETS = ("default", "balanced_50_50", "semantic_only")
+DISTRIBUTION_PRESETS = ("default", "balanced_50_50", "semantic_only", "course_coverage")
+
+# Themes that describe administrative / boilerplate sections rather than
+# course-content topics. Stripped from CHUNK nodes before generation so the
+# multi-hop-abstract synthesizer can't pick them up as query subjects.
+# Single-hop is unaffected (it iterates `entities`, not `themes`).
+# Case-insensitive substring match.
+BOILERPLATE_THEMES = (
+    # Conduct / compliance
+    "academic integrity",
+    "academic misconduct",
+    "academic honor",
+    "honor code",
+    "aggie code",
+    "student conduct",
+    "ada",
+    "disability",
+    "ferpa",
+    "title ix",
+    "mental health",
+    "copyright",
+    "ai use",
+    "ai veracity",
+    "ai technology",
+    "ai-based inputs",
+    "documentation of ai",
+    # Grading / assessment admin
+    "grading policy",
+    "grading scale",
+    "grading appeals",
+    "grade breakdown",
+    "grade determination",
+    "re-grading",
+    "regrading",
+    "assignment weights",
+    "assignment submission",
+    "late work",
+    "exam coverage",
+    "comprehensive exam",
+    # Schedule / participation admin
+    "attendance",
+    "excused absence",
+    "participation",
+    "course participation",
+    "lecture activities",
+    "lecture recordings",
+    "discussion board",
+    "communication guidelines",
+    "weekly topics",
+    "video modules",
+    "course schedule",
+    "course syllabus",
+    "office hours",
+    # Generic structural
+    "course information",
+    "instructor information",
+    "teaching assistant",
+    "instructor and teaching",
+    "course materials",
+    "course textbook",
+    "course topics",
+    "course grading components",
+    "course learning outcomes",
+    "optional instructional",
+    "student responsibility",
+    "reading responses",
+    # Generic assessment nouns (still keep "Final Exam" because synthesizer benefits
+    # from knowing assessment exists, but block pure "Exams"/"Homework"/"Assignments" wholesale themes
+    # that don't carry domain content)
+    "exams",
+    "homework policy",
+    "homework assignments",
+    "homework",
+    "assignments",
+    "letter grades",
+    "grade components",
+    "grade assignment",
+    "final project",
+    "semester project",
+    "semester-long",
+    "project work",
+    "research report",
+    "distance learning",
+    "class discussion",
+    "deliverables",
+    "documentation requirements",
+)
+
+
+def _install_theme_matching_logger() -> None:
+    """Wrap ThemesPersonasMatchingPrompt.generate to log every call.
+
+    Logs the themes passed in (per cluster), the personas, and the mapping
+    returned. Empty mappings (the silent-zero failure mode) are flagged
+    loudly. Diagnostic-only; do not leave on in production runs.
+    """
+    from ragas.testset.synthesizers.prompts import ThemesPersonasMatchingPrompt
+
+    if getattr(ThemesPersonasMatchingPrompt, "_tamubot_wrapped", False):
+        return
+
+    original = ThemesPersonasMatchingPrompt.generate
+
+    async def wrapped(self, data, llm, callbacks=None):
+        result = await original(self, data=data, llm=llm, callbacks=callbacks)
+        themes = list(data.themes) if hasattr(data, "themes") else []
+        personas = [p.name for p in data.personas] if hasattr(data, "personas") else []
+        mapping = getattr(result, "mapping", {}) or {}
+        empty_personas = [p for p in personas if not mapping.get(p)]
+        logger.info(
+            "[theme-match] themes=%s personas=%s mapping=%s",
+            themes[:20],
+            personas,
+            {k: v for k, v in mapping.items()},
+        )
+        if empty_personas:
+            logger.warning(
+                "[theme-match] EMPTY mapping for personas=%s; themes were %s",
+                empty_personas,
+                themes,
+            )
+        return result
+
+    ThemesPersonasMatchingPrompt.generate = wrapped  # type: ignore[assignment]
+    ThemesPersonasMatchingPrompt._tamubot_wrapped = True  # type: ignore[attr-defined]
+    logger.info("[theme-match] logger installed on ThemesPersonasMatchingPrompt")
+
+
+def filter_boilerplate_themes(kg) -> None:
+    """Strip boilerplate themes from CHUNK nodes in-place.
+
+    Mutates `node.properties["themes"]` to drop entries that match any
+    BOILERPLATE_THEMES substring (case-insensitive). Logs counts.
+    """
+    blocked = [b.lower() for b in BOILERPLATE_THEMES]
+    total_before = 0
+    total_after = 0
+    chunks_emptied = 0
+    for node in kg.nodes:
+        if node.type.name != "CHUNK":
+            continue
+        themes = node.properties.get("themes")
+        if not themes:
+            continue
+        total_before += len(themes)
+        kept = [t for t in themes if not any(b in t.lower() for b in blocked)]
+        total_after += len(kept)
+        if kept != themes:
+            node.properties["themes"] = kept
+            if not kept:
+                chunks_emptied += 1
+    dropped = total_before - total_after
+    logger.info(
+        "Boilerplate filter: dropped %d theme entries (%d → %d); %d chunks left themeless",
+        dropped,
+        total_before,
+        total_after,
+        chunks_emptied,
+    )
+
 
 SELECTION_TIME_NUDGE = (
     "\n\nThe student is choosing courses for a future semester and is not "
@@ -409,12 +568,201 @@ def build_or_load_kg(
 # ---------------------------------------------------------------------------
 
 
-def build_query_distribution(llm, preset: str = "default"):
+# ---------------------------------------------------------------------------
+# Custom synthesizers — bypass Ragas's diversification caps
+# ---------------------------------------------------------------------------
+
+
+def _build_custom_synthesizers(llm):
+    """Build single-hop + multi-hop synthesizers that maximize source-doc coverage.
+
+    Default Ragas synthesizers break at n samples after iterating chunks in
+    insertion order; with 122 chunks and n=10, only the first ~10 chunks ever
+    get sampled. These custom variants iterate one chunk per source document
+    (single-hop) and every entities_overlap pair as a triplet (multi-hop).
+    """
+    import random
+    import typing as t
+    from dataclasses import dataclass, field
+
+    import numpy as np
+    from ragas.testset.synthesizers.multi_hop.base import (
+        MultiHopQuerySynthesizer,
+    )
+    from ragas.testset.synthesizers.prompts import (
+        ThemesPersonasMatchingPrompt,
+    )
+    from ragas.testset.synthesizers.single_hop.specific import (
+        SingleHopSpecificQuerySynthesizer,
+    )
+
+    @dataclass
+    class CourseCoverageSingleHop(SingleHopSpecificQuerySynthesizer):
+        """Iterates one chunk per source_file, picking the entity-richest chunk.
+
+        Guarantees N distinct source documents in N samples (up to the number
+        of docs in the KG). Bypasses the default break-at-n-after-insertion-order
+        behavior that caused the same first ~10 chunks to dominate every run.
+        """
+
+        name: str = "single_hop_specific_query_synthesizer"
+
+        async def _generate_scenarios(self, n, knowledge_graph, persona_list, callbacks):
+            child_rels = [r for r in knowledge_graph.relationships if r.type == "child"]
+            chunk_to_doc = {r.target.id: r.source for r in child_rels}
+
+            # Group chunks by source_file (best chunk per file = most entities)
+            per_source_best: dict[str, t.Any] = {}
+            for node in knowledge_graph.nodes:
+                if node.type.name != "CHUNK":
+                    continue
+                ents = self._extract_themes_from_items(node.properties.get(self.property_name, []))
+                if not ents:
+                    continue
+                parent = chunk_to_doc.get(node.id)
+                if not parent:
+                    continue
+                src = parent.properties.get("document_metadata", {}).get("source_file", "")
+                if not src:
+                    continue
+                cur = per_source_best.get(src)
+                if cur is None or len(ents) > len(
+                    self._extract_themes_from_items(cur.properties.get(self.property_name, []))
+                ):
+                    per_source_best[src] = node
+
+            ordered_chunks = list(per_source_best.values())
+            random.shuffle(ordered_chunks)
+            logger.info("CourseCoverageSingleHop: %d distinct-source chunks available", len(ordered_chunks))
+
+            scenarios: list = []
+            samples_per_node = max(1, int(np.ceil(n / max(len(ordered_chunks), 1))))
+            for node in ordered_chunks:
+                if len(scenarios) >= n:
+                    break
+                themes = self._extract_themes_from_items(node.properties.get(self.property_name, []))
+                if not themes:
+                    continue
+                # Bypass theme_persona_matching (expensive + fails at max_tokens with many personas).
+                # Associate every persona with every theme on this chunk.
+                forced_mapping = {p.name: themes for p in persona_list}
+                base_scenarios = self.prepare_combinations(
+                    node, themes, personas=persona_list, persona_concepts=forced_mapping
+                )
+                scenarios.extend(self.sample_combinations(base_scenarios, samples_per_node))
+            return scenarios
+
+    @dataclass
+    class CourseCoveragePairwiseMultiHop(MultiHopQuerySynthesizer):
+        """Iterates every entities_overlap pair as a triplet, not aggregated clusters.
+
+        find_n_indirect_clusters caps at 10 hub-anchored templates with our KG.
+        find_two_nodes_single_rel returns 572 distinct pairs — far more course
+        diversity. Each pair becomes a 2-hop scenario.
+        """
+
+        name: str = "multi_hop_abstract_query_synthesizer"
+        theme_persona_matching_prompt: ThemesPersonasMatchingPrompt = field(
+            default_factory=ThemesPersonasMatchingPrompt
+        )
+
+        async def _generate_scenarios(self, n, knowledge_graph, persona_list, callbacks):
+            from ragas.testset.synthesizers.base import QueryLength, QueryStyle
+
+            results = list(
+                knowledge_graph.find_two_nodes_single_rel(
+                    relationship_condition=lambda rel: rel.type == "entities_overlap"
+                )
+            )
+            if not results:
+                logger.warning("CourseCoveragePairwiseMultiHop: no entities_overlap pairs found")
+                return []
+
+            # Map chunks to their parent doc CRN so we can filter to cross-CRN pairs
+            child_rels = [r for r in knowledge_graph.relationships if r.type == "child"]
+            chunk_to_crn: dict = {}
+            for r in child_rels:
+                crn = r.source.properties.get("document_metadata", {}).get("crn", "")
+                chunk_to_crn[r.target.id] = crn
+
+            blocked = [b.lower() for b in BOILERPLATE_THEMES]
+
+            def _useful_themes(triplet):
+                _, rel, _ = triplet
+                items = rel.properties.get("overlapped_items", []) or []
+                kept = []
+                for pair in items:
+                    for token in pair:
+                        if isinstance(token, str) and not any(b in token.lower() for b in blocked):
+                            kept.append(token)
+                return list(dict.fromkeys(kept))
+
+            cross_crn_triplets = []
+            same_crn_dropped = 0
+            for triplet in results:
+                node_a, _, node_b = triplet
+                crn_a = chunk_to_crn.get(node_a.id, "")
+                crn_b = chunk_to_crn.get(node_b.id, "")
+                # Require cross-CRN pair (different courses)
+                if crn_a == crn_b:
+                    same_crn_dropped += 1
+                    continue
+                themes = _useful_themes(triplet)
+                if themes:
+                    cross_crn_triplets.append((triplet, themes))
+
+            random.shuffle(cross_crn_triplets)
+            logger.info(
+                "CourseCoveragePairwiseMultiHop: %d cross-CRN pairs (dropped %d same-CRN, %d total)",
+                len(cross_crn_triplets),
+                same_crn_dropped,
+                len(results),
+            )
+
+            num_per_triplet = max(1, n // max(len(cross_crn_triplets), 1))
+            scenarios: list = []
+            styles = list(QueryStyle)
+            lengths = list(QueryLength)
+            for triplet, themes in cross_crn_triplets:
+                if len(scenarios) >= n:
+                    break
+                node_a, _, node_b = triplet
+                # Construct MultiHopScenarios DIRECTLY — bypass prepare_combinations
+                # because its valid_nodes filter drops node_b when the overlap term
+                # isn't a verbatim entity match (e.g. "Homework (25%)" vs "Homework 25%").
+                candidate_samples = []
+                for combination in [[th] for th in themes]:
+                    for persona in persona_list:
+                        for style in styles:
+                            for length in lengths:
+                                candidate_samples.append(
+                                    {
+                                        "combination": tuple(combination),
+                                        "persona": persona,
+                                        "nodes": [node_a, node_b],
+                                        "style": style,
+                                        "length": length,
+                                    }
+                                )
+                random.shuffle(candidate_samples)
+                selected = candidate_samples[:num_per_triplet]
+                scenarios.extend(self.convert_to_scenario(s) for s in selected)
+            return scenarios
+
+    return CourseCoverageSingleHop(llm=llm), CourseCoveragePairwiseMultiHop(llm=llm)
+
+
+def build_query_distribution(llm, preset: str = "default", multi_hop_relation: str = "entities_overlap_score"):
     """Return a Ragas query_distribution list for the chosen preset.
 
     Every SingleHopSpecificQuerySynthesizer in the returned list has
     SELECTION_TIME_NUDGE appended to its query_answer_generation_prompt
     instruction.
+
+    `multi_hop_relation` controls which KG edge property the multi-hop-abstract
+    synthesizer walks to find clusters. ``entities_overlap_score`` (default)
+    produces ~10 distinct topical clusters; ``summary_similarity`` saturates to
+    2 hub-anchored clusters because syllabi share too much structural language.
 
     Presets:
       - "default":         50% single-hop / 30% multi-hop-specific / 20% multi-hop-abstract
@@ -436,18 +784,30 @@ def build_query_distribution(llm, preset: str = "default"):
         _apply_selection_time_nudge(s)
         return s
 
+    def _multi_hop_abstract():
+        return MultiHopAbstractQuerySynthesizer(llm=llm, relation_property=multi_hop_relation)
+
     if preset == "balanced_50_50":
         return [
             (_single_hop(), 0.50),
-            (MultiHopAbstractQuerySynthesizer(llm=llm), 0.50),
+            (_multi_hop_abstract(), 0.50),
         ]
     if preset == "semantic_only":
-        return [(MultiHopAbstractQuerySynthesizer(llm=llm), 1.0)]
+        return [(_multi_hop_abstract(), 1.0)]
+    if preset == "course_coverage":
+        # Custom synthesizers iterate 1-per-doc (single-hop) and every
+        # entities_overlap pair (multi-hop) — bypasses Ragas's 10-cluster ceiling.
+        cc_single, cc_multi = _build_custom_synthesizers(llm)
+        _apply_selection_time_nudge(cc_single)
+        return [
+            (cc_single, 0.50),
+            (cc_multi, 0.50),
+        ]
     # default
     return [
         (_single_hop(), 0.50),
         (MultiHopSpecificQuerySynthesizer(llm=llm), 0.30),
-        (MultiHopAbstractQuerySynthesizer(llm=llm), 0.20),
+        (_multi_hop_abstract(), 0.20),
     ]
 
 
@@ -552,18 +912,265 @@ def validate_testset(df, documents: list[Document], min_ratio: float = 0.3):
 
 
 # ---------------------------------------------------------------------------
+# Step 7b — Near-duplicate dedup
+# ---------------------------------------------------------------------------
+
+
+def _find_chunk_for_context(ref_context: str, kg) -> object | None:
+    """Locate the CHUNK node whose page_content contains this reference_context.
+
+    Strips the optional ``<N-hop>`` prefix, then probes the first 100 chars.
+    Returns the matched Node or None.
+    """
+    if not isinstance(ref_context, str):
+        return None
+    ctx = _HOP_PREFIX_RE.sub("", ref_context).strip()
+    if not ctx:
+        return None
+    probe = ctx[:100]
+    for node in kg.nodes:
+        if node.type.name != "CHUNK":
+            continue
+        if probe in node.properties.get("page_content", ""):
+            return node
+    return None
+
+
+def mask_used_nodes(kg, seed_df, mask_whole_crn: bool = False) -> int:
+    """Empty themes + entities on CHUNK nodes already used by `seed_df`.
+
+    With ``mask_whole_crn=False`` (default), only chunks that directly
+    produced a seed row are masked. With ``mask_whole_crn=True``, every
+    chunk belonging to a doc whose CRN appears in the seed is masked — much
+    more aggressive, pushes Ragas into uncovered courses entirely.
+
+    Returns the number of chunks blanked.
+    """
+    # Build chunk → CRN lookup once
+    child_rels = [r for r in kg.relationships if r.type == "child"]
+    chunk_to_doc = {r.target.id: r.source for r in child_rels}
+
+    def _chunk_crn(node):
+        parent = chunk_to_doc.get(node.id)
+        if not parent:
+            return ""
+        return parent.properties.get("document_metadata", {}).get("crn", "") or ""
+
+    used_chunks: set[str] = set()
+    used_crns: set[str] = set()
+    for _, row in seed_df.iterrows():
+        rc = row.get("reference_contexts")
+        if isinstance(rc, str):
+            try:
+                rc = json.loads(rc)
+            except json.JSONDecodeError:
+                rc = [rc]
+        if not isinstance(rc, list):
+            continue
+        for ctx in rc:
+            node = _find_chunk_for_context(ctx, kg)
+            if node is not None:
+                used_chunks.add(node.id)
+                crn = _chunk_crn(node)
+                if crn:
+                    used_crns.add(crn)
+
+    masked = 0
+    for node in kg.nodes:
+        if node.type.name != "CHUNK":
+            continue
+        if mask_whole_crn:
+            if _chunk_crn(node) in used_crns:
+                node.properties["themes"] = []
+                node.properties["entities"] = []
+                masked += 1
+        else:
+            if node.id in used_chunks:
+                node.properties["themes"] = []
+                node.properties["entities"] = []
+                masked += 1
+
+    logger.info(
+        "Node masking (whole_crn=%s): blanked %d CHUNK nodes; %d CRNs covered by seed",
+        mask_whole_crn,
+        masked,
+        len(used_crns),
+    )
+    return masked
+
+
+def cap_per_crn(df, kg, max_per_crn: int = 3):
+    """Drop rows beyond `max_per_crn` items sharing the same source CRN.
+
+    Ragas re-draws scenarios from the same chunks across batches, so a single
+    information-rich course (e.g., ISEN 608 with its full textbook + exam
+    schedule) can dominate single-hop output. This cap forces coverage across
+    courses by dropping the later-generated rows once the per-CRN budget is
+    exhausted.
+    """
+    if "reference_contexts" not in df.columns or len(df) == 0:
+        return df
+
+    chunk_index = _build_chunk_crn_index(kg)
+    seen: dict[str, int] = {}
+    keep_mask: list[bool] = []
+    for _, row in df.iterrows():
+        rc = row.get("reference_contexts")
+        if isinstance(rc, str):
+            try:
+                rc = json.loads(rc)
+            except json.JSONDecodeError:
+                rc = [rc]
+        crn = _attribute_crn(rc, chunk_index)
+        if not crn:
+            keep_mask.append(True)
+            continue
+        seen[crn] = seen.get(crn, 0) + 1
+        keep_mask.append(seen[crn] <= max_per_crn)
+
+    before = len(df)
+    df_clean = df[keep_mask].reset_index(drop=True)
+    dropped = before - len(df_clean)
+    logger.info("Per-CRN cap (max=%d): kept %d / %d (dropped %d)", max_per_crn, len(df_clean), before, dropped)
+    return df_clean
+
+
+def deduplicate_by_question_similarity(df, embedding_model, threshold: float = 0.85):
+    """Drop rows whose `user_input` is a near-duplicate of an earlier row.
+
+    Embeds each question via the same Ragas-wrapped embedder used for the KG.
+    For any pair (i, j) with i < j and cosine(q_i, q_j) >= threshold, drops j.
+    Earlier rows are preferred so chronological/batch order is preserved.
+    """
+    if len(df) <= 1:
+        return df
+
+    questions = [str(q or "") for q in df["user_input"].tolist()]
+    raw = embedding_model.embed_documents(questions)
+    import numpy as np
+
+    vecs = np.asarray(raw, dtype=float)
+    norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    vecs = vecs / norms
+
+    sim = vecs @ vecs.T
+    n = len(questions)
+    keep_mask = [True] * n
+    for j in range(n):
+        if not keep_mask[j]:
+            continue
+        for i in range(j):
+            if keep_mask[i] and sim[i, j] >= threshold:
+                keep_mask[j] = False
+                logger.info(
+                    "Dedup: dropping row %d (sim=%.3f vs row %d): %r",
+                    j,
+                    sim[i, j],
+                    i,
+                    questions[j][:80],
+                )
+                break
+
+    df_clean = df[keep_mask].reset_index(drop=True)
+    dropped = n - len(df_clean)
+    logger.info("Dedup: kept %d / %d (dropped %d near-duplicates ≥ %.2f)", len(df_clean), n, dropped, threshold)
+    return df_clean
+
+
+# ---------------------------------------------------------------------------
 # Step 8 — Export
 # ---------------------------------------------------------------------------
 
 
-def export_golden_set(df, documents: list[Document], output_path: Path) -> None:
-    """Export validated testset to XLSX matching golden_set schema."""
+_HOP_PREFIX_RE = re.compile(r"^<\d+-hop>\s*", re.MULTILINE)
+
+
+def _build_chunk_crn_index(kg) -> list[tuple[str, str]]:
+    """Return [(chunk_page_content, crn), ...] ordered by descending length.
+
+    Walks the KG: for each CHUNK node, finds its parent DOCUMENT via the
+    'child' relationship (source=doc, target=chunk) and reads
+    document_metadata.crn. Longest chunks come first so substring lookups
+    prefer more specific matches.
+    """
+    child_rels = [r for r in kg.relationships if r.type == "child"]
+    chunk_to_doc = {r.target.id: r.source for r in child_rels}
+
+    pairs: list[tuple[str, str]] = []
+    for node in kg.nodes:
+        if node.type.name != "CHUNK":
+            continue
+        content = node.properties.get("page_content", "")
+        if not content:
+            continue
+        parent = chunk_to_doc.get(node.id)
+        if not parent:
+            continue
+        crn = parent.properties.get("document_metadata", {}).get("crn", "") or ""
+        pairs.append((content, crn))
+
+    pairs.sort(key=lambda p: len(p[0]), reverse=True)
+    return pairs
+
+
+def _attribute_crns(ref_contexts, chunk_index: list[tuple[str, str]]) -> list[str]:
+    """Return ALL CRNs whose source chunks appear in ref_contexts.
+
+    Multi-hop questions span multiple chunks — each `reference_context` entry
+    (after stripping `<N-hop>` markers) matches a different chunk. Walks every
+    context and collects every distinct matching CRN. Returns CRNs sorted
+    deterministically.
+    """
+    found: set[str] = set()
+    if not ref_contexts or not isinstance(ref_contexts, list):
+        return []
+    for raw_ctx in ref_contexts:
+        if not isinstance(raw_ctx, str):
+            continue
+        ctx = _HOP_PREFIX_RE.sub("", raw_ctx).strip()
+        if not ctx:
+            continue
+        probe = ctx[:100]
+        matched = False
+        for chunk_content, crn in chunk_index:
+            if probe in chunk_content:
+                if crn:
+                    found.add(crn)
+                matched = True
+                break
+        if not matched and len(ctx) > 200:
+            probe = ctx[100:200]
+            for chunk_content, crn in chunk_index:
+                if probe in chunk_content:
+                    if crn:
+                        found.add(crn)
+                    break
+    return sorted(found)
+
+
+def _attribute_crn(ref_contexts, chunk_index: list[tuple[str, str]]) -> str:
+    """Compatibility wrapper: returns first CRN as string (legacy single-CRN callers)."""
+    crns = _attribute_crns(ref_contexts, chunk_index)
+    return crns[0] if crns else ""
+
+
+def export_golden_set(df, documents: list[Document], output_path: Path, kg=None) -> None:
+    """Export validated testset to XLSX matching golden_set schema.
+
+    If ``kg`` is provided, CRN attribution uses a KG chunk → parent doc lookup
+    (robust to Ragas-side header reformatting). Otherwise falls back to a
+    legacy substring match against documents.
+    """
     import openpyxl
 
-    # Build source_file → crn lookup
-    crn_lookup: dict[str, str] = {}
-    for doc in documents:
-        crn_lookup[doc.metadata["source_file"]] = doc.metadata.get("crn", "")
+    chunk_index: list[tuple[str, str]] | None = None
+    if kg is not None:
+        chunk_index = _build_chunk_crn_index(kg)
+        logger.info("CRN attribution: built %d-entry chunk index from KG", len(chunk_index))
+
+    # Legacy fallback path (kg=None)
+    crn_lookup: dict[str, str] = {doc.metadata["source_file"]: doc.metadata.get("crn", "") for doc in documents}
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb = openpyxl.Workbook()
@@ -584,7 +1191,6 @@ def export_golden_set(df, documents: list[Document], output_path: Path) -> None:
         synthesizer_name = row.get("synthesizer_name", "")
         expected_function = SYNTHESIZER_TO_FUNCTION.get(synthesizer_name, "hybrid_course")
 
-        # Serialize reference_contexts
         ref_contexts = row.get("reference_contexts")
         if isinstance(ref_contexts, list):
             ref_contexts_str = json.dumps(ref_contexts, ensure_ascii=False)
@@ -593,32 +1199,34 @@ def export_golden_set(df, documents: list[Document], output_path: Path) -> None:
         else:
             ref_contexts_str = ""
 
-        # Try to extract CRN from reference contexts or metadata
-        crn = ""
-        if ref_contexts and isinstance(ref_contexts, list):
-            for ctx in ref_contexts:
-                if isinstance(ctx, str):
-                    for src_file, src_crn in crn_lookup.items():
-                        # Check if this context came from this source doc
-                        doc_content = next(
-                            (d.page_content for d in documents if d.metadata["source_file"] == src_file),
-                            "",
-                        )
-                        if ctx.strip()[:100] in doc_content:
-                            crn = src_crn
-                            break
-                if crn:
-                    break
+        if chunk_index is not None:
+            crns_list = _attribute_crns(ref_contexts, chunk_index)
+            crn = ", ".join(crns_list)
+        else:
+            crn = ""
+            if ref_contexts and isinstance(ref_contexts, list):
+                for ctx in ref_contexts:
+                    if isinstance(ctx, str):
+                        for src_file, src_crn in crn_lookup.items():
+                            doc_content = next(
+                                (d.page_content for d in documents if d.metadata["source_file"] == src_file),
+                                "",
+                            )
+                            if ctx.strip()[:100] in doc_content:
+                                crn = src_crn
+                                break
+                    if crn:
+                        break
 
         ws.append(
             [
-                i,  # id
-                row.get("user_input", ""),  # question
-                row.get("reference", ""),  # reference_answer
-                expected_function,  # expected_function
-                "",  # human_notes
-                ref_contexts_str,  # reference_contexts
-                crn,  # crn
+                i,
+                row.get("user_input", ""),
+                row.get("reference", ""),
+                expected_function,
+                "",
+                ref_contexts_str,
+                crn,
             ]
         )
 
@@ -723,6 +1331,58 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     p.add_argument(
+        "--keep-boilerplate-themes",
+        action="store_true",
+        help="Skip BOILERPLATE_THEMES filter on KG chunks (debug only)",
+    )
+    p.add_argument(
+        "--seed-from",
+        type=Path,
+        default=None,
+        help=(
+            "Path to an existing golden-set XLSX (e.g. ragas_20260520_v3.xlsx). "
+            "Items are loaded as the starting batch, and the CHUNK nodes that "
+            "generated them are masked in the KG (themes/entities cleared) so "
+            "Ragas doesn't re-draw the same scenarios."
+        ),
+    )
+    p.add_argument(
+        "--mask-whole-crn",
+        action="store_true",
+        help=(
+            "When used with --seed-from, mask ALL chunks from any CRN already "
+            "represented in the seed (not just chunks that produced seed items). "
+            "Forces Ragas into completely uncovered courses."
+        ),
+    )
+    p.add_argument(
+        "--max-per-crn",
+        type=int,
+        default=3,
+        help=(
+            "Cap on items sharing the same source CRN. Ragas re-draws scenarios "
+            "from the same chunks across batches; this prevents a single rich "
+            "course from dominating the output. Default: 3"
+        ),
+    )
+    p.add_argument(
+        "--multi-hop-relation",
+        type=str,
+        default="entities_overlap_score",
+        choices=["entities_overlap_score", "summary_similarity"],
+        help=(
+            "KG edge property the multi-hop-abstract synthesizer uses for clustering. "
+            "Default 'entities_overlap_score' yields ~10 distinct topic clusters; "
+            "'summary_similarity' tends to collapse to 2 hub-anchored templates "
+            "because syllabi share too much structural language."
+        ),
+    )
+    p.add_argument(
+        "--debug-theme-matching",
+        action="store_true",
+        help="Log every ThemesPersonasMatching LLM call (themes in, mapping out)",
+    )
+    p.add_argument(
         "--dry-run",
         action="store_true",
         help="Load docs and print stats without generating",
@@ -794,6 +1454,14 @@ def main() -> None:
         args.rebuild_kg,
     )
 
+    # Strip boilerplate themes (policy/admin) so multi-hop-abstract focuses on
+    # course content. Done in-memory, KG cache file is untouched.
+    if not args.keep_boilerplate_themes:
+        filter_boilerplate_themes(kg)
+
+    if args.debug_theme_matching:
+        _install_theme_matching_logger()
+
     # KG stats summary
     try:
         n_nodes = len(kg.nodes)
@@ -811,8 +1479,10 @@ def main() -> None:
         return
 
     # --- Query distribution ---
-    query_distribution = build_query_distribution(llm, preset=args.distribution)
-    print(f"Distribution preset: {args.distribution}")
+    query_distribution = build_query_distribution(
+        llm, preset=args.distribution, multi_hop_relation=args.multi_hop_relation
+    )
+    print(f"Distribution preset: {args.distribution} (multi-hop relation: {args.multi_hop_relation})")
 
     # --- Load personas (optional; empty path = Ragas defaults) ---
     persona_list = None
@@ -828,7 +1498,41 @@ def main() -> None:
     import pandas as pd
 
     output_path = args.output or Path(f"tamu_data/evals/golden_sets/ragas_{datetime.now():%Y%m%d}.xlsx")
+
+    # --- Optional seed from existing XLSX ---
     collected = pd.DataFrame()
+    if args.seed_from is not None:
+        import openpyxl
+
+        wb = openpyxl.load_workbook(str(args.seed_from))
+        ws = wb.active
+        headers = [c.value for c in ws[1]]
+        rows = [dict(zip(headers, r)) for r in ws.iter_rows(min_row=2, values_only=True)]
+        seed_df = pd.DataFrame(rows)
+        # Normalize columns Ragas expects in the rest of the pipeline
+        seed_df = seed_df.rename(columns={"question": "user_input", "reference_answer": "reference"})
+        # Map expected_function back to synthesizer_name for dedup logging
+        rev_map = {v: k for k, v in SYNTHESIZER_TO_FUNCTION.items()}
+        seed_df["synthesizer_name"] = (
+            seed_df.get("expected_function", "").map(rev_map).fillna("single_hop_specific_query_synthesizer")
+        )
+
+        # Reference_contexts stored as JSON strings — parse back to list
+        def _parse_ctx(x):
+            if isinstance(x, list):
+                return x
+            if not x:
+                return []
+            try:
+                return json.loads(x)
+            except json.JSONDecodeError, TypeError:
+                return [x] if isinstance(x, str) else []
+
+        seed_df["reference_contexts"] = seed_df["reference_contexts"].apply(_parse_ctx)
+        print(f"Loaded {len(seed_df)} seed items from {args.seed_from}")
+        mask_used_nodes(kg, seed_df, mask_whole_crn=args.mask_whole_crn)
+        collected = seed_df
+
     for batch_num in range(1, args.max_batches + 1):
         if len(collected) >= target_size:
             break
@@ -861,16 +1565,19 @@ def main() -> None:
             continue
 
         collected = pd.concat([collected, validated], ignore_index=True)
+        collected = cap_per_crn(collected, kg, max_per_crn=args.max_per_crn)
+        collected = deduplicate_by_question_similarity(collected, embedding_model)
         # Incremental save (trimmed to target_size if we overshot)
-        export_golden_set(collected.head(target_size), documents, output_path)
+        export_golden_set(collected.head(target_size), documents, output_path, kg=kg)
         print(f"[batch {batch_num}] kept {len(validated)}, total {len(collected)} → saved {output_path}")
 
     if len(collected) == 0:
         print("ERROR: No items survived validation across all batches. Check KG quality.")
         return
 
-    final = collected.head(target_size)
-    export_golden_set(final, documents, output_path)
+    final = cap_per_crn(collected, kg, max_per_crn=args.max_per_crn)
+    final = deduplicate_by_question_similarity(final, embedding_model).head(target_size)
+    export_golden_set(final, documents, output_path, kg=kg)
     print(f"\nDone! Golden set: {output_path}  ({len(final)} items)")
 
 

@@ -6,23 +6,49 @@ personas:
       A Texas A&M industrial and systems engineering student browsing ISEN
       syllabi to decide which courses to take next semester. Interested in
       the technical content and methods taught — manufacturing systems,
-      operations research, optimization, statistics, simulation, lean
-      systems, supply chain management, process improvement, quality
-      engineering, six sigma, project management, decision analysis,
-      reliability, scheduling, queueing, inventory control, ergonomics,
-      systems engineering, and any other engineering methodology, tool,
-      or theoretical concept covered in a graduate IE syllabus.
+      mechanical behavior of materials, finite element methods, deformation
+      and forming, operations research, linear programming, integer
+      programming, optimization, the simplex method, duality and
+      sensitivity analysis, statistics, statistical data analysis,
+      probability, mathematics, data analysis, data science, python,
+      R statistical software, machine learning, simulation, lean systems,
+      lean six sigma, factory physics, kanban, CONWIP, supply chain
+      management, process improvement, quality engineering, six sigma,
+      project management, engineering management, systems dynamics,
+      decision analysis, reliability and risk analysis, scheduling,
+      queueing, inventory control, human factors engineering, ergonomics,
+      occupational biomechanics, sociotechnical systems, human-systems
+      interaction, systems engineering, experimental design, model
+      building, and any other engineering methodology, tool, or
+      theoretical concept covered in a graduate IE syllabus.
       Writes questions in clear, well-spelled, grammatically correct English.
       Does NOT use misspellings, abbreviations, slang, or informal shortcuts.
-      Asks two kinds of questions:
-      (1) Factual lookups about a single course — content/topics covered,
-          theoretical concepts and methods taught, learning outcomes,
-          schedule/topic flow at a high level, tools/software/textbooks
-          used, grading breakdown, exam structure (format and weight, NOT
-          specific dates), modality, attendance policy, listed prerequisites.
-      (2) Comparisons across courses — which courses cover a given topic
-          or methodology, which use a particular tool or software, how two
-          courses differ in workload or focus.
+
+      STRONGLY PREFERS questions about SUBSTANTIVE COURSE CONTENT — what
+      students actually learn, what methods are taught, what concepts are
+      covered, what problems the course teaches students to solve:
+        - "What optimization techniques does this course cover?"
+        - "How does this course approach reliability analysis?"
+        - "What statistical methods are taught for analyzing experimental data?"
+        - "Which lean manufacturing concepts does this course focus on?"
+        - "What simulation modeling approaches are introduced?"
+      AVOIDS shallow administrative trivia:
+        - Do NOT ask "what is the exam weight?", "what's the grading
+          breakdown?", "how many credits?", "what textbook is required?",
+          "what ISBN is the book?", "who is the instructor?", "what is the
+          late work policy?", "what is the attendance policy?".
+        - Those are pure-retrieval lookups and don't test understanding.
+
+      Two valid question types:
+      (1) Substantive content question about a single course — what
+          methodologies, theories, frameworks, tools, algorithms, models,
+          or problem domains are covered. May include the kind of problems
+          students will solve and what skills they will develop.
+      (2) Cross-course comparison — which courses cover a given topic or
+          methodology, which take different approaches to the same domain,
+          which build on which (sequencing questions about content topics,
+          not about prerequisites as ID numbers).
+
       Avoids personalized "given my background, am I ready for X" questions.
       Avoids questions tied to specific calendar dates ("on February 24,
-      2026", "next Friday", "this week").
+      2026", "next Friday", "this week", "T 10/27", "Mar 16").
