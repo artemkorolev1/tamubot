@@ -145,6 +145,7 @@ def _run_question(
     # Metric evaluation
     faithfulness: Optional[float] = None
     answer_relevancy: Optional[float] = None
+    metric_scores: dict[str, Optional[float]] = {}
 
     if metrics and chunks and not error:
         contexts = [c.get("content", "") for c in chunks if c.get("content")]
@@ -162,8 +163,7 @@ def _run_question(
             )
             faithfulness = scores.get("faithfulness")
             answer_relevancy = scores.get("answer_relevancy")
-            # context_precision / context_recall are posted to Langfuse by run_evals();
-            # surfacing them in the Excel report would require extending BenchmarkRow.
+            metric_scores = dict(scores)
         except Exception as e:
             logger.warning(f"metrics failed for q{question_idx}: {e}")
 
@@ -200,6 +200,7 @@ def _run_question(
         merge_ms=timing_ms.get("merge_node") if is_recurrent else None,
         ragas_faithfulness=faithfulness,
         ragas_relevancy=answer_relevancy,
+        metric_scores=metric_scores,
         error=error,
     )
     return row, state_dump, trace_id
@@ -467,7 +468,7 @@ def run(
     # Excel report (always full-pipeline shape; generation columns blank in retrieval-only mode)
     output_xlsx = REPORTS_DIR / f"eval_{run_name}.xlsx"
     write_excel(rows, run_name, str(golden_path), output_xlsx, do_ragas=bool(metrics))
-    write_markdown(rows, run_name, str(golden_path), output_xlsx.with_suffix(".md"))
+    write_markdown(rows, run_name, output_xlsx.with_suffix(".md"))
     print(f"  Excel:  {output_xlsx}")
 
     # Per-node candidate golden sets
@@ -486,6 +487,22 @@ def run(
             print(f"  Golden set run column appended: run:{run_name}")
         except Exception as e:
             logger.warning(f"append_run_column failed: {e}")
+
+    # One score column per metric: run:<exp>:<metric>
+    metric_names = sorted({k for r in rows for k in (r.metric_scores or {})})
+    for m in metric_names:
+        scores_by_id: dict = {}
+        for r in rows:
+            v = (r.metric_scores or {}).get(m)
+            if isinstance(v, (int, float)):
+                scores_by_id[r.question_id] = round(float(v), 4)
+        if not scores_by_id:
+            continue
+        try:
+            append_run_column(golden_path, f"{run_name}:{m}", scores_by_id)
+            print(f"  Golden set score column appended: run:{run_name}:{m}")
+        except Exception as e:
+            logger.warning(f"append_run_column ({m}) failed: {e}")
 
     return {
         "run_name": run_name,

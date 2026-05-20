@@ -5,6 +5,7 @@ Schema columns (in order):
 
 run:<experiment> columns are appended by eval scripts and ignored by load().
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -35,13 +36,15 @@ def load(path: Path) -> list[dict]:
         question = str(d.get("question") or "").strip()
         if not question:
             continue
-        items.append({
-            "id": d.get("id"),
-            "question": question,
-            "reference_answer": str(d.get("reference_answer") or "").strip(),
-            "expected_function": str(d.get("expected_function") or "").strip(),
-            "human_notes": d.get("human_notes"),
-        })
+        items.append(
+            {
+                "id": d.get("id"),
+                "question": question,
+                "reference_answer": str(d.get("reference_answer") or "").strip(),
+                "expected_function": str(d.get("expected_function") or "").strip(),
+                "human_notes": d.get("human_notes"),
+            }
+        )
     return items
 
 
@@ -76,7 +79,12 @@ def append_run_column(path: Path, experiment: str, results: dict) -> None:
         raise ImportError("openpyxl required: pip install openpyxl")
 
     path = Path(path)
-    wb = openpyxl.load_workbook(path)
+    # If a prior call in this session already fell back to _UPDATED.xlsx
+    # (host has the original locked in Excel), keep appending to the fallback
+    # so columns accumulate instead of clobbering each other.
+    fallback = path.with_stem(path.stem + "_UPDATED")
+    load_path = fallback if fallback.exists() else path
+    wb = openpyxl.load_workbook(load_path)
     ws = wb.active
     headers = [cell.value for cell in ws[1]]
     col_name = f"run:{experiment}"
@@ -105,6 +113,7 @@ def append_run_column(path: Path, experiment: str, results: dict) -> None:
         fallback = path.with_stem(path.stem + "_UPDATED")
         wb.save(fallback)
         import logging
+
         logging.getLogger("tamubot.eval").warning(
             f"Cannot overwrite {path.name} (file locked on host?) — saved to {fallback.name}"
         )

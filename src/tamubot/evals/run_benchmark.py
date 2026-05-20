@@ -20,7 +20,7 @@ import re
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -118,6 +118,11 @@ class BenchmarkRow:
     # RAGAS (optional — populated with --ragas flag)
     ragas_faithfulness: Optional[float] = None
     ragas_relevancy: Optional[float] = None
+
+    # All metric scores keyed by metric name (e.g. context_precision, context_recall).
+    # Superset of the two hardcoded RAGAS fields above — used so any --metrics
+    # selection shows up in the Excel / golden-set, not just faithfulness/relevancy.
+    metric_scores: dict[str, Optional[float]] = field(default_factory=dict)
 
     # Error
     error: Optional[str] = None
@@ -298,6 +303,20 @@ def write_excel(
     avg_relevancy = sum(r.ragas_relevancy for r in ragas_cases) / len(ragas_cases) if ragas_cases else None
     avg_chunks = _avg(rows, "chunks_retrieved")
 
+    extra_metric_means: list[tuple[str, str]] = []
+    extra_metric_names = sorted(
+        {k for r in rows for k in (r.metric_scores or {}) if k not in ("faithfulness", "answer_relevancy")}
+    )
+    for m in extra_metric_names:
+        vals = [(r.metric_scores or {}).get(m) for r in rows]
+        vals = [v for v in vals if isinstance(v, (int, float))]
+        extra_metric_means.append(
+            (
+                f"Mean {m}",
+                f"{sum(vals) / len(vals):.3f} (n={len(vals)})" if vals else "not run",
+            )
+        )
+
     summary_rows = [
         ("Experiment", experiment_name),
         ("Date", datetime.now().strftime("%Y-%m-%d")),
@@ -311,6 +330,7 @@ def write_excel(
         ),
         ("Mean RAGAS faithfulness", f"{avg_faith:.2f}" if avg_faith is not None else "not run (use --ragas)"),
         ("Mean RAGAS relevancy", f"{avg_relevancy:.2f}" if avg_relevancy is not None else "not run (use --ragas)"),
+        *extra_metric_means,
         ("Mean chunks retrieved", f"{avg_chunks:.1f}" if avg_chunks is not None else "N/A"),
         ("Mean est. input tokens", _avg(rows, "est_input_tokens")),
         ("Mean est. output tokens", _avg(rows, "est_output_tokens")),
@@ -342,6 +362,12 @@ def write_excel(
     # ── Tab 2: Per-Query ─────────────────────────────────────────────────
     ws_pq = wb.create_sheet("Per-Query")
 
+    # Metric scores selected via --metrics that aren't already covered by the
+    # hardcoded ragas_faithfulness / ragas_relevancy columns.
+    extra_metrics = sorted(
+        {k for r in rows for k in (r.metric_scores or {}) if k not in ("faithfulness", "answer_relevancy")}
+    )
+
     pq_cols = [
         # Identity
         ("q#", 5),
@@ -364,6 +390,7 @@ def write_excel(
         ("citation_pass", 10),
         ("ragas_faithfulness", 14),
         ("ragas_relevancy", 14),
+        *[(m, 16) for m in extra_metrics],
         # Timing
         ("pipeline_ms", 12),
         ("generator_ms", 12),
@@ -408,6 +435,7 @@ def write_excel(
             r.citation_pass,
             r.ragas_faithfulness,
             r.ragas_relevancy,
+            *[(r.metric_scores or {}).get(m) for m in extra_metrics],
             r.pipeline_ms,
             r.generator_ms,
             r.total_ms,
