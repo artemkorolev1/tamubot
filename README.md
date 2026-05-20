@@ -9,10 +9,11 @@ TamuBot follows a **3-stage RAG pipeline** orchestrated by LangGraph:
 - **Router** — Gemini 2.5 Flash extracts structured variables (course IDs, categories, intent type) from the user query. A pure-Python function matrix derives the retrieval strategy — no ML classification step.
 - **Retrieval** — Three search paths depending on query type: metadata lookup (exact index), hybrid search (RRF: vector + BM25), or semantic search (full-corpus vector). Results are reranked by Voyage AI cross-encoder.
 - **Generator** — Gemini 2.5 Flash produces a cited answer using function-adaptive prompts and XML-formatted context. Every claim links back to a `[Source N]` citation.
+- **Agentic Advisory** — Personalization layer that reads the student's completed-coursework profile (entered through a form in the UI) and overlays it onto retrieval and generation, so the system never recommends a course the student has already taken and can suggest natural follow-ups.
 
 The pipeline runs as a LangGraph state machine with conversation memory (mem0 Cloud), session caching, and SQLite checkpointing.
 
-![Architecture](docs/architecture.png)
+![Architecture](docs/agenticpart.png)
 
 ## Tech Stack
 
@@ -34,12 +35,14 @@ The pipeline runs as a LangGraph state machine with conversation memory (mem0 Cl
 
 - **Scrapy** — Course catalog and class schedule spiders
 - **Playwright** — Simple Syllabus PDF downloader (bypasses CloudFront WAF)
-- **Gemini 2.5 Flash** — Multimodal PDF → structured JSON parsing (13 categories)
+- **Docling + Gemini 2.5 Flash** — Multimodal PDF → structured JSON parsing (13 categories)
+- **Semantic Chunking** — Token-aware chunker that respects section/category boundaries instead of fixed-width splits, so a chunk represents one coherent topic (grading policy, schedule, learning outcomes, ...)
+- **Knowledge Graph** — Course/section/instructor/topic relationships modeled as a graph alongside the vector store; used both for retrieval-time expansion (e.g. "what else does this instructor teach?") and for evaluation set synthesis
 
-### Observability
+### Observability & Evaluation
 
 - **Langfuse** — End-to-end request tracing (Router → Retrieval → Generator)
-- **RAGAS** — Async background evaluation (Faithfulness + Answer Relevancy)
+- **RAGAS** — Async background evaluation plus offline golden-set benchmarks (Faithfulness, Answer Relevancy, Context Precision, Context Recall)
 - **OpenTelemetry** — Instrumentation layer
 
 ### Infrastructure
@@ -74,9 +77,12 @@ See `.env.example` for the full list including rate limits, proxy config, and le
 ## Features
 
 - **Intelligent Query Routing** — 8-function derivation matrix handles metadata lookups, hybrid search, semantic discovery, multi-course comparisons, and out-of-scope rejection
+- **Agentic Advisory** — A form in the UI captures the courses the student has already completed; the agent reads that profile before recommending anything, filters out already-taken courses, and tailors next-step suggestions
 - **Multi-Course Comparison** — Structured side-by-side tables with per-cell citations
 - **Recursive Course Discovery** — 5-step pipeline finds related courses anchored to a named course (e.g., "What should I take alongside CSCE 638?")
 - **Intent-Aware Generation** — Advisory overlays for academic, career, difficulty, and planning queries
+- **Semantic Chunking** — Syllabi are split along section boundaries so retrieval surfaces one coherent topic at a time instead of mid-paragraph fragments
+- **Knowledge Graph** — Course / instructor / topic relationships modeled as a graph and used both for retrieval expansion and for synthesizing evaluation questions
 - **Data Integrity Flags** — Disclaimers when syllabus data is missing for requested courses/categories
 - **Conversational Memory** — mem0 Cloud preserves context across sessions
 - **Full Observability** — Every query traced end-to-end in Langfuse with automated RAGAS scoring
@@ -196,6 +202,13 @@ python -m tamubot.ingestion.ingest --dry-run
 
 ## Evaluation
 
+TamuBot is evaluated against two purpose-built **RAGAS golden sets** generated from the knowledge graph:
+
+- A **course-coverage** set — factual questions grounded in specific syllabus sections (grading, schedule, learning outcomes, instructors)
+- A **course-discovery** set — open-ended "which course teaches X?" / "what should I take if I'm interested in Y?" questions
+
+Each pipeline configuration is scored on **Faithfulness**, **Answer Relevancy**, **Context Precision**, and **Context Recall**, and the runner also records **end-to-end latency** and **per-query LLM cost**. That lets configuration changes (chunking strategy, retriever weights, rerank depth, model swap) be compared on quality *and* cost/latency in the same report.
+
 ```bash
 # Run pytest suite
 make test
@@ -206,7 +219,7 @@ make probe
 # Full probe suite
 make probe-full
 
-# Golden-set benchmark
+# Golden-set benchmark (RAGAS metrics + cost + latency)
 make bench GOLDEN=path/to/golden.xlsx EXP=experiment-name
 
 # Chunking strategy evaluation
