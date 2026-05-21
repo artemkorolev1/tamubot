@@ -26,6 +26,31 @@ Extra flags both targets accept (set as Make vars):
 
 List available metrics anytime: `python -m tamubot.evals.run_eval --list-metrics`.
 
+## Step 0 — Reuse before re-run (REQUIRED)
+
+Use `scripts/eval_delta.py` to avoid re-running already-evaluated questions:
+
+```bash
+# Print IDs missing from any eval_<PREFIX>*.xlsx report
+GAP=$(python scripts/eval_delta.py missing tamu_data/evals/golden_sets/<file>.xlsx <EXP_PREFIX>)
+```
+
+If `$GAP` is non-empty, run **only those IDs**, using a fresh batch-suffixed `EXP` so each batch's report file survives (`make eval` overwrites `eval_<EXP>.xlsx`):
+
+```bash
+make eval EXP=<EXP_PREFIX>_partN IDS=$GAP ...
+```
+
+At summary time, combine all batches with one call (no re-run):
+
+```bash
+python scripts/eval_delta.py combine <EXP_PREFIX>
+```
+
+Use a **new** `EXP_PREFIX` only when code changed and you want a fresh comparison.
+
+**Caveat — `_UPDATED.xlsx` shadowing.** When `<file>_UPDATED.xlsx` exists in `golden_sets/`, `append_run_column` loads from it (FUSE-locked-file fallback) but saves to the original. Edits to the original silently revert on the next run — delete the stale `_UPDATED.xlsx` before editing.
+
 ## Step 1 — Discover
 
 Golden sets:
@@ -74,7 +99,7 @@ Single AskUserQuestion call with 4 choices — never assume defaults:
 Then a second AskUserQuestion:
 
 5. **Capture state?** — yes (writes sidecar + per-node candidates) or no.
-6. **Re-run subset?** — if user is iterating after a prior run, ask for `IDS=…` (use the same EXP name to overwrite the dataset run).
+6. **Re-run subset?** — if user is iterating, run Step 0 first; propose `IDS=$GAP`, never `IDS=<all>` when partial results exist.
 
 ## Step 3 — Confirm
 

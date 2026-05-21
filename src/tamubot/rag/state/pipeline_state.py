@@ -30,10 +30,14 @@ class PipelineState(TypedDict, total=False):
     retrieval_mode: str
     requires_retrieval: bool
     section: Optional[str]
+    subqueries: list[str]  # 1–4 retrieval rewrites; len>1 triggers RRF fanout in retrieval
+    dropped_course_ids: list[str]  # course_ids the validator pruned (not in COURSE_INDEX)
+    repairs_applied: list[str]  # validator repair tags (dropped_unreal_course_ids, etc.)
 
     # --- Retrieval ---
     recursive_chunks: list[dict]  # first-pass anchor chunks (recursive path only)
     retrieved_chunks: list[dict]  # second-pass or standard retrieval chunks
+    subqueries_chunk_counts: list[int]  # post-rerank count per subquery variant
     data_gaps: list[tuple[str, str]]
     data_integrity: bool
 

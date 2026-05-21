@@ -50,10 +50,13 @@ def serialize_state(state: dict[str, Any], max_chunks: int = _MAX_CHUNKS) -> dic
         "function": state.get("function", ""),
         "course_ids": list(state.get("course_ids", []) or []),
         "rewritten_query": rewritten,
+        "subqueries": list(state.get("subqueries", []) or []),
         "intent_type": state.get("intent_type"),
         "recursive_search": bool(state.get("recursive_search", False)),
         "retrieval_mode": state.get("retrieval_mode", ""),
         "section": state.get("section"),
+        "dropped_course_ids": list(state.get("dropped_course_ids", []) or []),
+        "repairs_applied": list(state.get("repairs_applied", []) or []),
     }
 
     if all_chunks:
@@ -63,6 +66,7 @@ def serialize_state(state: dict[str, Any], max_chunks: int = _MAX_CHUNKS) -> dic
             "n_anchor": len(anchor_chunks),
             "n_followup": len(chunks),
             "chunks": [_summarize_chunk(c, i + 1) for i, c in enumerate(all_chunks[:max_chunks])],
+            "subqueries_chunk_counts": list(state.get("subqueries_chunk_counts", []) or []),
         }
 
     answer = state.get("answer", "") or ""

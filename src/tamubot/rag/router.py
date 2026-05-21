@@ -5,6 +5,11 @@ Stage 1 of the 3-stage RAG pipeline: Router/Inlet → Retrieval+Rerank → Gener
 Uses Gemini 2.5 Flash for structured variable extraction (course IDs, categories,
 intent type) with query rewriting/expansion.  The retrieval function is derived
 mechanically from the extracted variables — there is no intent classification step.
+
+Post-LLM repairs (course-ID grounding, flag combos, subquery dedupe/fallback) run
+deterministically in ``_validate_and_repair`` — no extra LLM call. Every repair is
+logged to the Langfuse generation metadata so eval state dumps can record what
+was changed.
 """
 
 import json
@@ -15,9 +20,20 @@ from langfuse import get_client as _lf_get_client
 from langfuse import observe
 
 from tamubot.core import config
+from tamubot.rag import course_index
 from tamubot.rag.prompts import ROUTER_PROMPT
 from tamubot.rag.tools.llm import call_llm
-from tamubot.rag.utils import compute_dynamic_k, normalize_course_id  # noqa: F401 (re-exported)
+from tamubot.rag.utils import (
+    compute_dynamic_k,  # noqa: F401 (re-exported)
+    normalize_course_id,
+    normalize_query,
+)
+
+VALID_INTENT_TYPES: frozenset[str] = frozenset(
+    {"ACADEMIC", "CAREER", "DIFFICULTY", "PLANNING", "ADMINISTRATIVE", "GENERAL"}
+)
+
+MAX_SUBQUERIES = 4
 
 # ---------------------------------------------------------------------------
 # Derivation helpers (pure Python, no LLM)
@@ -65,6 +81,115 @@ def _derive_function(
 
 
 # ---------------------------------------------------------------------------
+# Validator / repair — post-LLM, no network calls except COURSE_INDEX (Mongo,
+# loaded lazily once per process). Returns the cleaned dict plus a list of
+# applied repairs for telemetry.
+# ---------------------------------------------------------------------------
+
+
+def _validate_and_repair(raw: dict, query: str) -> tuple[dict, dict]:
+    """Repair LLM output deterministically.
+
+    Steps (in order):
+      1. Normalize raw course_ids; drop any not in COURSE_INDEX. Recover from
+         a title substring match against the query when all are dropped.
+      2. If ``recursive_search=True`` but no course_ids survive, flip to False.
+      3. Dedupe ``subqueries`` (normalize_query) and cap at MAX_SUBQUERIES.
+      4. Fallback chain so subqueries is never empty:
+            [rewritten_query] → [original query].
+      5. Validate ``intent_type`` against the whitelist (else None).
+      6. Set ``rewritten_query = subqueries[0]`` for back-compat.
+
+    Returns ``(cleaned, telemetry)`` where ``telemetry`` carries
+    ``dropped_course_ids`` and ``repairs_applied`` for state-dump capture.
+    """
+    repairs: list[str] = []
+    dropped_course_ids: list[str] = []
+
+    # --- 1. course_ids: normalize + ground against index ---
+    raw_ids = raw.get("course_ids") or []
+    if isinstance(raw_ids, str):
+        raw_ids = [raw_ids]
+    normalized = [normalize_course_id(c) for c in raw_ids if c]
+    kept: list[str] = []
+    for cid in normalized:
+        if cid and course_index.is_known_course_id(cid):
+            if cid not in kept:
+                kept.append(cid)
+        elif cid:
+            dropped_course_ids.append(cid)
+    if dropped_course_ids:
+        repairs.append("dropped_unreal_course_ids")
+
+    # Last-ditch: if all dropped (or LLM emitted none) and the query mentions a
+    # known course title, recover one course_id.
+    if not kept:
+        recovered = course_index.match_title(query)
+        if recovered:
+            kept.append(recovered)
+            repairs.append("course_id_recovered_from_title")
+
+    # --- 2. impossible flag combo: recursive without anchor ---
+    recursive_search = bool(raw.get("recursive_search", False))
+    if recursive_search and not kept:
+        recursive_search = False
+        repairs.append("rs_flipped_to_false")
+
+    # --- 3 + 4. subqueries: dedupe, cap, never-empty ---
+    rewritten_query = raw.get("rewritten_query") or ""
+    raw_subqueries = raw.get("subqueries")
+    if isinstance(raw_subqueries, str):
+        raw_subqueries = [raw_subqueries]
+    candidates: list[str] = [s for s in (raw_subqueries or []) if isinstance(s, str) and s.strip()]
+    if rewritten_query:
+        # Guarantee the canonical rewrite is the first entry (back-compat).
+        candidates.insert(0, rewritten_query)
+    candidates = [s.strip() for s in candidates]
+
+    # Dedupe by normalized form.
+    seen: set[str] = set()
+    subqueries: list[str] = []
+    for s in candidates:
+        key = normalize_query(s)
+        if key and key not in seen:
+            seen.add(key)
+            subqueries.append(s)
+    if len(candidates) > len(subqueries):
+        repairs.append("subqueries_deduped")
+    if len(subqueries) > MAX_SUBQUERIES:
+        subqueries = subqueries[:MAX_SUBQUERIES]
+        repairs.append("subqueries_capped")
+
+    if not subqueries:
+        fallback = rewritten_query or query
+        subqueries = [fallback]
+        repairs.append("subqueries_fallback")
+
+    # --- 5. intent_type whitelist ---
+    intent_type = raw.get("intent_type")
+    if intent_type not in VALID_INTENT_TYPES:
+        if intent_type is not None:
+            repairs.append("intent_type_rejected")
+        intent_type = None
+
+    # --- 6. rewritten_query := subqueries[0] for back-compat ---
+    cleaned = {
+        "course_ids": kept,
+        "intent_type": intent_type,
+        "recursive_search": recursive_search,
+        "use_summary": bool(raw.get("use_summary", False)),
+        "rewritten_query": subqueries[0],
+        "section": raw.get("section"),
+        "subqueries": subqueries,
+    }
+    telemetry = {
+        "dropped_course_ids": dropped_course_ids,
+        "repairs_applied": repairs,
+    }
+    return cleaned, telemetry
+
+
+# ---------------------------------------------------------------------------
 # RouterResult — extracted variables + derived fields
 # ---------------------------------------------------------------------------
 
@@ -80,12 +205,21 @@ class RouterResult:
     use_summary: bool = False
     rewritten_query: str = ""
     section: Optional[str] = None
+    subqueries: list[str] = field(default_factory=list)
 
     # Derived in Python — auto-computed in __post_init__ if left empty
     retrieval_mode: str = ""
     function: str = ""
 
+    # Repair telemetry — populated by classify_query when applicable
+    dropped_course_ids: list[str] = field(default_factory=list)
+    repairs_applied: list[str] = field(default_factory=list)
+
     def __post_init__(self):
+        if not self.subqueries:
+            self.subqueries = [self.rewritten_query] if self.rewritten_query else []
+        elif not self.rewritten_query:
+            self.rewritten_query = self.subqueries[0]
         if not self.function:
             self.function = _derive_function(
                 self.course_ids,
@@ -122,6 +256,7 @@ def classify_query(
         prior_context:    Full prior-turn context string (query, courses, categories),
                           takes precedence over prior_course_ids if provided.
     """
+    original_query = query
     if prior_context:
         hint = f"[Context: {prior_context}]\n"
         query = hint + query
@@ -161,27 +296,22 @@ def classify_query(
             }
             if llm_result and llm_result.input_tokens is not None
             else None,
+            metadata={"parse_error": True},
         )
         return result
 
-    # Normalize course IDs
-    raw_ids = data.get("course_ids") or []
-    if isinstance(raw_ids, str):
-        raw_ids = [raw_ids]
-    course_ids = [normalize_course_id(c) for c in raw_ids if c]
-
-    valid_intent_types = {"ACADEMIC", "CAREER", "DIFFICULTY", "PLANNING", "ADMINISTRATIVE", "GENERAL"}
-    intent_type = data.get("intent_type")
-    if intent_type not in valid_intent_types:
-        intent_type = None
+    cleaned, telemetry = _validate_and_repair(data, original_query)
 
     result = RouterResult(
-        course_ids=course_ids,
-        intent_type=intent_type,
-        recursive_search=bool(data.get("recursive_search", False)),
-        use_summary=bool(data.get("use_summary", False)),
-        rewritten_query=data.get("rewritten_query", query),
-        section=data.get("section"),
+        course_ids=cleaned["course_ids"],
+        intent_type=cleaned["intent_type"],
+        recursive_search=cleaned["recursive_search"],
+        use_summary=cleaned["use_summary"],
+        rewritten_query=cleaned["rewritten_query"],
+        section=cleaned["section"],
+        subqueries=cleaned["subqueries"],
+        dropped_course_ids=telemetry["dropped_course_ids"],
+        repairs_applied=telemetry["repairs_applied"],
         # function and retrieval_mode auto-derived in __post_init__
     )
 
@@ -197,6 +327,9 @@ def classify_query(
             "function": result.function,
             "retrieval_mode": result.retrieval_mode,
             "rewritten_query": result.rewritten_query,
+            "subqueries": result.subqueries,
+            "dropped_course_ids": telemetry["dropped_course_ids"],
+            "repairs_applied": telemetry["repairs_applied"],
         },
     )
 

@@ -33,17 +33,32 @@ Example: "What courses are similar to CSCE 608?" → course_ids=["CSCE 608"]
 If the question uses "this course"/"this class" with no named course ID, set course_ids=[].
 
 INTENT TYPE
-Set intent_type = non-null ONLY for TAMU academic questions that are evaluative, advisory,
-or discovery queries with no specific course ID. Null for purely factual questions and
-non-TAMU topics.
+Set intent_type = non-null whenever the answer plausibly lives inside TAMU course material —
+even if no course code is given and the topic seems generic. Examples include questions about
+a topic, concept, method, technique, textbook, author, learning outcome, prerequisite, or any
+content typically found in a syllabus, course description, or reading list. When in doubt,
+prefer a non-null label — the retrieval step can search the full corpus and surface nothing
+if the topic truly isn't covered. Only set null for clearly non-TAMU domains (e.g. weather,
+general sports, world news) and for factual comparisons that already name specific course IDs.
 
 Valid values: "ACADEMIC" | "CAREER" | "DIFFICULTY" | "PLANNING" | "ADMINISTRATIVE" | "GENERAL" | null
+The label itself does not affect routing — any non-null value triggers a corpus-wide search.
+Pick the closest match; default to "ACADEMIC" for content/topic/textbook queries and "GENERAL"
+when uncertain.
 
 Examples:
-- "Compare the grading of CSCE 638 and CSCE 670" → null (factual comparison)
+- "Compare the grading of CSCE 638 and CSCE 670" → null (factual comparison, courses named)
 - "Is CSCE 638 harder than CSCE 670?" → "DIFFICULTY" (evaluative)
-- "What is the TAMU academic integrity policy?" → "ACADEMIC" (discovery, no course_id)
+- "What is the TAMU academic integrity policy?" → "ACADEMIC" (policy discovery)
 - "If I don't access Perusall through Canvas, will my grades show up?" → "ADMINISTRATIVE"
+- "Which courses cover deep learning?" → "ACADEMIC" (topic discovery)
+- "What textbook is used for human factors engineering?" → "ACADEMIC" (textbook discovery)
+- "Who wrote 'Designing for People: An Introduction to Human Factors'?" → "ACADEMIC"
+  (author/book lookup; the book likely appears on a syllabus reading list)
+- "What does a Credit 3 course teach about engineering economic analysis?" → "ACADEMIC"
+  (topic discovery; 'Credit 3' is a catalog-description format, not a course code)
+- "What are the prerequisites for learning machine learning?" → "ACADEMIC"
+  (prerequisite/topic discovery without a named course)
 
 RECURSIVE SEARCH
 Set recursive_search = true ONLY when the user wants to discover UNKNOWN courses using
@@ -81,6 +96,17 @@ The query must name the course, not what the student wants to do with it:
 - "Who teaches courses like CSCE 605?" → "retrieve course CSCE 605"
 For all other queries, expand with synonyms as usual.
 
+SUBQUERIES
+Emit 1 to 4 retrieval queries in `subqueries`:
+- Simple, single-facet questions ("grading in CSCE 638") → 1 entry.
+- Multi-topic OR-joined questions → one entry per topic.
+  Example: "Which courses cover quantitative forecasting, aggregate planning,
+  or deterministic inventory?" → 3 entries, one per topic.
+- Vague / complex / poorly-worded questions → 2–3 variants stressing
+  different interpretations.
+- Recursive queries (anchor course lookup) → still 1 entry.
+The first entry MUST be the best single rewrite (back-compat with rewritten_query).
+
 Output ONLY a JSON object with these fields:
 {{
   "course_ids": [],
@@ -88,7 +114,8 @@ Output ONLY a JSON object with these fields:
   "intent_type": null,
   "recursive_search": false,
   "use_summary": false,
-  "rewritten_query": "..."
+  "rewritten_query": "...",
+  "subqueries": ["..."]
 }}
 
 Respond with ONLY valid JSON, no other text.
