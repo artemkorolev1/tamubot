@@ -53,11 +53,8 @@ def format_context_xml(results: list[dict]) -> str:
             attrs.append(f'course="{doc["course_id"]}"')
         if doc.get("section"):
             attrs.append(f'section="{doc["section"]}"')
-        # Prefer v4 header_path, fall back to v3 category
         if doc.get("header_path"):
             attrs.append(f'header="{doc["header_path"]}"')
-        elif doc.get("category"):
-            attrs.append(f'category="{doc["category"]}"')
         if doc.get("instructor_name"):
             attrs.append(f'instructor="{doc["instructor_name"]}"')
         if doc.get("term"):

@@ -488,8 +488,6 @@ if prompt:
                                 st.write(f"**Source {i + 1}:** {label}{page_suffix}")
                                 if doc.get("header_path"):
                                     st.write(f"*Header: {doc['header_path']}*")
-                                elif doc.get("category"):
-                                    st.write(f"*Category: {doc['category']}*")
                                 content = doc.get("content", doc.get("policy_name", ""))
                                 st.info(content[:500] + ("..." if len(content) > 500 else ""))
                                 st.write("---")

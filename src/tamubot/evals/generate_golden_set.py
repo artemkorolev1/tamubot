@@ -51,24 +51,22 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 CATEGORY_WEIGHTS: dict[str, float] = {
-    "COURSE_OVERVIEW":       0.20,   # what is this course, topics, description
-    "LEARNING_OUTCOMES":     0.17,   # what will I learn, skills, objectives
-    "PREREQUISITES":         0.14,   # required background, can I take this
-    "SCHEDULE":              0.14,   # exam dates, assignment deadlines, lecture topics
-    "MATERIALS":             0.10,   # textbooks, tools, software, cost
-    "GRADING":               0.10,   # halved from initial weight — useful but over-queried
-    "AI_POLICY":             0.07,   # ChatGPT, generative AI rules — high student interest
-    "INSTRUCTOR":            0.04,   # office hours, contact info, TA details
-    "ATTENDANCE_AND_MAKEUP": 0.02,   # halved — late work policy, rarely a primary need
-    "UNIVERSITY_POLICIES":   0.01,   # boilerplate, rarely a primary query target
-    "SUPPORT_SERVICES":      0.01,   # disability services, counseling
+    "COURSE_OVERVIEW": 0.20,  # what is this course, topics, description
+    "LEARNING_OUTCOMES": 0.17,  # what will I learn, skills, objectives
+    "PREREQUISITES": 0.14,  # required background, can I take this
+    "SCHEDULE": 0.14,  # exam dates, assignment deadlines, lecture topics
+    "MATERIALS": 0.10,  # textbooks, tools, software, cost
+    "GRADING": 0.10,  # halved from initial weight — useful but over-queried
+    "AI_POLICY": 0.07,  # ChatGPT, generative AI rules — high student interest
+    "INSTRUCTOR": 0.04,  # office hours, contact info, TA details
+    "ATTENDANCE_AND_MAKEUP": 0.02,  # halved — late work policy, rarely a primary need
+    "UNIVERSITY_POLICIES": 0.01,  # boilerplate, rarely a primary query target
+    "SUPPORT_SERVICES": 0.01,  # disability services, counseling
 }
 
 # Normalized probabilities (computed once at import)
 _TOTAL_WEIGHT = sum(CATEGORY_WEIGHTS.values())
-CATEGORY_PROBS: dict[str, float] = {
-    cat: w / _TOTAL_WEIGHT for cat, w in CATEGORY_WEIGHTS.items()
-}
+CATEGORY_PROBS: dict[str, float] = {cat: w / _TOTAL_WEIGHT for cat, w in CATEGORY_WEIGHTS.items()}
 
 
 def weighted_sample_categories(n: int, rng: random.Random | None = None) -> list[str]:
@@ -96,12 +94,12 @@ def weighted_sample_categories(n: int, rng: random.Random | None = None) -> list
 STRATUM_MAP: dict[str, dict] = {
     # ── hybrid_course strata (54%) ────────────────────────────────────
     "hybrid_course_default": {
-        "expected_function":         "hybrid_course",
-        "n_questions":               14,
-        "has_category":              False,
-        "expected_semantic_intent":  False,
+        "expected_function": "hybrid_course",
+        "n_questions": 14,
+        "has_category": False,
+        "expected_semantic_intent": False,
         "expected_recurrent_search": False,
-        "description":               "General overview — no specific category → hybrid_course",
+        "description": "General overview — no specific category → hybrid_course",
         "framing": (
             "Ask a broad, general question about the course that does NOT focus on "
             "any specific syllabus category. Use the course ID from the excerpt. "
@@ -112,12 +110,12 @@ STRATUM_MAP: dict[str, dict] = {
         "use_course_id": True,
     },
     "hybrid_course_advisory": {
-        "expected_function":         "hybrid_course",
-        "n_questions":               8,
-        "has_category":              False,
-        "expected_semantic_intent":  True,
+        "expected_function": "hybrid_course",
+        "n_questions": 8,
+        "has_category": False,
+        "expected_semantic_intent": True,
         "expected_recurrent_search": False,
-        "description":               "Advisory/evaluative question about a known course → hybrid_course",
+        "description": "Advisory/evaluative question about a known course → hybrid_course",
         "framing": (
             "Ask a subjective or advisory question about the course WITHOUT naming "
             "a specific syllabus category. Use evaluative or career-oriented language. "
@@ -129,12 +127,12 @@ STRATUM_MAP: dict[str, dict] = {
         "use_course_id": True,
     },
     "hybrid_course_specific": {
-        "expected_function":         "hybrid_course",
-        "n_questions":               10,
-        "has_category":              True,
-        "expected_semantic_intent":  False,
+        "expected_function": "hybrid_course",
+        "n_questions": 10,
+        "has_category": True,
+        "expected_semantic_intent": False,
         "expected_recurrent_search": False,
-        "description":               "Specific category question, specific_only=True → hybrid_course",
+        "description": "Specific category question, specific_only=True → hybrid_course",
         "framing": (
             "Ask a direct factual question about the specific category shown in the excerpt. "
             "The question must clearly imply or name this category. "
@@ -148,12 +146,12 @@ STRATUM_MAP: dict[str, dict] = {
         "use_course_id": True,
     },
     "hybrid_course_combined": {
-        "expected_function":         "hybrid_course",
-        "n_questions":               5,
-        "has_category":              True,
-        "expected_semantic_intent":  False,
+        "expected_function": "hybrid_course",
+        "n_questions": 5,
+        "has_category": True,
+        "expected_semantic_intent": False,
         "expected_recurrent_search": False,
-        "description":               "Overview with category emphasis, specific_only=False → hybrid_course",
+        "description": "Overview with category emphasis, specific_only=False → hybrid_course",
         "framing": (
             "Ask a general question about the course that mentions the category from "
             "the excerpt as background context — not as the exclusive focus. "
@@ -165,15 +163,14 @@ STRATUM_MAP: dict[str, dict] = {
         ),
         "use_course_id": True,
     },
-
     # ── recurrent (10%) ───────────────────────────────────────────────
     "recurrent": {
-        "expected_function":         "recurrent",
-        "n_questions":               5,
-        "has_category":              False,
-        "expected_semantic_intent":  True,
+        "expected_function": "recurrent",
+        "n_questions": 5,
+        "has_category": False,
+        "expected_semantic_intent": True,
         "expected_recurrent_search": True,
-        "description":               "Course discovery/pairing — anchor course, seeking complementary courses",
+        "description": "Course discovery/pairing — anchor course, seeking complementary courses",
         "framing": (
             "Ask a question that seeks to find OTHER courses that pair with, follow, or "
             "complement the course in the excerpt. Use the course ID from the excerpt as the anchor. "
@@ -185,15 +182,14 @@ STRATUM_MAP: dict[str, dict] = {
         ),
         "use_course_id": True,
     },
-
     # ── semantic_general (16%) ────────────────────────────────────────
     "semantic_general": {
-        "expected_function":         "semantic_general",
-        "n_questions":               8,
-        "has_category":              False,
-        "expected_semantic_intent":  True,
+        "expected_function": "semantic_general",
+        "n_questions": 8,
+        "has_category": False,
+        "expected_semantic_intent": True,
         "expected_recurrent_search": False,
-        "description":               "Discovery question — no specific course ID",
+        "description": "Discovery question — no specific course ID",
         "framing": (
             "Ask a discovery, cross-course, or advisory question about TAMU academics "
             "WITHOUT mentioning any specific course ID. The question should be answerable "
@@ -205,17 +201,16 @@ STRATUM_MAP: dict[str, dict] = {
         ),
         "use_course_id": False,
     },
-
     # ── out_of_scope (4%) ─────────────────────────────────────────────
     "out_of_scope": {
-        "expected_function":         "out_of_scope",
-        "n_questions":               2,
-        "has_category":              False,
-        "expected_semantic_intent":  False,
+        "expected_function": "out_of_scope",
+        "n_questions": 2,
+        "has_category": False,
+        "expected_semantic_intent": False,
         "expected_recurrent_search": False,
-        "description":               "Off-topic — not about TAMU academics",
-        "framing":                   None,
-        "use_course_id":             False,
+        "description": "Off-topic — not about TAMU academics",
+        "framing": None,
+        "use_course_id": False,
     },
 }
 
@@ -238,6 +233,7 @@ OUT_OF_SCOPE_QUESTIONS: list[str] = [
 # Derive router ground truth from stratum + chunk
 # ---------------------------------------------------------------------------
 
+
 def _derive_router_ground_truth(
     stratum: str,
     chunk: dict,
@@ -249,7 +245,6 @@ def _derive_router_ground_truth(
     """
     spec = STRATUM_MAP[stratum]
     course_id = chunk.get("course_id", "")
-    category = chunk.get("category", "")
 
     # expected_course_ids: present for all strata that use a course ID
     if spec.get("use_course_id") and course_id:
@@ -257,18 +252,15 @@ def _derive_router_ground_truth(
     else:
         expected_course_ids = []
 
-    # expected_specific_categories: only for category-specific strata
-    if spec.get("has_category") and category:
-        expected_specific_categories = [category]
-    else:
-        expected_specific_categories = []
+    # expected_specific_categories: chunks no longer carry a category field
+    expected_specific_categories: list[str] = []
 
     return {
-        "expected_function":             spec.get("expected_function", stratum),
-        "expected_course_ids":           expected_course_ids,
-        "expected_specific_categories":  expected_specific_categories,
-        "expected_semantic_intent":      spec["expected_semantic_intent"],
-        "expected_recurrent_search":     spec.get("expected_recurrent_search", False),
+        "expected_function": spec.get("expected_function", stratum),
+        "expected_course_ids": expected_course_ids,
+        "expected_specific_categories": expected_specific_categories,
+        "expected_semantic_intent": spec["expected_semantic_intent"],
+        "expected_recurrent_search": spec.get("expected_recurrent_search", False),
     }
 
 
@@ -276,16 +268,15 @@ def _derive_router_ground_truth(
 # MongoDB chunk sampling
 # ---------------------------------------------------------------------------
 
+
 def sample_chunks_from_mongo(
     n_total: int,
     department: str = "CSCE",
 ) -> list[dict]:
-    """Sample chunks from MongoDB weighted by CATEGORY_WEIGHTS.
+    """Sample chunks from MongoDB.
 
-    Over-samples high-priority categories proportionally so the golden set
-    reflects real student query patterns.
-
-    Returns a flat list of chunk dicts tagged with _sampled_category.
+    Chunks no longer carry a category field, so sampling is uniform over the
+    department's chunk pool. Caller is responsible for downstream stratification.
     """
     from pymongo import MongoClient
 
@@ -295,33 +286,28 @@ def sample_chunks_from_mongo(
     db = client[config.MONGODB_DB]
     chunks_col = db["chunks"]
 
-    sampled_chunks: list[dict] = []
-    for cat, prob in CATEGORY_PROBS.items():
-        n_cat = max(2, round(prob * n_total))
-        pipeline = [
-            {
-                "$match": {
-                    "category": cat,
-                    "course_id": {"$regex": f"^{department}", "$options": "i"},
-                    "content": {"$exists": True, "$ne": ""},
-                }
-            },
-            {"$sample": {"size": n_cat}},
-            {
-                "$project": {
-                    "_id": 0,
-                    "crn": 1, "course_id": 1, "category": 1,
-                    "title": 1, "content": 1,
-                    "section": 1, "term": 1, "instructor_name": 1,
-                }
-            },
-        ]
-        docs = list(chunks_col.aggregate(pipeline))
-        for d in docs:
-            d["_sampled_category"] = cat
-        sampled_chunks.extend(docs)
-        print(f"  {cat:<30} weight={prob:.2f}  target={n_cat}  got={len(docs)}")
-
+    pipeline = [
+        {
+            "$match": {
+                "course_id": {"$regex": f"^{department}", "$options": "i"},
+                "content": {"$exists": True, "$ne": ""},
+            }
+        },
+        {"$sample": {"size": n_total}},
+        {
+            "$project": {
+                "_id": 0,
+                "crn": 1,
+                "course_id": 1,
+                "title": 1,
+                "content": 1,
+                "section": 1,
+                "term": 1,
+                "instructor_name": 1,
+            }
+        },
+    ]
+    sampled_chunks = list(chunks_col.aggregate(pipeline))
     client.close()
     print(f"  Total sampled: {len(sampled_chunks)} chunks")
     return sampled_chunks
@@ -330,6 +316,7 @@ def sample_chunks_from_mongo(
 # ---------------------------------------------------------------------------
 # Question synthesis
 # ---------------------------------------------------------------------------
+
 
 def synthesize_question_for_chunk(
     chunk: dict,
@@ -348,20 +335,19 @@ def synthesize_question_for_chunk(
 
     client = config.get_genai_client()
     course_id = chunk.get("course_id", "the course")
-    category = chunk.get("category", "")
     content = chunk.get("content", "")[:700]
     crn = chunk.get("crn", "")
 
     course_hint = (
         f"The excerpt is from course {course_id} (CRN: {crn})."
-        if use_course_id else
-        "Do NOT mention a specific course ID in your question."
+        if use_course_id
+        else "Do NOT mention a specific course ID in your question."
     )
 
     prompt = f"""\
 You are generating realistic student evaluation questions for a TAMU course assistant.
 
-Syllabus excerpt (category: {category}):
+Syllabus excerpt:
 ---
 {content}
 ---
@@ -377,7 +363,6 @@ Rules:
 - The question must be directly answerable using this excerpt
 - Use natural student language (not formal/academic)
 - One sentence, ending with a question mark
-- Do not include the category name (e.g. "GRADING") verbatim in the question
 
 Respond with ONLY the question text, nothing else.
 """
@@ -409,31 +394,25 @@ Respond with ONLY the question text, nothing else.
         return {
             # Question
             "question": question,
-
             # Router ground truth
-            "expected_function":            router_gt["expected_function"],
-            "expected_course_ids":          router_gt["expected_course_ids"],
+            "expected_function": router_gt["expected_function"],
+            "expected_course_ids": router_gt["expected_course_ids"],
             "expected_specific_categories": router_gt["expected_specific_categories"],
-            "expected_semantic_intent":     router_gt["expected_semantic_intent"],
-
+            "expected_semantic_intent": router_gt["expected_semantic_intent"],
             # Retrieval ground truth
             # The source chunk IS the relevant item — recall@k checks whether
-            # it (or another chunk from the same course/category) surfaces in results.
-            "source_crn":       crn,
+            # it (or another chunk from the same course) surfaces in results.
+            "source_crn": crn,
             "source_course_id": course_id,
-            "source_category":  category,
-
             # Generator ground truth
             "reference_answer": content,
-
             # Metadata
-            "stratum":  stratum,
-            "category": category,
-            "source":   "gemini_synthesis",
+            "stratum": stratum,
+            "source": "gemini_synthesis",
         }
 
     except Exception as e:
-        print(f"  [WARN] Synthesis failed for {course_id}/{category}: {e}")
+        print(f"  [WARN] Synthesis failed for {course_id}: {e}")
         return None
 
 
@@ -444,7 +423,7 @@ def synthesize_stratum(
     n_questions: int,
     rng: random.Random,
 ) -> list[dict]:
-    """Synthesize n_questions for a stratum, sampling chunks by CATEGORY_WEIGHTS."""
+    """Synthesize n_questions for a stratum, sampling chunks uniformly."""
     framing = spec["framing"]
     use_course_id = spec.get("use_course_id", True)
 
@@ -452,21 +431,17 @@ def synthesize_stratum(
         print(f"  [WARN] No chunks available for stratum '{stratum}'")
         return []
 
-    # Weight each chunk by its category's priority
-    weights = [CATEGORY_WEIGHTS.get(c.get("category", ""), 0.01) for c in all_chunks]
-
     results = []
     attempts = 0
     max_attempts = n_questions * 4
 
     while len(results) < n_questions and attempts < max_attempts:
         attempts += 1
-        chunk = rng.choices(all_chunks, weights=weights, k=1)[0]
+        chunk = rng.choice(all_chunks)
         item = synthesize_question_for_chunk(chunk, stratum, framing, use_course_id)
         if item:
             results.append(item)
-            cat = chunk.get("category", "?")
-            print(f"  [{len(results):2d}/{n_questions}] [{cat:<26}] {item['question'][:65]}")
+            print(f"  [{len(results):2d}/{n_questions}] {item['question'][:65]}")
 
     if len(results) < n_questions:
         print(f"  [WARN] Only synthesized {len(results)}/{n_questions} for '{stratum}'")
@@ -477,6 +452,7 @@ def synthesize_stratum(
 # ---------------------------------------------------------------------------
 # Langfuse dataset upload
 # ---------------------------------------------------------------------------
+
 
 def upload_to_langfuse(
     questions: list[dict],
@@ -520,22 +496,19 @@ def upload_to_langfuse(
                     "input": {"question": q["question"]},
                     "expectedOutput": {
                         # Router
-                        "expected_function":            q.get("expected_function"),
-                        "expected_course_ids":          q.get("expected_course_ids", []),
+                        "expected_function": q.get("expected_function"),
+                        "expected_course_ids": q.get("expected_course_ids", []),
                         "expected_specific_categories": q.get("expected_specific_categories", []),
-                        "expected_semantic_intent":     q.get("expected_semantic_intent", False),
+                        "expected_semantic_intent": q.get("expected_semantic_intent", False),
                         # Retrieval
-                        "source_crn":                   q.get("source_crn"),
-                        "source_course_id":             q.get("source_course_id"),
-                        "source_category":              q.get("source_category"),
+                        "source_crn": q.get("source_crn"),
+                        "source_course_id": q.get("source_course_id"),
                         # Generator
-                        "reference_answer":             q.get("reference_answer", ""),
+                        "reference_answer": q.get("reference_answer", ""),
                     },
                     "metadata": {
-                        "stratum":        q.get("stratum"),
-                        "category":       q.get("category"),
-                        "category_weight": CATEGORY_WEIGHTS.get(q.get("category", ""), None),
-                        "source":         q.get("source"),
+                        "stratum": q.get("stratum"),
+                        "source": q.get("source"),
                     },
                 }
                 r = client.post(f"{host}/api/public/dataset-items", json=payload, auth=auth)
@@ -556,6 +529,7 @@ def upload_to_langfuse(
 # Main pipeline
 # ---------------------------------------------------------------------------
 
+
 def generate_golden_set(
     n_total: int = 50,
     dry_run: bool = False,
@@ -572,20 +546,23 @@ def generate_golden_set(
     base_total = sum(s["n_questions"] for s in STRATUM_MAP.values())
     if n_total != base_total:
         scale = n_total / base_total
-        stratum_counts = {k: max(1, round(v["n_questions"] * scale))
-                          for k, v in STRATUM_MAP.items()}
+        stratum_counts = {k: max(1, round(v["n_questions"] * scale)) for k, v in STRATUM_MAP.items()}
     else:
         stratum_counts = {k: v["n_questions"] for k, v in STRATUM_MAP.items()}
 
-    no_cat_n  = sum(stratum_counts[s] for s in ("hybrid_course_default", "hybrid_course_advisory", "semantic_general", "recurrent"))
+    no_cat_n = sum(
+        stratum_counts[s] for s in ("hybrid_course_default", "hybrid_course_advisory", "semantic_general", "recurrent")
+    )
     with_cat_n = sum(stratum_counts[s] for s in ("hybrid_course_specific", "hybrid_course_combined"))
 
     print(f"\n{'=' * 60}")
     print("  TamuBot Golden Set Generation")
     print(f"  Target: {n_total} q  |  Dept: {department}  |  Seed: {seed}")
-    print(f"  No-category: {no_cat_n} ({no_cat_n/n_total:.0%})  "
-          f"Category-specific: {with_cat_n} ({with_cat_n/n_total:.0%})  "
-          f"OOS: {stratum_counts['out_of_scope']}")
+    print(
+        f"  No-category: {no_cat_n} ({no_cat_n / n_total:.0%})  "
+        f"Category-specific: {with_cat_n} ({with_cat_n / n_total:.0%})  "
+        f"OOS: {stratum_counts['out_of_scope']}"
+    )
     print(f"{'=' * 60}")
 
     # ── Step 1: Sample chunks ──────────────────────────────────────────
@@ -609,9 +586,7 @@ def generate_golden_set(
         n_q = stratum_counts[stratum]
         has_cat = spec["has_category"]
         sem = spec["expected_semantic_intent"]
-        print(f"\n  [{stratum}]  n={n_q}  "
-              f"category={'yes' if has_cat else 'no'}  "
-              f"semantic_intent={sem}")
+        print(f"\n  [{stratum}]  n={n_q}  category={'yes' if has_cat else 'no'}  semantic_intent={sem}")
         print(f"  {spec['description']}")
 
         if dry_run:
@@ -625,18 +600,16 @@ def generate_golden_set(
     n_oos = stratum_counts["out_of_scope"]
     oos_items = [
         {
-            "question":                     q,
-            "expected_function":            "out_of_scope",
-            "expected_course_ids":          [],
+            "question": q,
+            "expected_function": "out_of_scope",
+            "expected_course_ids": [],
             "expected_specific_categories": [],
-            "expected_semantic_intent":     False,
-            "source_crn":                   None,
-            "source_course_id":             None,
-            "source_category":              None,
-            "reference_answer":             "(out of scope)",
-            "stratum":                      "out_of_scope",
-            "category":                     None,
-            "source":                       "synthetic_oos",
+            "expected_semantic_intent": False,
+            "source_crn": None,
+            "source_course_id": None,
+            "reference_answer": "(out of scope)",
+            "stratum": "out_of_scope",
+            "source": "synthetic_oos",
         }
         for q in rng.sample(OUT_OF_SCOPE_QUESTIONS, min(n_oos, len(OUT_OF_SCOPE_QUESTIONS)))
     ]
@@ -648,20 +621,16 @@ def generate_golden_set(
     if dry_run:
         print("\n  DRY-RUN complete. Planned distribution:")
         print(f"  {'Stratum':<22} {'n':>4}  {'Category':>8}  {'semantic_intent':>16}")
-        print(f"  {'-'*56}")
+        print(f"  {'-' * 56}")
         for s, spec in STRATUM_MAP.items():
             n = stratum_counts[s]
             has_c = "yes" if spec["has_category"] else "no"
             sem = str(spec["expected_semantic_intent"])
             print(f"  {s:<22} {n:>4}  {has_c:>8}  {sem:>16}")
-        total_no_cat = sum(stratum_counts[s]
-                           for s, sp in STRATUM_MAP.items() if not sp["has_category"])
-        total_cat = sum(stratum_counts[s]
-                        for s, sp in STRATUM_MAP.items() if sp["has_category"])
-        print(f"\n  No-category queries: {total_no_cat}/{n_total} "
-              f"({total_no_cat/n_total:.0%})")
-        print(f"  Category-specific:   {total_cat}/{n_total} "
-              f"({total_cat/n_total:.0%})")
+        total_no_cat = sum(stratum_counts[s] for s, sp in STRATUM_MAP.items() if not sp["has_category"])
+        total_cat = sum(stratum_counts[s] for s, sp in STRATUM_MAP.items() if sp["has_category"])
+        print(f"\n  No-category queries: {total_no_cat}/{n_total} ({total_no_cat / n_total:.0%})")
+        print(f"  Category-specific:   {total_cat}/{n_total} ({total_cat / n_total:.0%})")
         print("\n  Category weights (descending):")
         for cat, w in sorted(CATEGORY_WEIGHTS.items(), key=lambda x: -x[1]):
             bar = "#" * round(w * 100)
@@ -678,7 +647,7 @@ def generate_golden_set(
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     prefix = f"golden_set_{tag}" if tag else "golden_set"
     timestamped_path = output_dir / f"{prefix}_{ts}.jsonl"
-    canonical_path   = output_dir / f"{prefix}.jsonl"
+    canonical_path = output_dir / f"{prefix}.jsonl"
 
     for path in (timestamped_path, canonical_path):
         with path.open("w", encoding="utf-8") as f:
@@ -709,16 +678,6 @@ def generate_golden_set(
         tag = "(no cat)" if not spec["has_category"] else "(cat)"
         print(f"    {s:<22} {n:2d}  {tag}")
 
-    print("\n  By category (actual distribution):")
-    cat_counts: dict[str, int] = {}
-    for q in all_questions:
-        c = q.get("category") or "none/oos"
-        cat_counts[c] = cat_counts.get(c, 0) + 1
-    for c, n in sorted(cat_counts.items(), key=lambda x: -x[1]):
-        w = CATEGORY_WEIGHTS.get(c, 0)
-        bar = "#" * n
-        print(f"    {c:<30} {n:2d}  (target weight={w:.0%})  {bar}")
-
     return all_questions
 
 
@@ -726,24 +685,22 @@ def generate_golden_set(
 # CLI entry point
 # ---------------------------------------------------------------------------
 
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate a stratified golden test set for TamuBot evaluation"
+    parser = argparse.ArgumentParser(description="Generate a stratified golden test set for TamuBot evaluation")
+    parser.add_argument("--n", type=int, default=50, help="Target question count (default: 50)")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show planned distribution only — skip synthesis and export"
     )
-    parser.add_argument("--n", type=int, default=50,
-                        help="Target question count (default: 50)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Show planned distribution only — skip synthesis and export")
-    parser.add_argument("--no-langfuse", action="store_true",
-                        help="Skip Langfuse dataset upload")
-    parser.add_argument("--department", default="CSCE",
-                        help="MongoDB department filter (default: CSCE)")
-    parser.add_argument("--output-dir", default="tamu_data/logs",
-                        help="Local output directory (default: tamu_data/logs)")
-    parser.add_argument("--seed", type=int, default=42,
-                        help="Random seed for reproducible sampling (default: 42)")
-    parser.add_argument("--tag", default="",
-                        help="Tag appended to output filename, e.g. 'csce' → golden_set_csce.jsonl")
+    parser.add_argument("--no-langfuse", action="store_true", help="Skip Langfuse dataset upload")
+    parser.add_argument("--department", default="CSCE", help="MongoDB department filter (default: CSCE)")
+    parser.add_argument(
+        "--output-dir", default="tamu_data/logs", help="Local output directory (default: tamu_data/logs)"
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducible sampling (default: 42)")
+    parser.add_argument(
+        "--tag", default="", help="Tag appended to output filename, e.g. 'csce' → golden_set_csce.jsonl"
+    )
     args = parser.parse_args()
 
     generate_golden_set(

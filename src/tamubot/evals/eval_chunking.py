@@ -194,9 +194,7 @@ def upsert_langfuse_dataset(lf, golden_items: list[dict], dataset_name: str):
                 metadata={
                     "expected_function": item.get("expected_function"),
                     "source_course_id": item.get("source_course_id"),
-                    "source_category": item.get("source_category"),
                     "stratum": item.get("stratum"),
-                    "category": item.get("category"),
                 },
             )
             uploaded += 1
@@ -454,14 +452,13 @@ def run_eval(
         chunk_scores = [c["score"] for c in row.get("_chunks", []) if isinstance(c.get("score"), (int, float))]
         row["avg_chunk_score"] = sum(chunk_scores) / len(chunk_scores) if chunk_scores else None
 
-        # Build run column value: "CSCE 670 §SCHEDULE 0.87, CSCE 638 §LO 0.71"
+        # Build run column value: "CSCE 670 0.87, CSCE 638 0.71"
         run_col_parts = []
         for c in row.get("_chunks", []):
             cid = c.get("course_id", "?")
-            cat = c.get("category", "?")
             score = c.get("score")
             score_str = f"{score:.2f}" if isinstance(score, (int, float)) else "?"
-            run_col_parts.append(f"{cid} §{cat} {score_str}")
+            run_col_parts.append(f"{cid} {score_str}")
         qid = question_to_id.get(question)
         if qid is not None and run_col_parts:
             run_col_results[qid] = ", ".join(run_col_parts)

@@ -3,7 +3,7 @@
 Used by the router validator to:
   * Reject hallucinated course_ids (e.g. LLM emits `ISEN 999` — not in index).
   * Recover a course_id from a paraphrased title (e.g. user query
-    "Management of Engineering Systems" → "ISEN 601").
+    "Human Information Processing" → "ISEN 635").
 
 Spec note: the design doc names ``chunks_v4`` as the source, but chunks have no
 ``course_title`` field. The titles live in ``courses_v4.course_summary`` as the

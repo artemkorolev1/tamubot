@@ -4,8 +4,8 @@ For each entry, loads the full syllabus markdown for source_crn and calls the
 TAMU API to synthesize a proper, concise answer that a course assistant should give.
 
 Schema changes applied:
-  - Removes outdated fields: stratum, category (redundant with source_category)
-  - Keeps: question, reference_answer, source_crn, source_course_id, source_category,
+  - Removes outdated fields: stratum, category, source_category
+  - Keeps: question, reference_answer, source_crn, source_course_id,
            expected_function, expected_course_ids, expected_specific_categories,
            expected_semantic_intent, human_judgment
 
@@ -48,7 +48,6 @@ KEEP_FIELDS = [
     "reference_answer",
     "source_crn",
     "source_course_id",
-    "source_category",
     "expected_function",
     "expected_course_ids",
     "expected_specific_categories",
@@ -69,6 +68,7 @@ EMPTY_ANSWER_PATTERNS = [
 # Syllabus loader
 # ---------------------------------------------------------------------------
 
+
 def load_markdown_index() -> dict[str, str]:
     """Return {crn_str: full_markdown_text} for all v010 markdown files."""
     index: dict[str, str] = {}
@@ -78,7 +78,7 @@ def load_markdown_index() -> dict[str, str]:
         # last meaningful part before version tag is the CRN
         # pattern: TERM_DEPT_NUM_SECTION_CRN_vVER  (CRN is 5th field, 0-indexed)
         try:
-            crn = parts[4]   # e.g. "50668"
+            crn = parts[4]  # e.g. "50668"
         except IndexError:
             continue
         # Prefer v010 — skip if a v010 is already loaded
@@ -113,7 +113,6 @@ def build_prompt(item: dict, syllabus: str) -> str:
     question = item["question"]
     course_id = item.get("source_course_id", "the course")
     expected_fn = item.get("expected_function", "")
-    source_category = item.get("source_category", "")
 
     syllabus_block = _truncate(syllabus)
 
@@ -145,7 +144,7 @@ This is a cross-course discovery question. The reference answer should draw from
 content of {course_id} as a relevant example, and provide a factual answer that directly
 addresses what the student asked.
 
-Syllabus for {course_id} (relevant section: {source_category}):
+Syllabus for {course_id}:
 ---
 {syllabus_block}
 ---
@@ -169,7 +168,7 @@ Student question: {question}
 The answer should be direct, factual, and complete — not a raw paste of syllabus text.
 Write in a helpful assistant voice. If the specific information is not in the syllabus, say so briefly.
 
-Syllabus for {course_id} (relevant section: {source_category}):
+Syllabus for {course_id}:
 ---
 {syllabus_block}
 ---
@@ -181,6 +180,7 @@ Write the reference answer now. Be concise (under 150 words unless the question 
 # ---------------------------------------------------------------------------
 # TAMU API call
 # ---------------------------------------------------------------------------
+
 
 def synthesize_answer(prompt: str, dry_run: bool = False) -> str:
     """Call TAMU API (streaming, as required by the gateway) and return the answer."""
@@ -207,17 +207,16 @@ def synthesize_answer(prompt: str, dry_run: bool = False) -> str:
 
 # (column_name, width, user_editable)
 EXCEL_COLUMNS: list[tuple[str, int, bool]] = [
-    ("id",                           6, False),
-    ("question",                    62, True),
-    ("reference_answer",            55, True),
-    ("human_judgment",              15, True),
-    ("expected_function",           22, False),
-    ("source_course_id",            18, False),
-    ("source_category",             22, False),
-    ("source_crn",                  12, False),
-    ("expected_course_ids",         25, False),
-    ("expected_specific_categories",28, False),
-    ("expected_semantic_intent",    20, False),
+    ("id", 6, False),
+    ("question", 62, True),
+    ("reference_answer", 55, True),
+    ("human_judgment", 15, True),
+    ("expected_function", 22, False),
+    ("source_course_id", 18, False),
+    ("source_crn", 12, False),
+    ("expected_course_ids", 25, False),
+    ("expected_specific_categories", 28, False),
+    ("expected_semantic_intent", 20, False),
 ]
 
 
@@ -234,16 +233,16 @@ def export_to_excel(items: list[dict], output_path: Path) -> None:
     ws = wb.active
     ws.title = "Golden Set"
 
-    header_fill   = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
     readonly_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
-    header_font   = Font(bold=True, color="FFFFFF")
-    wrap          = Alignment(wrap_text=True, vertical="top")
+    header_font = Font(bold=True, color="FFFFFF")
+    wrap = Alignment(wrap_text=True, vertical="top")
 
     # Header row
     for col_idx, (name, width, _) in enumerate(EXCEL_COLUMNS, start=1):
         cell = ws.cell(row=1, column=col_idx, value=name)
-        cell.font      = header_font
-        cell.fill      = header_fill
+        cell.font = header_font
+        cell.fill = header_fill
         cell.alignment = wrap
         ws.column_dimensions[cell.column_letter].width = width
     ws.row_dimensions[1].height = 20
@@ -275,6 +274,7 @@ def export_to_excel(items: list[dict], output_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # Schema cleanup + post-processing
 # ---------------------------------------------------------------------------
+
 
 def clean_item(item: dict, new_reference_answer: str) -> dict:
     """Return a new dict with only KEEP_FIELDS, updated reference_answer."""
@@ -325,6 +325,7 @@ def deduplicate_and_number(items: list[dict]) -> tuple[list[dict], int, int]:
 # Langfuse dataset upsert
 # ---------------------------------------------------------------------------
 
+
 def _item_id(question: str) -> str:
     return hashlib.md5(question.encode()).hexdigest()[:16]
 
@@ -371,10 +372,9 @@ def upsert_langfuse_dataset(items: list[dict], dataset_name: str) -> None:
                 input=question,
                 expected_output=item.get("reference_answer") or "",
                 metadata={
-                    "id":                  item.get("id"),
-                    "expected_function":   item.get("expected_function"),
-                    "source_course_id":    item.get("source_course_id"),
-                    "source_category":     item.get("source_category"),
+                    "id": item.get("id"),
+                    "expected_function": item.get("expected_function"),
+                    "source_course_id": item.get("source_course_id"),
                     "expected_course_ids": item.get("expected_course_ids"),
                 },
             )
@@ -389,6 +389,7 @@ def upsert_langfuse_dataset(items: list[dict], dataset_name: str) -> None:
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
+
 
 def refine(
     input_path: Path,
@@ -445,7 +446,7 @@ def refine(
         crn = str(item.get("source_crn", "") or "")
 
         print(f"[{i:2d}/{len(items)}] {question[:70]}")
-        print(f"         fn={expected_fn}  crn={crn}  cat={item.get('source_category', '')}")
+        print(f"         fn={expected_fn}  crn={crn}")
 
         # --- out_of_scope: keep as-is ---
         if expected_fn == "out_of_scope":
@@ -517,36 +518,42 @@ def refine(
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Refine golden set reference answers via TAMU API synthesis"
-    )
+    parser = argparse.ArgumentParser(description="Refine golden set reference answers via TAMU API synthesis")
     parser.add_argument(
-        "--input", default=str(DEFAULT_INPUT),
+        "--input",
+        default=str(DEFAULT_INPUT),
         help=f"Input JSONL path (default: {DEFAULT_INPUT})",
     )
     parser.add_argument(
-        "--output", default=str(DEFAULT_OUTPUT),
+        "--output",
+        default=str(DEFAULT_OUTPUT),
         help=f"Output JSONL path (default: {DEFAULT_OUTPUT})",
     )
     parser.add_argument(
-        "--overwrite", action="store_true",
+        "--overwrite",
+        action="store_true",
         help="Write output to the same path as input (in-place refinement)",
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Build prompts and print stats without making API calls",
     )
     parser.add_argument(
-        "--verbose", action="store_true",
+        "--verbose",
+        action="store_true",
         help="Print prompt previews and synthesized answers",
     )
     parser.add_argument(
-        "--excel-only", action="store_true",
+        "--excel-only",
+        action="store_true",
         help="Convert the input JSONL to .xlsx without making any API calls",
     )
     parser.add_argument(
-        "--dataset", default="",
+        "--dataset",
+        default="",
         help="Langfuse dataset name to upload items to (default: output filename stem)",
     )
     args = parser.parse_args()

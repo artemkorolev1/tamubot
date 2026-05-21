@@ -422,15 +422,14 @@ def run(
         elif with_generation and row.answer_full:
             run_col[qid_raw] = row.answer_full
         else:
-            # Retrieval-only: course §category score, score
+            # Retrieval-only: course score, score
             parts = []
             # We don't have raw chunks here — pull from state dump if present
             for c in (dump.get("retrieval", {}).get("chunks") if dump else None) or []:
                 cid = c.get("course_id") or "?"
-                cat = c.get("category") or "?"
                 score = c.get("score")
                 s = f"{score:.2f}" if isinstance(score, (int, float)) else "?"
-                parts.append(f"{cid} §{cat} {s}")
+                parts.append(f"{cid} {s}")
             if parts:
                 run_col[qid_raw] = ", ".join(parts)
 

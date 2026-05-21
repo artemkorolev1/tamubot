@@ -33,11 +33,6 @@ def setup_standard_indexes(db):
     chunks = db["chunks"]
     chunks.create_index("crn", name="idx_crn")
     chunks.create_index("course_id", name="idx_course_id")
-    chunks.create_index("category", name="idx_category")
-    chunks.create_index(
-        [("course_id", 1), ("category", 1)],
-        name="idx_course_category",
-    )
     chunks.create_index(
         [("crn", 1), ("chunk_index", 1)],
         unique=True,
@@ -76,7 +71,6 @@ def setup_search_indexes(db):
                     "similarity": "cosine",
                 },
                 {"type": "filter", "path": "course_id"},
-                {"type": "filter", "path": "category"},
                 {"type": "filter", "path": "term"},
             ]
         },
@@ -93,7 +87,6 @@ def setup_search_indexes(db):
                     "content": {"type": "string", "analyzer": "lucene.standard"},
                     "title": {"type": "string", "analyzer": "lucene.standard"},
                     "course_id": {"type": "token"},
-                    "category": {"type": "token"},
                     "instructor_name": {"type": "string", "analyzer": "lucene.standard"},
                 },
             }

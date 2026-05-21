@@ -6,9 +6,21 @@ from unittest.mock import patch
 
 from tamubot.rag.nodes.retrieval_node import retrieval_node
 
+_CHUNK_INDEX_COUNTER = {"n": 0}
+
 
 def _chunk(cid: str, **extra):
-    return {"_id": cid, "course_id": "ISEN 625", "content": cid, **extra}
+    # Each helper-built chunk gets a unique chunk_index so the new dedup +
+    # per-course cap safety nets in retrieval_node treat them as distinct docs.
+    # Tests that need a specific chunk_index can override via **extra.
+    _CHUNK_INDEX_COUNTER["n"] += 1
+    return {
+        "_id": cid,
+        "course_id": "ISEN 625",
+        "chunk_index": _CHUNK_INDEX_COUNTER["n"],
+        "content": cid,
+        **extra,
+    }
 
 
 def _state(**kwargs):
@@ -34,11 +46,19 @@ def _state(**kwargs):
 
 
 def test_semantic_general_single_subquery_unchanged():
-    """Single-subquery state must use the legacy path (no RRF)."""
+    """Single-subquery state must use the legacy path (no RRF).
+
+    Use distinct course_ids per chunk so the per-course cap (MAX_CHUNKS_PER_COURSE)
+    leaves all three through — this test asserts the no-fusion path, not the cap.
+    """
     with (
         patch(
             "tamubot.rag.tools.mongo.semantic_search",
-            return_value=[_chunk("a"), _chunk("b"), _chunk("c")],
+            return_value=[
+                _chunk("a", course_id="ISEN 600"),
+                _chunk("b", course_id="ISEN 601"),
+                _chunk("c", course_id="ISEN 602"),
+            ],
         ),
         patch(
             "tamubot.rag.tools.voyage.rerank",

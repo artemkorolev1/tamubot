@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 # Shared sub-models
 # ---------------------------------------------------------------------------
 
+
 class Instructor(BaseModel):
     name: str
     email: Optional[str] = None
@@ -32,21 +33,6 @@ class CourseMetadata(BaseModel):
 # chunks collection
 # ---------------------------------------------------------------------------
 
-VALID_CATEGORIES = [
-    "COURSE_OVERVIEW",
-    "INSTRUCTOR",
-    "PREREQUISITES",
-    "LEARNING_OUTCOMES",
-    "MATERIALS",
-    "GRADING",
-    "SCHEDULE",
-    "ATTENDANCE_AND_MAKEUP",
-    "AI_POLICY",
-    "UNIVERSITY_POLICIES",
-    "SUPPORT_SERVICES",
-    "SYLLABUS_V3",
-]
-
 
 class ChunkDoc(BaseModel):
     """One document in the *chunks* collection.
@@ -54,12 +40,12 @@ class ChunkDoc(BaseModel):
     Denormalized: course metadata is embedded directly so every chunk is
     self-contained for retrieval.
     """
+
     # Unique key for idempotent upserts:  crn + chunk_index
     crn: str
     chunk_index: int
 
     # Chunk content
-    category: str
     title: str
     content: str
     has_table: bool = False
@@ -85,12 +71,14 @@ class ChunkDoc(BaseModel):
 # policies collection
 # ---------------------------------------------------------------------------
 
+
 class PolicyDoc(BaseModel):
     """Deduplicated university boilerplate policies.
 
     Keyed by SHA-256 hash of the policy name so identical names across
     syllabi collapse into a single document.
     """
+
     policy_hash: str  # SHA-256 hex of lowercased policy name
     policy_name: str
     # Full text will be filled in once a golden-copy source is available.
@@ -103,8 +91,10 @@ class PolicyDoc(BaseModel):
 # courses collection
 # ---------------------------------------------------------------------------
 
+
 class CourseDoc(BaseModel):
     """One document per course *section* (CRN), for aggregate queries."""
+
     crn: str
     course_id: str
     section: str

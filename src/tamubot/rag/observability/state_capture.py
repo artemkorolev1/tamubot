@@ -25,7 +25,6 @@ def _summarize_chunk(chunk: dict, idx: int) -> dict:
         "course_id": chunk.get("course_id"),
         "chunk_tag": chunk.get("chunk_tag"),
         "score": chunk.get("score") or chunk.get("rerank_score"),
-        "category": chunk.get("category"),
     }
 
 

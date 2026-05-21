@@ -52,9 +52,9 @@ def get_voyage_client():
     return voyageai.Client(api_key=VOYAGE_API_KEY)
 
 
-def build_anchor(course_id: str, section: str, term: str, category: str) -> str:
+def build_anchor(course_id: str, section: str, term: str) -> str:
     """Build a contextual anchor string prepended to chunk text before embedding."""
-    return f"{course_id} Section {section}, {term} — {category}:"
+    return f"{course_id} Section {section}, {term}:"
 
 
 def sha256_hash(text: str) -> str:
@@ -84,13 +84,11 @@ def build_chunk_docs(data: dict, source_file: str) -> list[dict]:
 
     docs = []
     for i, chunk in enumerate(data.get("chunks", [])):
-        category = chunk.get("category") or ("SYLLABUS_V3" if is_v3 else "")
         title = chunk.get("title") or (f"Chunk {i}" if is_v3 else "")
-        anchor = build_anchor(course_id, section, term, category)
+        anchor = build_anchor(course_id, section, term)
         validated = ChunkDoc(
             crn=crn,
             chunk_index=i,
-            category=category,
             title=title,
             content=chunk.get("content") or "",
             has_table=chunk.get("has_table") or False,
@@ -108,9 +106,6 @@ def build_chunk_docs(data: dict, source_file: str) -> list[dict]:
 def build_course_doc(data: dict, source_file: str) -> dict:
     meta = data.get("course_metadata", {})
     chunks = data.get("chunks", [])
-    categories = list({c.get("category", "") for c in chunks})
-    if data.get("pipeline_version") == "v3":
-        categories = ["SYLLABUS_V3"]
     completeness = data.get("completeness_check", {})
     validated = CourseDoc(
         crn=meta.get("crn", ""),
@@ -122,7 +117,6 @@ def build_course_doc(data: dict, source_file: str) -> dict:
         meeting_times=meta.get("meeting_times"),
         location=meta.get("location"),
         credit_hours=meta.get("credit_hours"),
-        categories_present=categories,
         chunk_count=len(chunks),
         boilerplate_policies=data.get("boilerplate_policies", []),
         missing_sections=completeness.get("missing_sections", []),

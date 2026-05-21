@@ -16,7 +16,6 @@ from datetime import datetime
 from pathlib import Path
 
 from tamubot.evals.generate_golden_set import (
-    CATEGORY_PROBS,
     OUT_OF_SCOPE_QUESTIONS,
     STRATUM_MAP,
     synthesize_stratum,
@@ -43,48 +42,38 @@ def load_corpus() -> tuple[list[str], str]:
 
 
 def sample_corpus_chunks(n_total: int, corpus_crns: list[str], department: str) -> list[dict]:
-    """Sample chunks filtered to corpus CRNs only, weighted by CATEGORY_WEIGHTS."""
+    """Sample chunks filtered to corpus CRNs only (uniform random)."""
     from pymongo import MongoClient
 
     from tamubot.core import config
 
     client = MongoClient(config.MONGODB_URI)
     db = client[config.MONGODB_DB]
-    chunks_col = db["chunks"]  # v1 collection — used for category-weighted question synthesis only
+    chunks_col = db["chunks"]
 
-    sampled: list[dict] = []
-    for cat, prob in CATEGORY_PROBS.items():
-        n_cat = max(2, round(prob * n_total))
-        pipeline = [
-            {
-                "$match": {
-                    "category": cat,
-                    "crn": {"$in": corpus_crns},
-                    "course_id": {"$regex": f"^{department}", "$options": "i"},
-                    "content": {"$exists": True, "$ne": ""},
-                }
-            },
-            {"$sample": {"size": n_cat}},
-            {
-                "$project": {
-                    "_id": 0,
-                    "crn": 1,
-                    "course_id": 1,
-                    "category": 1,
-                    "title": 1,
-                    "content": 1,
-                    "section": 1,
-                    "term": 1,
-                    "instructor_name": 1,
-                }
-            },
-        ]
-        docs = list(chunks_col.aggregate(pipeline))
-        for d in docs:
-            d["_sampled_category"] = cat
-        sampled.extend(docs)
-        print(f"  {cat:<30} target={n_cat}  got={len(docs)}")
-
+    pipeline = [
+        {
+            "$match": {
+                "crn": {"$in": corpus_crns},
+                "course_id": {"$regex": f"^{department}", "$options": "i"},
+                "content": {"$exists": True, "$ne": ""},
+            }
+        },
+        {"$sample": {"size": n_total}},
+        {
+            "$project": {
+                "_id": 0,
+                "crn": 1,
+                "course_id": 1,
+                "title": 1,
+                "content": 1,
+                "section": 1,
+                "term": 1,
+                "instructor_name": 1,
+            }
+        },
+    ]
+    sampled = list(chunks_col.aggregate(pipeline))
     client.close()
     print(f"  Total: {len(sampled)} chunks from {len(corpus_crns)} corpus CRNs")
     return sampled
@@ -110,7 +99,6 @@ def export_to_excel(questions: list[dict], output_path: Path) -> None:
         ("reference_answer", 50, True),
         ("human_judgment", 15, True),
         ("stratum", 25, False),
-        ("category", 25, False),
         ("source_crn", 12, False),
         ("source_course_id", 18, False),
         ("expected_function", 25, False),
@@ -137,7 +125,6 @@ def export_to_excel(questions: list[dict], output_path: Path) -> None:
             q.get("reference_answer", ""),
             "",  # human_judgment — blank, user fills 0/1 for RAGAS validation
             q.get("stratum", ""),
-            q.get("category") or "",
             q.get("source_crn") or "",
             q.get("source_course_id") or "",
             q.get("expected_function", ""),
@@ -157,12 +144,11 @@ def export_to_excel(questions: list[dict], output_path: Path) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate eval question draft from corpus courses → Excel"
-    )
+    parser = argparse.ArgumentParser(description="Generate eval question draft from corpus courses → Excel")
     parser.add_argument("--n", type=int, default=60, help="Target questions to generate (default: 60)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Validate corpus + show planned distribution, skip synthesis")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Validate corpus + show planned distribution, skip synthesis"
+    )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -175,7 +161,7 @@ def main():
         base_total = sum(s["n_questions"] for s in STRATUM_MAP.values())
         scale = args.n / base_total
         print(f"\n  {'Stratum':<28} {'n':>4}")
-        print(f"  {'-'*34}")
+        print(f"  {'-' * 34}")
         for s, spec in STRATUM_MAP.items():
             n = max(1, round(spec["n_questions"] * scale))
             print(f"  {s:<28} {n:>4}")
@@ -215,10 +201,8 @@ def main():
             "expected_semantic_intent": False,
             "source_crn": None,
             "source_course_id": None,
-            "source_category": None,
             "reference_answer": "(out of scope)",
             "stratum": "out_of_scope",
-            "category": None,
         }
         for q in rng.sample(OUT_OF_SCOPE_QUESTIONS, min(n_oos, len(OUT_OF_SCOPE_QUESTIONS)))
     ]

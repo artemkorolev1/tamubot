@@ -190,16 +190,18 @@ def test_generate_stream_includes_conversation_history_block():
         captured_messages.extend(messages)
         yield "Answer [Source 1]"
 
-    chunks = [{"content": "Grading is 40% exams.", "course_id": "CSCE 638", "category": "GRADING"}]
+    chunks = [{"content": "Grading is 40% exams.", "course_id": "CSCE 638"}]
     history_ctx = "User: What is CSCE 638?\nAssistant: It is a grad ML course."
 
     with patch("tamubot.rag.generator.stream_llm", side_effect=mock_stream_llm):
-        list(generate_stream(
-            results=chunks,
-            question="What is the grading?",
-            function="hybrid_course",
-            history_context=history_ctx,
-        ))
+        list(
+            generate_stream(
+                results=chunks,
+                question="What is the grading?",
+                function="hybrid_course",
+                history_context=history_ctx,
+            )
+        )
 
     user_msg = next(m["content"] for m in captured_messages if m["role"] == "user")
     assert "<conversation_history>" in user_msg
@@ -221,14 +223,16 @@ def test_generate_stream_no_history_context_no_block():
         captured_messages.extend(messages)
         yield "Answer [Source 1]"
 
-    chunks = [{"content": "Grading is 40% exams.", "course_id": "CSCE 638", "category": "GRADING"}]
+    chunks = [{"content": "Grading is 40% exams.", "course_id": "CSCE 638"}]
 
     with patch("tamubot.rag.generator.stream_llm", side_effect=mock_stream_llm):
-        list(generate_stream(
-            results=chunks,
-            question="What is the grading?",
-            function="hybrid_course",
-        ))
+        list(
+            generate_stream(
+                results=chunks,
+                question="What is the grading?",
+                function="hybrid_course",
+            )
+        )
 
     user_msg = next(m["content"] for m in captured_messages if m["role"] == "user")
     assert "<conversation_history>" not in user_msg
@@ -236,17 +240,20 @@ def test_generate_stream_no_history_context_no_block():
 
 def test_base_system_no_chain_of_thought_instruction():
     from tamubot.rag.prompts import _BASE_SYSTEM
+
     assert "Before answering, identify which chunk" not in _BASE_SYSTEM
 
 
 def test_comparison_system_exists_and_is_compact():
     from tamubot.rag.prompts import COMPARISON_SYSTEM
+
     assert len(COMPARISON_SYSTEM) < 1200
     assert "compare" in COMPARISON_SYSTEM.lower()
 
 
 def test_router_prompt_has_all_required_output_fields():
     from tamubot.rag.prompts import ROUTER_PROMPT
+
     for field in ["course_ids", "intent_type", "recursive_search", "rewritten_query"]:
         assert field in ROUTER_PROMPT, f"ROUTER_PROMPT missing field: {field}"
 

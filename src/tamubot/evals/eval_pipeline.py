@@ -50,7 +50,6 @@ class TestCase:
     notes: str = ""
     # Golden set provenance — used for recall@k
     source_crn: str = ""
-    source_category: str = ""
     reference_answer: str = ""
 
 
@@ -420,7 +419,6 @@ class EvalResult:
     # Retrieval
     chunks_retrieved: int
     unique_courses_in_results: list[str]
-    unique_categories_in_results: list[str]
     retrieval_error: str | None
 
     # Generation
@@ -515,7 +513,7 @@ def run_test(
     # For the built-in TEST_SUITE (no source_crn), recall_hit is None.
     recall_hit: bool | None = None
     if tc.source_crn:
-        recall_hit = any(c.get("crn") == tc.source_crn and c.get("category") == tc.source_category for c in chunks)
+        recall_hit = any(c.get("crn") == tc.source_crn for c in chunks)
 
     # ── RAGAS quality scores (optional — requires --ragas flag) ───────────
     t_ragas_start = time.perf_counter()
@@ -542,7 +540,6 @@ def run_test(
 
     # ── Routing correctness ───────────────────────────────────────────────
     unique_courses = sorted({d.get("course_id", "") for d in chunks if d.get("course_id")})
-    unique_categories = sorted({d.get("category", "") for d in chunks if d.get("category")})
 
     cids_correct = set(tc.expected_course_ids) <= set(rr.course_ids) if tc.expected_course_ids else True
     cats_correct = (
@@ -573,7 +570,6 @@ def run_test(
         specific_categories_correct=cats_correct,
         chunks_retrieved=len(chunks),
         unique_courses_in_results=unique_courses,
-        unique_categories_in_results=unique_categories,
         retrieval_error=retrieval_error,
         response_preview=(response_text[:400] + "..." if len(response_text) > 400 else response_text),
         response_length_chars=len(response_text),
@@ -836,7 +832,6 @@ def write_markdown_report(
                 f"| Rewritten query | _{r.rewritten_query}_ |",
                 f"| Chunks retrieved (post-dedup) | {r.chunks_retrieved} |",
                 f"| Unique courses in results | `{r.unique_courses_in_results}` |",
-                f"| Unique categories in results | `{r.unique_categories_in_results}` |",
                 f"| Recall@k (source chunk found) | {'✅' if r.recall_hit else ('❌' if r.recall_hit is False else '—')} |",
                 f"| RAGAS Faithfulness | {f'{r.ragas_faithfulness:.3f}' if r.ragas_faithfulness is not None else '—'} |",
                 f"| RAGAS Answer Relevancy | {f'{r.ragas_answer_relevancy:.3f}' if r.ragas_answer_relevancy is not None else '—'} |",
@@ -994,9 +989,8 @@ def _load_golden_set(path: Path) -> list[TestCase]:
                     expected_course_ids=d.get("expected_course_ids", []),
                     expected_specific_categories=d.get("expected_specific_categories", []),
                     expected_semantic_intent=d.get("expected_semantic_intent", False),
-                    notes=d.get("source_category", ""),
+                    notes="",
                     source_crn=d.get("source_crn", "") or "",
-                    source_category=d.get("source_category", "") or "",
                     reference_answer=d.get("reference_answer", "") or "",
                 )
             )

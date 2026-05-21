@@ -177,7 +177,6 @@ def rerank(query: str, chunks: list[dict], top_k: int, *, apply_knee: bool = Tru
         chunk_summary = [
             {
                 "course_id": c.get("course_id", ""),
-                "category": c.get("category", ""),
                 "score": round(c.get("score", 0.0), 4),
                 "rrf_source": c.get("rrf_source", "unknown"),
             }

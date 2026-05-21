@@ -351,7 +351,7 @@ def classify_query(
 
 
 def deduplicate_chunks(results: list[dict]) -> list[dict]:
-    """Keep only the highest-scored chunk per (course_id, category) pair.
+    """Keep only the highest-scored chunk per (course_id, chunk_index) pair.
 
     The reranker returns results sorted best-first, so the first occurrence
     of each pair is the most relevant.  Deduplication prevents near-duplicate

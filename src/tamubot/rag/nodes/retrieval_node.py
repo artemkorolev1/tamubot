@@ -17,9 +17,15 @@ from langfuse import observe
 
 from tamubot.core import config
 from tamubot.rag.graph.middleware import error_guard_middleware, timing_middleware
+from tamubot.rag.router import deduplicate_chunks
 from tamubot.rag.state.pipeline_state import PipelineState
 from tamubot.rag.tools.rrf import rrf_fuse
 from tamubot.rag.utils import compute_dynamic_k, make_cache_key
+
+# Per-course cap applied on the semantic_general branch to prevent a single
+# course from dominating the rerank output (the hybrid_course branch is scoped
+# to user-named courses, so concentration is expected there).
+MAX_CHUNKS_PER_COURSE = 4
 
 
 def _make_retrieval_cache_key(function, course_ids, rewritten_query, eval_query=None):
@@ -38,6 +44,22 @@ def _chunk_rrf_key(chunk: dict):
     idx = chunk.get("chunk_index", -1)
     hdr = chunk.get("header_path", "")
     return (cid, idx, hdr)
+
+
+def _cap_per_course(chunks: list[dict], cap: int) -> list[dict]:
+    """Walk ``chunks`` in order, keeping at most ``cap`` items per ``course_id``.
+
+    Preserves the input rank order. Chunks missing ``course_id`` are bucketed
+    under the empty-string key (kept, not dropped).
+    """
+    counts: dict[str, int] = {}
+    capped: list[dict] = []
+    for chunk in chunks:
+        key = chunk.get("course_id", "")
+        if counts.get(key, 0) < cap:
+            capped.append(chunk)
+            counts[key] = counts.get(key, 0) + 1
+    return capped
 
 
 def _hybrid_course_for_query(
@@ -153,8 +175,9 @@ def retrieval_node(state: PipelineState) -> dict:
                     id_key=_chunk_rrf_key,
                 )
             else:
-                # Single-query path — no fusion, preserve historical behavior.
-                reranked = per_variant_results[0]
+                # Single-query path — no fusion, but still dedup so a course
+                # with several near-duplicate chunks doesn't dominate the output.
+                reranked = deduplicate_chunks(per_variant_results[0])
 
             retrieval_cache_update = {}
             if config.SESSION_CACHE_ENABLED:
@@ -204,8 +227,11 @@ def retrieval_node(state: PipelineState) -> dict:
                     final_k=rerank_k,
                     id_key=_chunk_rrf_key,
                 )
+                reranked = deduplicate_chunks(reranked)
+                reranked = _cap_per_course(reranked, MAX_CHUNKS_PER_COURSE)
             else:
-                reranked = per_variant_results[0]
+                reranked = deduplicate_chunks(per_variant_results[0])
+                reranked = _cap_per_course(reranked, MAX_CHUNKS_PER_COURSE)
 
             retrieval_cache_update = {}
             if config.SESSION_CACHE_ENABLED:
@@ -226,17 +252,27 @@ def retrieval_node(state: PipelineState) -> dict:
         elif function == "course_summary":
             from tamubot.rag.tools.mongo import get_course_summary_chunks
 
-            summary_chunks = get_course_summary_chunks(course_ids)
-            if summary_chunks:
+            summary_chunks = get_course_summary_chunks(course_ids) or []
+            summary_token_total = sum(c.get("token_count", 0) for c in summary_chunks)
+            summaries_sufficient = len(summary_chunks) >= 2 and summary_token_total >= 200
+            if summaries_sufficient:
                 node_trace.append("course_summary_retrieval")
                 return {"retrieved_chunks": summary_chunks, "node_trace": node_trace}
-            # Fallback: no summaries found — run hybrid search instead
-            logging.info("retrieval_node: no summaries for %s, falling back to hybrid", course_ids)
+            # Fallback: summaries missing or too thin — supplement with hybrid hits
+            logging.info(
+                "retrieval_node: summaries thin for %s (n=%d, tokens=%d), supplementing with hybrid",
+                course_ids,
+                len(summary_chunks),
+                summary_token_total,
+            )
             all_chunks = []
             for cid in course_ids:
                 all_chunks.extend(hybrid_search(rewritten_query, cid, retrieve_k or 40))
             reranked = voyage_rerank(rewritten_query, all_chunks, top_k=rerank_k or 15)
-            return {"retrieved_chunks": reranked, "node_trace": node_trace}
+            return {
+                "retrieved_chunks": list(summary_chunks) + list(reranked),
+                "node_trace": node_trace,
+            }
 
         else:
             return {"retrieved_chunks": [], "node_trace": node_trace}

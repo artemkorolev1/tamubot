@@ -20,21 +20,10 @@ SYLLABI_DIR = Path("tamu_data/raw/syllabi")
 OUTPUT_DIR = Path("tamu_data/processed/test_output")
 
 TEST_FILES = [
-    "202611_CSCE_481_599_42607.pdf",   # seminar, rubric tables (failed round 1 — retry)
-    "202611_CSCE_482_932_37076.pdf",   # capstone, rubrics
-    "202611_ISEN_210_500_53793.pdf",   # ISEN intro
-    "202611_ISEN_302_500_53801.pdf",   # ISEN mid-level
-]
-
-EXPECTED_CATEGORIES = [
-    "COURSE_OVERVIEW",
-    "PREREQUISITES",
-    "LEARNING_OUTCOMES",
-    "MATERIALS",
-    "GRADING",
-    "SCHEDULE",
-    "ATTENDANCE_AND_MAKEUP",
-    "AI_POLICY",
+    "202611_CSCE_481_599_42607.pdf",  # seminar, rubric tables (failed round 1 — retry)
+    "202611_CSCE_482_932_37076.pdf",  # capstone, rubrics
+    "202611_ISEN_210_500_53793.pdf",  # ISEN intro
+    "202611_ISEN_302_500_53801.pdf",  # ISEN mid-level
 ]
 
 PROMPT = """You are a university syllabus parser. Analyze this PDF and extract ALL content into structured JSON.
@@ -59,7 +48,6 @@ OUTPUT FORMAT — return ONLY valid JSON (no markdown fences, no commentary):
   },
   "chunks": [
     {
-      "category": "<one of the 11 categories below>",
       "title": "<section heading from the document>",
       "content": "<full text of this section, preserving all detail>",
       "has_table": true/false
@@ -69,31 +57,17 @@ OUTPUT FORMAT — return ONLY valid JSON (no markdown fences, no commentary):
     "<list NAMES of standard TAMU university policies found, e.g. 'ADA Policy', 'FERPA'>"
   ],
   "completeness_check": {
-    "missing_sections": ["<category names from the 11 below that are NOT present in this syllabus>"],
+    "missing_sections": ["<section names that are NOT present in this syllabus, e.g. 'grading', 'schedule'>"],
     "warnings": ["<any data quality issues, e.g. 'Grade weights not specified', 'Schedule has no dates', 'Instructor email missing'>"]
   }
 }
-
-THE 11 SEMANTIC CATEGORIES (use exactly these string values for "category"):
-1. COURSE_OVERVIEW — course description, catalog info, special designations, format
-2. INSTRUCTOR — instructor/TA details (only if NOT already fully captured in course_metadata)
-3. PREREQUISITES — required courses, corequisites, standing requirements
-4. LEARNING_OUTCOMES — what students will learn, course objectives
-5. MATERIALS — textbooks, required software, platforms, tech requirements
-6. GRADING — grade scale, weights, component descriptions (homework, exams, labs, projects), rubrics, grade appeals
-7. SCHEDULE — course calendar, weekly topics, exam dates, assignment due dates
-8. ATTENDANCE_AND_MAKEUP — attendance rules, late work policy, makeup exams, excused absences
-9. AI_POLICY — AI tool usage rules (permitted, required, prohibited), citation requirements
-10. UNIVERSITY_POLICIES — standard institutional boilerplate (ADA, FERPA, Title IX, Honor Code, etc.)
-11. SUPPORT_SERVICES — IT help, Canvas support, tutoring, writing center
 
 RULES:
 - Extract ALL course-specific content from the PDF. Do not skip or summarize anything.
 - Preserve tables as Markdown tables (| col1 | col2 | format). Set has_table=true for those chunks.
 - For UNIVERSITY_POLICIES: list ONLY the policy names in "boilerplate_policies". Do NOT include the full boilerplate text in any chunk. If the syllabus has course-specific modifications to a standard policy, include ONLY the modification in a chunk.
-- If a section doesn't fit any category, use the closest match. Never use "MISC" or "OTHER".
 - Each chunk should be a coherent section. Don't split mid-paragraph.
-- For completeness_check: compare what you found against all 11 categories. List any that are completely absent from the syllabus as missing_sections. Add specific warnings for common issues like missing grade weights, missing exam dates, missing instructor contact info, etc.
+- For completeness_check: list any major sections that are absent (e.g. 'grading', 'schedule'). Add specific warnings for common issues like missing grade weights, missing exam dates, missing instructor contact info, etc.
 - Escape all special characters in JSON strings properly. Double-check your JSON is valid before responding.
 """
 
@@ -108,9 +82,9 @@ def extract_pdf_text(pdf_path: Path) -> str:
 
 def parse_pdf(client, pdf_path: Path, max_retries: int = 2) -> dict:
     """Extract PDF text and parse via TAMU API. Retries on JSON errors."""
-    print(f"\n{'='*60}")
-    print(f"Processing: {pdf_path.name} ({pdf_path.stat().st_size/1024:.0f} KB)")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print(f"Processing: {pdf_path.name} ({pdf_path.stat().st_size / 1024:.0f} KB)")
+    print(f"{'=' * 60}")
 
     pdf_text = extract_pdf_text(pdf_path)
     user_message = f"{PROMPT}\n\n---\n\nSYLLABUS TEXT:\n{pdf_text}"
@@ -133,10 +107,10 @@ def parse_pdf(client, pdf_path: Path, max_retries: int = 2) -> dict:
 
         except json.JSONDecodeError as e:
             if attempt < max_retries:
-                print(f"  JSON error (attempt {attempt+1}), retrying...")
+                print(f"  JSON error (attempt {attempt + 1}), retrying...")
                 time.sleep(2)
             else:
-                print(f"  JSON parse error after {max_retries+1} attempts: {e}")
+                print(f"  JSON parse error after {max_retries + 1} attempts: {e}")
                 print(f"  Raw output (first 500 chars): {raw[:500]}")
                 return {"error": str(e), "raw": raw[:2000]}
 
@@ -164,15 +138,9 @@ def print_summary(result: dict, pdf_name: str):
     print(f"  Meeting: {meta.get('meeting_times', '?')} @ {meta.get('location', '?')}")
     print(f"  Chunks: {len(chunks)}")
 
-    print("\n  Category breakdown:")
-    cats = {}
-    for c in chunks:
-        cat = c.get("category", "?")
-        cats[cat] = cats.get(cat, 0) + 1
-    for cat, count in sorted(cats.items(), key=lambda x: -x[1]):
-        has_table = sum(1 for c in chunks if c.get("category") == cat and c.get("has_table"))
-        table_str = f" ({has_table} with tables)" if has_table else ""
-        print(f"    {cat:<25} {count}{table_str}")
+    n_tables = sum(1 for c in chunks if c.get("has_table"))
+    if n_tables:
+        print(f"  Chunks with tables: {n_tables}")
 
     # Completeness check
     missing = completeness.get("missing_sections", [])
@@ -192,7 +160,7 @@ def print_summary(result: dict, pdf_name: str):
     table_chunks = [c for c in chunks if c.get("has_table")]
     if table_chunks:
         sample = table_chunks[0]
-        print(f"\n  Sample table ({sample['category']} — {sample.get('title', '?')}):")
+        print(f"\n  Sample table ({sample.get('title', '?')}):")
         for line in sample["content"][:300].split("\n"):
             print(f"    {line}")
         if len(sample["content"]) > 300:
@@ -227,14 +195,16 @@ def main():
         # Track for final report
         if "error" not in result:
             cc = result.get("completeness_check", {})
-            results_summary.append({
-                "file": filename,
-                "course": result.get("course_metadata", {}).get("course_id", "?"),
-                "chunks": len(result.get("chunks", [])),
-                "missing": cc.get("missing_sections", []),
-                "warnings": cc.get("warnings", []),
-                "boilerplate": len(result.get("boilerplate_policies", [])),
-            })
+            results_summary.append(
+                {
+                    "file": filename,
+                    "course": result.get("course_metadata", {}).get("course_id", "?"),
+                    "chunks": len(result.get("chunks", [])),
+                    "missing": cc.get("missing_sections", []),
+                    "warnings": cc.get("warnings", []),
+                    "boilerplate": len(result.get("boilerplate_policies", [])),
+                }
+            )
         else:
             results_summary.append({"file": filename, "error": result["error"]})
 
@@ -242,16 +212,18 @@ def main():
         time.sleep(1)
 
     # Final report
-    print(f"\n\n{'='*60}")
+    print(f"\n\n{'=' * 60}")
     print(f"SUMMARY — {len(results_summary)} files processed")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     for r in results_summary:
         if "error" in r:
             print(f"  FAIL  {r['file']}: {r['error'][:80]}")
         else:
-            missing_str = f" | MISSING: {', '.join(r['missing'])}" if r['missing'] else ""
-            warn_str = f" | {len(r['warnings'])} warnings" if r['warnings'] else ""
-            print(f"  OK    {r['course']:<12} {r['chunks']:>2} chunks, {r['boilerplate']} policies{missing_str}{warn_str}")
+            missing_str = f" | MISSING: {', '.join(r['missing'])}" if r["missing"] else ""
+            warn_str = f" | {len(r['warnings'])} warnings" if r["warnings"] else ""
+            print(
+                f"  OK    {r['course']:<12} {r['chunks']:>2} chunks, {r['boilerplate']} policies{missing_str}{warn_str}"
+            )
 
 
 if __name__ == "__main__":

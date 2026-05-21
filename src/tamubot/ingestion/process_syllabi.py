@@ -46,27 +46,26 @@ MAX_RETRIES = 2
 DELAY_BETWEEN_CALLS = 2  # seconds
 DELAY_ON_RATE_LIMIT = 30  # seconds
 
-# Categories in CSV column order (COURSE_SUMMARY adjacent to OVERVIEW)
-ALL_CATEGORIES = [
-    "COURSE_OVERVIEW", "COURSE_SUMMARY", "INSTRUCTOR", "PREREQUISITES",
-    "LEARNING_OUTCOMES", "MATERIALS", "GRADING", "SCHEDULE",
-    "ATTENDANCE_AND_MAKEUP", "AI_POLICY",
-    "UNIVERSITY_POLICIES", "SAFETY",
-]
-
-# Token-count warning thresholds per category (min, max)
+# Token-count warning thresholds (min, max). Applied to total chunk content.
 CSV_FIELDS = [
-    "file", "course_id", "section", "crn", "status",
-    "error_type", "error_detail", "chunk_count",
-    *[f"{cat}_tok" for cat in ALL_CATEGORIES],
-    "course_url", "flags", "parsed_at", "pdf_link", "json_link",
+    "file",
+    "course_id",
+    "section",
+    "crn",
+    "status",
+    "error_type",
+    "error_detail",
+    "chunk_count",
+    "total_tok",
+    "course_url",
+    "flags",
+    "parsed_at",
+    "pdf_link",
+    "json_link",
 ]
 
 TOKEN_THRESHOLDS: dict[str, tuple[int, int]] = {
-    "COURSE_SUMMARY":        (200, 500),
-    "GRADING":               (50, 5000),
-    "SCHEDULE":              (50, 8000),
-    "default":               (20, 3000),
+    "default": (20, 3000),
 }
 
 PROMPT = """You are a university syllabus parser. Analyze this PDF and extract ALL content into structured JSON.
@@ -92,7 +91,6 @@ OUTPUT FORMAT — return ONLY valid JSON:
   },
   "chunks": [
     {
-      "category": "<one of the 12 categories below — see list>",
       "title": "<section heading from the document>",
       "content": "<full text of this section, preserving all detail>",
       "has_table": true/false
@@ -102,70 +100,19 @@ OUTPUT FORMAT — return ONLY valid JSON:
     "<list NAMES of standard TAMU university policies found, e.g. 'ADA Policy', 'FERPA'>"
   ],
   "completeness_check": {
-    "missing_sections": ["<category names that are NOT present in this syllabus>"],
+    "missing_sections": ["<section names that are NOT present in this syllabus, e.g. 'grading', 'schedule'>"],
     "warnings": ["<data quality issues, e.g. 'Grade weights not specified', 'Schedule has no dates'>"]
   }
 }
 
-THE 12 SEMANTIC CATEGORIES (use exactly these string values for "category"):
-1.  COURSE_OVERVIEW — course description, catalog info, special designations, format, course policies specific to this instructor (recording policy, professionalism, communication platforms, how to succeed, etc.)
-2.  INSTRUCTOR — instructor/TA details: name, email, office, office hours, phone, preferred contact method, TA info. Always generate this chunk.
-3.  PREREQUISITES — required courses, corequisites, standing requirements
-4.  LEARNING_OUTCOMES — what students will learn, course objectives
-5.  MATERIALS — textbooks, required software, platforms, tech requirements
-6.  GRADING — grade scale, weights, component descriptions (homework, exams, labs, projects), rubrics, grade appeals, regrading/regrade policy, submission policy, late work penalty, collaboration/academic integrity rules specific to this course
-7.  SCHEDULE — course calendar, weekly topics, exam dates, assignment due dates, exam format and coverage notes
-8.  ATTENDANCE_AND_MAKEUP — course-specific attendance rules, late work policy, makeup exam procedures
-9.  AI_POLICY — AI tool usage rules (permitted, required, prohibited), citation requirements
-10. UNIVERSITY_POLICIES — standard university-wide or department-wide policies that apply to all courses: academic integrity definitions and honor code, professionalism statements, copyright/recording notices, school-life conflict policy, accessibility statements, and any other institutional policy text not specific to this course
-11. COURSE_SUMMARY — RAG-optimized keyword index (see generation rules below)
-12. SAFETY — lab safety rules, protective equipment requirements, dress code, chemical/biological
-    hazard handling, equipment operation rules, emergency procedures, food/drink restrictions.
-    Use only for courses with a physical lab or hands-on component.
-
 RULES:
-- Extract ALL content present in the text. Do not skip or summarize (except COURSE_SUMMARY).
+- Extract ALL content present in the text. Do not skip or summarize.
 - Preserve tables as Markdown tables (| col1 | col2 | format). Set has_table=true.
-- UNIVERSITY_POLICIES is the catch-all for any policy text that reads as institution-wide rather than course-specific. When in doubt between COURSE_OVERVIEW and UNIVERSITY_POLICIES, ask: would this paragraph appear verbatim in another course's syllabus? If yes → UNIVERSITY_POLICIES.
 - title field: use the actual section heading from the document, max ~80 chars. Never use the document header (college name, course name, section number) as the title.
-- COURSE_OVERVIEW content: start from the catalog description or course-specific policies. Do NOT include the document header (college/dept name, course title, section, meeting times) — that information is already in course_metadata.
-- Never use "MISC" or "OTHER" as a category. Use the closest match.
 - Each chunk should be a coherent section. Don't split mid-paragraph.
-- For completeness_check: list categories absent from the syllabus as missing_sections.
-  Do NOT include COURSE_SUMMARY or UNIVERSITY_POLICIES in missing_sections.
-  Only include SAFETY in missing_sections if the course clearly has a lab/hands-on component.
-  Add warnings for missing grade weights, missing dates, missing contact info, etc.
 - Escape all special characters properly. Output must be valid JSON.
-- When assigning a category, verify the CONTENT of the section (not just the header/title).
-  If the header says "Assignments" but the content is about grade percentages and weights,
-  assign GRADING. Always prefer content semantics over header words.
-- If you are unsure between two categories, choose the one that better describes what a
-  student would need to know from this section's content.
 - course_url: extract the Canvas course URL or official course webpage URL if present in the
   syllabus. Set to null if not found.
-
-COURSE_SUMMARY GENERATION RULES (category 12):
-Generate exactly one COURSE_SUMMARY chunk using this strict format:
-
-  <DEPT> <NUM> [/ <crosslist>] | <Full Course Title> | <Term>
-  Instructor: <Full Name> | <email>
-  Meets: <days and times> | <location>
-  Topics: <ALL named concepts, techniques, algorithms, models, and skills from the ENTIRE syllabus — course description, learning outcomes, AND weekly schedule — merged into one comma-separated list. Rare/specialized terms first, broader ones last. No duplicates.>
-  Tools: <software or platforms students actively USE to complete coursework (assignments, labs, projects); omit if none. Exclude: communication/Q&A platforms (Campuswire, Piazza, email lists, Google Groups), test-taking hardware (webcam, Chromebooks), university support resources (library tech bar, OAL lab), and tools mentioned only in AI/academic integrity policies.>
-  Prerequisites: <exact course codes and standing; omit if none stated>
-
-Rules for COURSE_SUMMARY content:
-- GROUNDING: Use ONLY terms and phrases that appear explicitly in the source text. Do NOT add domain knowledge or infer anything not written. If "Python" is not in the text, it is not in the summary.
-- TOPICS IS EVERYTHING: Topics is the single comprehensive concept list — merge what would otherwise be topics, methods, skills, and niche into Topics. Do not create separate fields for these.
-- NO DUPLICATION: No term appears twice anywhere in the summary. Tools must not repeat terms already in Topics.
-- RARE TERMS FIRST: List specialized/rare terms before generic ones in Topics. Rare terms provide stronger keyword signal for search.
-- BE THOROUGH: Extract ALL named algorithms, models, techniques, tools, and skills from the entire syllabus — do not truncate.
-- EXCLUDE from Topics: academic integrity terms (plagiarism, complicity, fabrication, cheating), grading process terms (late penalties, regrading, test cases, grade appeals, incomplete grades), and software environment setup steps (installing libraries, configuring environments, executing compilers, running programs). These are course policies, not knowledge areas.
-- Retain ALL proper nouns, theorem names, algorithm names, drug names, and tool names verbatim.
-- NEVER write narrative: "students will learn", "designed to", "upon completion", "this course", "you will", "gain experience", or any similar framing.
-- Use declarative noun phrases only.
-- If a field has no data in the source text, omit that line entirely.
-- Target 300–450 tokens total.
 """
 
 
@@ -190,7 +137,7 @@ def get_completed_files() -> set[str]:
                     data = json.load(fh)
                 if "error" not in data:
                     completed.add(f.stem + ".pdf")
-            except (json.JSONDecodeError, IOError):
+            except json.JSONDecodeError, IOError:
                 pass
     return completed
 
@@ -238,11 +185,11 @@ def log_progress(completed: int, total: int, filename: str, status: str):
 
 def sanitize_json(raw: str) -> str:
     """Attempt to clean common Gemini JSON output errors."""
-    raw = raw.replace('\x00', '')  # null bytes
+    raw = raw.replace("\x00", "")  # null bytes
     # Fix invalid backslash escapes (not one of: " \ / b f n r t u 0-9)
-    raw = re.sub(r'\\([^"\\/bfnrtu0-9])', r'\\\\\1', raw)
+    raw = re.sub(r'\\([^"\\/bfnrtu0-9])', r"\\\\\1", raw)
     # Strip bare control chars (0x01-0x1F except \t \n \r)
-    raw = re.sub(r'[\x01-\x08\x0b\x0c\x0e-\x1f]', '', raw)
+    raw = re.sub(r"[\x01-\x08\x0b\x0c\x0e-\x1f]", "", raw)
     return raw
 
 
@@ -254,7 +201,7 @@ def clean_replacement_chars(obj):
     for office hours ranges, schedules, etc.
     """
     if isinstance(obj, str):
-        return obj.replace('\ufffd', '-')
+        return obj.replace("\ufffd", "-")
     if isinstance(obj, dict):
         return {k: clean_replacement_chars(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -263,54 +210,32 @@ def clean_replacement_chars(obj):
 
 
 def collapse_chunks_by_category(chunks: list[dict]) -> list[dict]:
-    """Merge all chunks sharing the same category into a single chunk."""
-    from collections import OrderedDict
-    grouped: OrderedDict = OrderedDict()
-    for chunk in chunks:
-        cat = chunk.get("category", "COURSE_OVERVIEW")
-        if cat not in grouped:
-            grouped[cat] = {
-                "category": cat,
-                "title": chunk.get("title", ""),
-                "content": chunk.get("content", ""),
-                "has_table": chunk.get("has_table", False),
-            }
-        else:
-            grouped[cat]["content"] += "\n\n" + chunk.get("content", "")
-            if chunk.get("has_table"):
-                grouped[cat]["has_table"] = True
-            existing_title = grouped[cat]["title"]
-            new_title = chunk.get("title", "")
-            if new_title and new_title not in existing_title:
-                grouped[cat]["title"] = existing_title + " / " + new_title
-    return list(grouped.values())
+    """No-op: category-based collapsing is disabled. Returns chunks unchanged."""
+    return chunks
 
 
 def clean_template_noise(chunks: list[dict]) -> list[dict]:
     """Strip known TAMU template labels and empty-field artifacts from chunk content."""
     for chunk in chunks:
-        cat = chunk.get("category", "")
         content = chunk.get("content", "")
 
-        if cat == "PREREQUISITES":
-            # Strip template label "Prerequisite/Corequisite(s):" at start
-            content = re.sub(r"^Prerequisite/Corequisite\(s\):\s*", "", content)
+        # Strip template label "Prerequisite/Corequisite(s):" at start (PREREQUISITES sections)
+        content = re.sub(r"^Prerequisite/Corequisite\(s\):\s*", "", content)
 
-        elif cat == "MATERIALS":
-            # Strip "This material Is: Required/Recommended/Optional" lines (TAMU template)
-            content = re.sub(r"^This material Is: \w+\n?", "", content, flags=re.MULTILINE)
+        # Strip "This material Is: Required/Recommended/Optional" lines (MATERIALS template)
+        content = re.sub(r"^This material Is: \w+\n?", "", content, flags=re.MULTILINE)
 
-        elif cat == "LEARNING_OUTCOMES":
-            # Strip preamble (both "student" and "learner" variants)
-            content = re.sub(
-                r"^Upon completion of this course, the (?:student|learner) will be able to:\n?",
-                "", content, flags=re.IGNORECASE,
-            )
+        # Strip preamble (both "student" and "learner" variants) — LEARNING_OUTCOMES
+        content = re.sub(
+            r"^Upon completion of this course, the (?:student|learner) will be able to:\n?",
+            "",
+            content,
+            flags=re.IGNORECASE,
+        )
 
-        elif cat == "COURSE_OVERVIEW":
-            # Strip bare "None" lines (empty template fields captured verbatim)
-            lines = [ln for ln in content.splitlines() if ln.strip() != "None"]
-            content = re.sub(r"\n{3,}", "\n\n", "\n".join(lines))
+        # Strip bare "None" lines (empty template fields captured verbatim) — applied broadly
+        lines = [ln for ln in content.splitlines() if ln.strip() != "None"]
+        content = re.sub(r"\n{3,}", "\n\n", "\n".join(lines))
 
         chunk["content"] = content.strip()
     return chunks
@@ -323,6 +248,7 @@ def dedup_course_summary(content: str) -> str:
     - Strips any Tools terms already present in Topics.
     - Drops any other legacy fields (Skills, Methods, Niche, Schedule) if the model emitted them.
     """
+
     def parse_terms(s: str) -> list[str]:
         return [t.strip() for t in s.split(",") if t.strip()]
 
@@ -382,9 +308,8 @@ def write_per_file_report(pdf_path: Path, result: dict):
         lines.append("")
         lines.append("Chunks:")
         for chunk in chunks:
-            cat = chunk.get("category", "")
             title = chunk.get("title", "")
-            lines.append(f"  {cat:<22} — \"{title}\"")
+            lines.append(f'  "{title}"')
         completeness = result.get("completeness_check", {})
         missing = completeness.get("missing_sections", [])
         warnings = completeness.get("warnings", [])
@@ -424,20 +349,17 @@ def classify_error(error_str: str) -> str:
 def build_progress_row(pdf_path: Path, result: dict) -> dict:
     """Build a CSV row dict for one processed PDF."""
     meta = result.get("course_metadata", {})
-    chunks_by_cat = {c["category"]: c for c in result.get("chunks", [])}
 
-    token_cols: dict[str, int] = {}
+    # Total token count across all chunks; flag if total falls outside default thresholds
+    total_content = "\n".join(c.get("content", "") for c in result.get("chunks", []))
+    total_tok = count_tokens(total_content)
     flags: list[str] = []
-    for cat in ALL_CATEGORIES:
-        content = chunks_by_cat.get(cat, {}).get("content", "")
-        tok = count_tokens(content)
-        token_cols[f"{cat}_tok"] = tok
-        if content:  # only flag present chunks
-            lo, hi = TOKEN_THRESHOLDS.get(cat, TOKEN_THRESHOLDS["default"])
-            if tok < lo:
-                flags.append(f"{cat}:TOO_SMALL({tok})")
-            elif tok > hi:
-                flags.append(f"{cat}:TOO_LARGE({tok})")
+    if total_content:
+        lo, hi = TOKEN_THRESHOLDS["default"]
+        if total_tok < lo:
+            flags.append(f"TOTAL:TOO_SMALL({total_tok})")
+        elif total_tok > hi:
+            flags.append(f"TOTAL:TOO_LARGE({total_tok})")
 
     if "error" in result:
         error_type = classify_error(result["error"])
@@ -460,7 +382,7 @@ def build_progress_row(pdf_path: Path, result: dict) -> dict:
         "error_type": error_type,
         "error_detail": error_detail,
         "chunk_count": len(result.get("chunks", [])),
-        **token_cols,
+        "total_tok": total_tok,
         "course_url": meta.get("course_url") or "",
         "flags": "; ".join(flags),
         "parsed_at": result.get("_parsed_at", datetime.now().isoformat()),
@@ -483,6 +405,7 @@ def load_progress_csv() -> list[dict]:
 def write_progress_csv(rows: list[dict], retries: int = 5, delay: float = 2.0):
     """Rewrite the full progress CSV. Retries on PermissionError (e.g. Excel lock)."""
     import time
+
     if not rows:
         return
     PROGRESS_CSV.parent.mkdir(parents=True, exist_ok=True)
@@ -547,7 +470,7 @@ def parse_pdf(client, pdf_path: Path) -> dict:
             # Clean up Unicode replacement chars (e.g. en-dashes in office hours)
             parsed = clean_replacement_chars(parsed)
 
-            # Collapse duplicate-category chunks → at most 13 chunks per file
+            # collapse_chunks_by_category is now a no-op; kept for back-compat
             parsed["chunks"] = collapse_chunks_by_category(parsed.get("chunks", []))
 
             # Strip TAMU template labels and empty-field artifacts
@@ -558,42 +481,17 @@ def parse_pdf(client, pdf_path: Path) -> dict:
                 if not chunk.get("has_table"):
                     chunk.pop("has_table", None)
 
-            # Deterministically remove cross-field duplicates from COURSE_SUMMARY
+            # Deterministically remove cross-field duplicates from any COURSE_SUMMARY-style
+            # block. With no category field we apply dedup uniformly — the function is a
+            # no-op for content that lacks Topics:/Tools: lines.
             for chunk in parsed["chunks"]:
-                if chunk.get("category") == "COURSE_SUMMARY":
-                    chunk["content"] = dedup_course_summary(chunk["content"])
+                chunk["content"] = dedup_course_summary(chunk["content"])
 
             # Trim bloated titles — take first segment before "/" and cap at 80 chars
             for chunk in parsed["chunks"]:
                 title = chunk.get("title", "") or ""
                 title = title.split("/")[0].strip().rstrip(":").strip()
-                chunk["title"] = title[:80] if title else chunk.get("category", "").replace("_", " ").title()
-
-            # Ensure INSTRUCTOR chunk always exists — synthesize from metadata if LLM skipped it
-            chunk_cats = {c["category"] for c in parsed.get("chunks", [])}
-            if "INSTRUCTOR" not in chunk_cats:
-                meta = parsed.get("course_metadata", {})
-                inst = meta.get("instructor", {})
-                if inst.get("name") or inst.get("email"):
-                    lines = []
-                    if inst.get("name"):
-                        lines.append(inst["name"])
-                    if inst.get("email"):
-                        lines.append(f"Email: {inst['email']}")
-                    if inst.get("office"):
-                        lines.append(f"Office: {inst['office']}")
-                    if inst.get("office_hours"):
-                        lines.append(f"Office Hours: {inst['office_hours']}")
-                    for ta in meta.get("teaching_assistants", []):
-                        if ta.get("name"):
-                            lines.append(f"\nTA: {ta['name']}")
-                        if ta.get("email"):
-                            lines.append(f"Email: {ta['email']}")
-                    parsed["chunks"].insert(0, {
-                        "category": "INSTRUCTOR",
-                        "title": "Instructor Details",
-                        "content": "\n".join(lines),
-                    })
+                chunk["title"] = title[:80] if title else "Chunk"
 
             # Inject source filename, parse time, and boilerplate strip log
             parsed["_source_file"] = pdf_path.name
@@ -653,9 +551,9 @@ def main():
     already_done = len(completed)
     remaining = len(to_process)
 
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print("Syllabus Processing Pipeline")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Departments:  {', '.join(departments)}")
     print(f"  Total PDFs:   {total}")
     print(f"  Already done: {already_done}")
@@ -664,7 +562,7 @@ def main():
     print(f"  Progress CSV: {PROGRESS_CSV}")
     print(f"  Reports dir:  {REPORT_DIR}")
     print(f"  Error log:    {LOG_DIR / 'errors.jsonl'}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     if remaining == 0:
         print("Nothing to process. All files already completed.")
@@ -685,7 +583,7 @@ def main():
 
     for i, pdf_path in enumerate(to_process):
         n = already_done + i + 1
-        print(f"[{n}/{total}] {pdf_path.name} ({pdf_path.stat().st_size/1024:.0f} KB)...", end=" ", flush=True)
+        print(f"[{n}/{total}] {pdf_path.name} ({pdf_path.stat().st_size / 1024:.0f} KB)...", end=" ", flush=True)
 
         result = parse_pdf(client, pdf_path)
         write_per_file_report(pdf_path, result)
@@ -725,15 +623,15 @@ def main():
         time.sleep(DELAY_BETWEEN_CALLS)
 
     elapsed = time.time() - start_time
-    print(f"\n{'='*60}")
-    print(f"DONE in {elapsed/60:.1f} minutes")
+    print(f"\n{'=' * 60}")
+    print(f"DONE in {elapsed / 60:.1f} minutes")
     print(f"  Succeeded: {ok_count}")
     print(f"  Failed:    {fail_count}")
     print(f"  Total processed this run: {ok_count + fail_count}")
     print(f"  Overall progress: {already_done + ok_count}/{total}")
     if fail_count > 0:
         print("  Run with --retry-errors to retry failed files")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Write summary
     summary = {

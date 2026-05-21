@@ -28,7 +28,7 @@ def test_serialize_state_with_retrieval_and_generator():
     from tamubot.rag.observability.state_capture import serialize_state
 
     chunks = [
-        {"chunk_id": "abc", "course_id": "CSCE 670", "chunk_tag": "300t_50o", "score": 0.92, "category": "SCHEDULE"},
+        {"chunk_id": "abc", "course_id": "CSCE 670", "chunk_tag": "300t_50o", "score": 0.92},
         {"chunk_id": "def", "course_id": "CSCE 670", "score": 0.81},
     ]
     state = {
