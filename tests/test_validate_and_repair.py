@@ -101,6 +101,37 @@ def test_no_recovery_when_query_has_no_title_match():
     assert "course_id_recovered_from_title" not in tele["repairs_applied"]
 
 
+def test_no_recovery_on_discovery_question_even_with_title_match():
+    # Query mentions a real course title as a TOPIC ("which course teaches X").
+    # Recovery should NOT fire — the user is asking the system to find a course,
+    # not naming one. semantic_general handles this via course_id metadata on chunks.
+    cleaned, tele = _validate_and_repair(
+        _make(course_ids=[]),
+        query="which course teaches Human Factors in Healthcare?",
+    )
+    assert cleaned["course_ids"] == []
+    assert "course_id_recovered_from_title" not in tele["repairs_applied"]
+    assert "recovery_skipped_discovery_query" in tele["repairs_applied"]
+
+
+def test_no_recovery_on_what_course_phrasing():
+    cleaned, tele = _validate_and_repair(
+        _make(course_ids=[]),
+        query="What course covers Management of Engineering Systems topics?",
+    )
+    assert cleaned["course_ids"] == []
+    assert "course_id_recovered_from_title" not in tele["repairs_applied"]
+
+
+def test_no_recovery_on_which_class_phrasing():
+    cleaned, tele = _validate_and_repair(
+        _make(course_ids=[]),
+        query="which class would teach Human Factors in Healthcare?",
+    )
+    assert cleaned["course_ids"] == []
+    assert "course_id_recovered_from_title" not in tele["repairs_applied"]
+
+
 def test_course_id_normalization():
     cleaned, _ = _validate_and_repair(_make(course_ids=["isen625"]), query="grading in isen 625")
     assert cleaned["course_ids"] == ["ISEN 625"]

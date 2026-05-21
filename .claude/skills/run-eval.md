@@ -101,6 +101,44 @@ Then a second AskUserQuestion:
 5. **Capture state?** — yes (writes sidecar + per-node candidates) or no.
 6. **Re-run subset?** — if user is iterating, run Step 0 first; propose `IDS=$GAP`, never `IDS=<all>` when partial results exist.
 
+## Naming conventions (required)
+
+Every run needs a name that identifies **what is being tested**, plus a description that gives future-you the context to interpret the result. The Langfuse public API does NOT support renaming or updating descriptions after the fact via standard endpoints — get it right the first time.
+
+### Run name (`EXP=`)
+
+Format: `<change>_<YYYYMMDD>[_v<N>]` — lowercase snake_case.
+
+- `<change>` describes **what's being tested** (the experiment), not what subset of rows ran. Good: `discovery_guard`, `subq_fanout`, `baseline_pre_fanout`, `chunk_400t`. Bad: `rest17`, `partial5`, `q3517_v4`, `quick_test`.
+- `_v<N>` only when re-running the same change on the same day (e.g., `discovery_guard_20260521_v2`).
+- If iterating with `IDS=…` against an existing run, KEEP the original name — the runner appends to the same run.
+
+### Description (`DESC=`, REQUIRED)
+
+Two short lines (passed through `--description`). Include:
+
+1. **Branch + short commit SHA** of the code under test.
+2. **What changed** since the last comparison run (and its name) — or `baseline` if first.
+3. **Coverage** if not the full dataset (e.g., `IDS=2,8,9` or `partial 3/20`).
+
+Template:
+
+```
+branch=<branch>@<sha7> | <change-summary> vs <prior_run_name>
+coverage=<n>/<total> from <golden-set-stem>
+```
+
+Example:
+
+```
+branch=router-subqueries-fanout@30cf2b2 | title-recovery discovery-pattern guard vs router_subqueries_30cf2b2_full
+coverage=20/20 from ragas_20260519_curated20_v2
+```
+
+### Re-runs with `IDS=` keep the existing description
+
+The runner sets the description on the parent run during the initial full execution. Subsequent `IDS=` reruns inherit it. So: when starting a new experimental run that you expect to iterate on with `IDS=`, set the description on the first call.
+
 ## Step 3 — Confirm
 
 Print the resolved command before invoking. Wait for explicit "yes / go / run" before executing — gate is non-skippable per `feedback_eval_confirm_all_settings`.

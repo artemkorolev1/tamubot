@@ -13,6 +13,7 @@ was changed.
 """
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -34,6 +35,15 @@ VALID_INTENT_TYPES: frozenset[str] = frozenset(
 )
 
 MAX_SUBQUERIES = 4
+
+# Discovery questions ("which course teaches X?") mention course titles as
+# topics, not as the subject of the question. Title-substring recovery is
+# harmful here — it pins the query to a single course and prevents
+# semantic_general from surfacing related courses.
+_DISCOVERY_QUERY_RE = re.compile(
+    r"\b(which|what)\s+(course|courses|class|classes)\b",
+    re.IGNORECASE,
+)
 
 # ---------------------------------------------------------------------------
 # Derivation helpers (pure Python, no LLM)
@@ -122,12 +132,16 @@ def _validate_and_repair(raw: dict, query: str) -> tuple[dict, dict]:
         repairs.append("dropped_unreal_course_ids")
 
     # Last-ditch: if all dropped (or LLM emitted none) and the query mentions a
-    # known course title, recover one course_id.
+    # known course title, recover one course_id. Skipped for discovery questions
+    # ("which course teaches X?") where the title appears as a topic.
     if not kept:
-        recovered = course_index.match_title(query)
-        if recovered:
-            kept.append(recovered)
-            repairs.append("course_id_recovered_from_title")
+        if _DISCOVERY_QUERY_RE.search(query):
+            repairs.append("recovery_skipped_discovery_query")
+        else:
+            recovered = course_index.match_title(query)
+            if recovered:
+                kept.append(recovered)
+                repairs.append("course_id_recovered_from_title")
 
     # --- 2. impossible flag combo: recursive without anchor ---
     recursive_search = bool(raw.get("recursive_search", False))
