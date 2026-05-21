@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import sys
@@ -19,10 +20,36 @@ from docling_core.transforms.serializer.markdown import (
     MarkdownTextSerializer,
 )
 from docling_core.types.doc.document import SectionHeaderItem, TitleItem
+from hierarchical.postprocessor import ResultPostprocessor
 
 log = logging.getLogger(__name__)
 
 HEADER_RE = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
+_INDENTED_HEADER_RE = re.compile(r"^(\s+)(#{1,6}\s+.+)$")
+_ANCHORED_HEADER_RE = re.compile(r"^(#{1,6})\s+(.+)$")
+
+
+def _apply_hierarchy_safety_net(markdown: str, original_header_texts_lower: set[str]) -> str:
+    """Reconcile postprocessor output with Docling's pre-postprocessor header set.
+
+    1. Dedent indented header lines (postprocessor sometimes emits
+       ``    ## Heading`` which breaks ``^#`` matching).
+    2. Demote H1/H2 lines whose text was never a SectionHeaderItem in the
+       original Docling output — these are postprocessor false positives.
+    """
+    out: list[str] = []
+    for line in markdown.splitlines():
+        m = _INDENTED_HEADER_RE.match(line)
+        if m:
+            line = m.group(2)
+        hm = _ANCHORED_HEADER_RE.match(line)
+        if hm:
+            level = len(hm.group(1))
+            text = hm.group(2).strip()
+            if level <= 2 and text.lower() not in original_header_texts_lower:
+                line = text
+        out.append(line)
+    return "\n".join(out)
 
 
 @dataclass
@@ -80,11 +107,14 @@ def convert(
     pdf_path: Path,
     output_dir: Path,
     converter: DocumentConverter | None = None,
+    apply_hierarchy: bool = False,
 ) -> ConvertResult:
     """Convert a PDF to markdown using Docling.
 
-    Note: heading hierarchy reconstruction happens downstream in
-    ``filters.hierarchy.HierarchyFilter`` (operates on the serialized markdown).
+    When ``apply_hierarchy`` is True, runs ``ResultPostprocessor`` to infer
+    heading levels (TOC + numbering + font clustering) and applies a safety
+    net that dedents indented headers and demotes postprocessor false
+    positives back to body text.
     """
     if converter is None:
         converter = create_converter()
@@ -92,6 +122,31 @@ def convert(
     t0 = time.monotonic()
 
     result = converter.convert(str(pdf_path))
+
+    # Snapshot Docling's pre-postprocessor header set + text→page map. The
+    # safety net needs the original set to detect false promotions; the
+    # text→page map lets the final sidecar look up pages for headers that
+    # the postprocessor may have moved around.
+    orig_headers_lower: set[str] = set()
+    text_to_page: dict[str, int | None] = {}
+    for item, _level in result.document.iterate_items():
+        text_attr = getattr(item, "text", None)
+        if text_attr:
+            t = text_attr.strip()
+            if t:
+                text_to_page.setdefault(
+                    t.lower(),
+                    item.prov[0].page_no if item.prov else None,
+                )
+        if isinstance(item, (SectionHeaderItem, TitleItem)):
+            t = (text_attr or "").strip()
+            if t:
+                orig_headers_lower.add(t.lower())
+
+    if apply_hierarchy:
+        # Infer heading hierarchy (Docling outputs flat H1 by default). Modifies
+        # result.document in place using TOC, numbering, and font-size clustering.
+        ResultPostprocessor(result, source=str(pdf_path)).process()
 
     # Serialize with custom heading formatter. Use model_construct to skip
     # Pydantic validation, which can fail on some hierarchy states.
@@ -121,24 +176,38 @@ def convert(
     # Fix HTML encoding artifacts
     markdown = markdown.replace("&amp;", "&")
 
+    if apply_hierarchy:
+        markdown = _apply_hierarchy_safety_net(markdown, orig_headers_lower)
+
     timing_s = time.monotonic() - t0
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{pdf_path.stem}.md"
     output_path.write_text(markdown, encoding="utf-8")
 
-    # Emit headers sidecar: text → page_no from Docling's provenance. Consumed by
+    # Sidecar: page mapping for each header in the final markdown. Consumed by
     # filters.metadata_enrichment to anchor chunks to PDF pages reliably
     # (avoids fragile PyMuPDF text-matching that breaks on line-wrapped headers).
     headers: list[dict] = []
-    for item, _level in result.document.iterate_items():
-        if isinstance(item, (TitleItem, SectionHeaderItem)):
-            text = (item.text or "").strip()
-            if not text:
+    if apply_hierarchy:
+        # Final markdown may differ from result.document after the safety net,
+        # so derive headers from markdown and look up page from the snapshot.
+        for line in markdown.splitlines():
+            m = _ANCHORED_HEADER_RE.match(line)
+            if not m:
                 continue
-            item_level = 1 if isinstance(item, TitleItem) else getattr(item, "level", 1)
-            page = item.prov[0].page_no if item.prov else None
-            headers.append({"text": text, "level": item_level, "page": page})
+            level = len(m.group(1))
+            text = m.group(2).strip()
+            headers.append({"text": text, "level": level, "page": text_to_page.get(text.lower())})
+    else:
+        for item, _level in result.document.iterate_items():
+            if isinstance(item, (TitleItem, SectionHeaderItem)):
+                text = (item.text or "").strip()
+                if not text:
+                    continue
+                item_level = 1 if isinstance(item, TitleItem) else getattr(item, "level", 1)
+                page = item.prov[0].page_no if item.prov else None
+                headers.append({"text": text, "level": item_level, "page": page})
     sidecar_path = output_dir / f"{pdf_path.stem}.headers.json"
     sidecar_path.write_text(json.dumps(headers, indent=2, ensure_ascii=False), encoding="utf-8")
 
