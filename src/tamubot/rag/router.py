@@ -213,7 +213,6 @@ class RouterResult:
     course_ids: list[str] = field(default_factory=list)
     intent_type: Optional[str] = None  # None = out_of_scope only
     recursive_search: bool = False
-    use_summary: bool = False
     rewritten_query: str = ""
     section: Optional[str] = None
     subqueries: list[str] = field(default_factory=list)
@@ -318,7 +317,6 @@ def classify_query(
         course_ids=cleaned["course_ids"],
         intent_type=cleaned["intent_type"],
         recursive_search=cleaned["recursive_search"],
-        use_summary=cleaned["use_summary"],
         rewritten_query=cleaned["rewritten_query"],
         section=cleaned["section"],
         subqueries=cleaned["subqueries"],
