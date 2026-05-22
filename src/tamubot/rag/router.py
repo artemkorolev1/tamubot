@@ -71,23 +71,21 @@ def _derive_function(
     course_ids: list[str],
     recursive_search: bool,
     intent_type: Optional[str],
-    use_summary: bool = False,
 ) -> str:
     """Derive the retrieval function name from extracted variables.
 
-    Function matrix (v4 — 5 functions):
-    course_ids  recursive_search  use_summary  intent_type  → function
-    empty       any               any          not None     → semantic_general
-    empty       any               any          None         → out_of_scope
-    present     True              any          any          → recursive
-    present     False             True         any          → course_summary
-    present     False             False        any          → hybrid_course
+    Function matrix (v4 — 4 functions):
+    course_ids  recursive_search  intent_type  → function
+    empty       any               not None     → semantic_general
+    empty       any               None         → out_of_scope
+    present     True              any          → recursive
+    present     False             any          → hybrid_course
     """
     if not course_ids:
         return "semantic_general" if intent_type is not None else "out_of_scope"
     if recursive_search:
         return "recursive"
-    return "course_summary" if use_summary else "hybrid_course"
+    return "hybrid_course"
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +248,6 @@ class RouterResult:
                 self.course_ids,
                 self.recursive_search,
                 self.intent_type,
-                self.use_summary,
             )
         if not self.retrieval_mode:
             self.retrieval_mode = _derive_retrieval_mode(self.course_ids, self.recursive_search)
