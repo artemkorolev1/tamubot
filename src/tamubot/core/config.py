@@ -92,8 +92,6 @@ FUNCTION_RETRIEVAL_CONFIG: dict[str, dict[str, int]] = {
     "semantic_general": {"retrieve_k": 50, "rerank_k": 20},
     # Two-stage: anchor fetch → corpus-wide discovery
     "recursive": {"retrieve_k": 30, "rerank_k": 10},
-    # Direct course summary lookup — no search or reranking
-    "course_summary": {"retrieve_k": 0, "rerank_k": 0},
     # No retrieval
     "out_of_scope": {"retrieve_k": 0, "rerank_k": 0},
 }
