@@ -179,6 +179,17 @@ def _validate_and_repair(raw: dict, query: str) -> tuple[dict, dict]:
         subqueries = [fallback]
         repairs.append("subqueries_fallback")
 
+    # --- 4b. use_summary consistency: multi-facet fanout on one course
+    # is incompatible with a single pinned summary doc. The LLM occasionally
+    # emits use_summary=True for mixed-intent questions like "is this class
+    # good for me + what topics" — but if it also fanned out distinct
+    # subqueries, those would be ignored under course_summary. Trust the
+    # fanout over the flag.
+    use_summary = bool(raw.get("use_summary", False))
+    if use_summary and len(subqueries) >= 2 and len(kept) == 1:
+        use_summary = False
+        repairs.append("use_summary_reset_multifacet")
+
     # --- 5. intent_type whitelist ---
     intent_type = raw.get("intent_type")
     if intent_type not in VALID_INTENT_TYPES:
@@ -191,7 +202,7 @@ def _validate_and_repair(raw: dict, query: str) -> tuple[dict, dict]:
         "course_ids": kept,
         "intent_type": intent_type,
         "recursive_search": recursive_search,
-        "use_summary": bool(raw.get("use_summary", False)),
+        "use_summary": use_summary,
         "rewritten_query": subqueries[0],
         "section": raw.get("section"),
         "subqueries": subqueries,
