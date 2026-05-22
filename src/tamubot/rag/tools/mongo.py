@@ -69,6 +69,9 @@ def _atlas_filter(course_id: str | None, term: str | None) -> dict | None:
         f["course_id"] = course_id
     if term:
         f["term"] = term
+    chunk_tag = os.getenv("CHUNK_TAG_FILTER")
+    if chunk_tag:
+        f["chunk_tag"] = chunk_tag
     return f if f else None
 
 
@@ -92,6 +95,9 @@ def _build_text_stage(query: str, k: int, course_id: str | None) -> list[dict]:
     text_filters = []
     if course_id:
         text_filters.append({"equals": {"path": "course_id", "value": course_id}})
+    chunk_tag = os.getenv("CHUNK_TAG_FILTER")
+    if chunk_tag:
+        text_filters.append({"equals": {"path": "chunk_tag", "value": chunk_tag}})
     if text_filters:
         compound["filter"] = text_filters
     return [

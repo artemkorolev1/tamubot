@@ -317,7 +317,13 @@ def build_anchor_v4(course_id: str, section: str, term: str, header_path: str) -
     return f"{course_id} Section {section}, {term} — {leaf}:"
 
 
-def build_chunk_docs_v4(data: dict, source_file: str) -> list[dict]:
+def build_chunk_docs_v4(
+    data: dict,
+    source_file: str,
+    chunk_tag: str | None = None,
+    chunk_size: int | None = None,
+    chunk_overlap: int | None = None,
+) -> list[dict]:
     """Build ChunkDocV4 documents from v4 pipeline output."""
     from tamubot.rag.models_v4 import ChunkDocV4
 
@@ -355,6 +361,9 @@ def build_chunk_docs_v4(data: dict, source_file: str) -> list[dict]:
             source=source,
             anchor=anchor,
             source_file=source_file,
+            chunk_tag=chunk_tag,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
         )
         docs.append(validated.model_dump())
     return docs
@@ -518,6 +527,11 @@ def main():
     parser.add_argument(
         "--chunk-overlap", type=int, help="Chunk overlap token size stored on each chunk doc (for reporting)"
     )
+    parser.add_argument(
+        "--skip-course",
+        action="store_true",
+        help="Skip course-doc upsert (use when ingesting alternate chunks for a course whose summary already exists).",
+    )
     args = parser.parse_args()
 
     if args.source_dir:
@@ -580,7 +594,13 @@ def main():
                     print(f"  {f.name}: SKIP (error file)")
                     continue
                 if args.v4:
-                    chunks = build_chunk_docs_v4(data, f.name)
+                    chunks = build_chunk_docs_v4(
+                        data,
+                        f.name,
+                        chunk_tag=args.chunk_tag,
+                        chunk_size=args.chunk_size,
+                        chunk_overlap=args.chunk_overlap,
+                    )
                 elif getattr(args, "v3_result", False):
                     chunks = build_chunk_docs_v3_result(
                         data,
@@ -622,7 +642,13 @@ def main():
         try:
             # Build documents
             if args.v4:
-                chunk_docs = build_chunk_docs_v4(data, filepath.name)
+                chunk_docs = build_chunk_docs_v4(
+                    data,
+                    filepath.name,
+                    chunk_tag=args.chunk_tag,
+                    chunk_size=args.chunk_size,
+                    chunk_overlap=args.chunk_overlap,
+                )
                 course_doc = build_course_doc_v4(data, filepath.name)
                 policy_ops = []
             elif getattr(args, "v3_result", False):
@@ -655,7 +681,8 @@ def main():
                 embed_chunks(voyage, chunk_docs)
 
             # Write to MongoDB
-            db[courses_col].update_one({"crn": course_doc["crn"]}, {"$set": course_doc}, upsert=True)
+            if not args.skip_course:
+                db[courses_col].update_one({"crn": course_doc["crn"]}, {"$set": course_doc}, upsert=True)
             if chunk_docs:
                 ops = []
                 for doc in chunk_docs:

@@ -36,6 +36,11 @@ class ChunkDocV4(BaseModel):
     page: Optional[int] = None
     source: Optional[str] = None  # "simple_syllabus" or "howdy_portal"
 
+    # Chunking-strategy tag (e.g. "semantic", "600t_100o_fixed") + size/overlap for fixed runs
+    chunk_tag: Optional[str] = None
+    chunk_size: Optional[int] = None
+    chunk_overlap: Optional[int] = None
+
     # Anchor for embedding (built from header_path)
     anchor: str = ""
 
