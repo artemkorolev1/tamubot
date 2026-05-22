@@ -23,7 +23,7 @@ class PipelineState(TypedDict, total=False):
     rewritten_query: str  # router lookup query; overwritten by recursive_router
 
     # --- Router fields ---
-    function: str  # "hybrid_course"|"recursive"|"semantic_general"|"course_summary"|"out_of_scope"
+    function: str  # "hybrid_course"|"recursive"|"semantic_general"|"out_of_scope"
     course_ids: list[str]
     intent_type: Optional[str]
     recursive_search: bool  # True when recursive path was triggered

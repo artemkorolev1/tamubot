@@ -71,23 +71,21 @@ def _derive_function(
     course_ids: list[str],
     recursive_search: bool,
     intent_type: Optional[str],
-    use_summary: bool = False,
 ) -> str:
     """Derive the retrieval function name from extracted variables.
 
-    Function matrix (v4 — 5 functions):
-    course_ids  recursive_search  use_summary  intent_type  → function
-    empty       any               any          not None     → semantic_general
-    empty       any               any          None         → out_of_scope
-    present     True              any          any          → recursive
-    present     False             True         any          → course_summary
-    present     False             False        any          → hybrid_course
+    Function matrix (v4 — 4 functions):
+    course_ids  recursive_search  intent_type  → function
+    empty       any               not None     → semantic_general
+    empty       any               None         → out_of_scope
+    present     True              any          → recursive
+    present     False             any          → hybrid_course
     """
     if not course_ids:
         return "semantic_general" if intent_type is not None else "out_of_scope"
     if recursive_search:
         return "recursive"
-    return "course_summary" if use_summary else "hybrid_course"
+    return "hybrid_course"
 
 
 # ---------------------------------------------------------------------------
@@ -179,17 +177,6 @@ def _validate_and_repair(raw: dict, query: str) -> tuple[dict, dict]:
         subqueries = [fallback]
         repairs.append("subqueries_fallback")
 
-    # --- 4b. use_summary consistency: multi-facet fanout on one course
-    # is incompatible with a single pinned summary doc. The LLM occasionally
-    # emits use_summary=True for mixed-intent questions like "is this class
-    # good for me + what topics" — but if it also fanned out distinct
-    # subqueries, those would be ignored under course_summary. Trust the
-    # fanout over the flag.
-    use_summary = bool(raw.get("use_summary", False))
-    if use_summary and len(subqueries) >= 2 and len(kept) == 1:
-        use_summary = False
-        repairs.append("use_summary_reset_multifacet")
-
     # --- 5. intent_type whitelist ---
     intent_type = raw.get("intent_type")
     if intent_type not in VALID_INTENT_TYPES:
@@ -202,7 +189,6 @@ def _validate_and_repair(raw: dict, query: str) -> tuple[dict, dict]:
         "course_ids": kept,
         "intent_type": intent_type,
         "recursive_search": recursive_search,
-        "use_summary": use_summary,
         "rewritten_query": subqueries[0],
         "section": raw.get("section"),
         "subqueries": subqueries,
@@ -227,7 +213,6 @@ class RouterResult:
     course_ids: list[str] = field(default_factory=list)
     intent_type: Optional[str] = None  # None = out_of_scope only
     recursive_search: bool = False
-    use_summary: bool = False
     rewritten_query: str = ""
     section: Optional[str] = None
     subqueries: list[str] = field(default_factory=list)
@@ -250,7 +235,6 @@ class RouterResult:
                 self.course_ids,
                 self.recursive_search,
                 self.intent_type,
-                self.use_summary,
             )
         if not self.retrieval_mode:
             self.retrieval_mode = _derive_retrieval_mode(self.course_ids, self.recursive_search)
@@ -333,7 +317,6 @@ def classify_query(
         course_ids=cleaned["course_ids"],
         intent_type=cleaned["intent_type"],
         recursive_search=cleaned["recursive_search"],
-        use_summary=cleaned["use_summary"],
         rewritten_query=cleaned["rewritten_query"],
         section=cleaned["section"],
         subqueries=cleaned["subqueries"],

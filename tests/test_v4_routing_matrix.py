@@ -3,12 +3,12 @@
 from tamubot.rag.graph.builder import ROUTING_MATRIX
 
 
-def test_all_five_functions_present():
+def test_all_four_functions_present():
     assert "out_of_scope" in ROUTING_MATRIX
     assert "recursive" in ROUTING_MATRIX
     assert "hybrid_course" in ROUTING_MATRIX
     assert "semantic_general" in ROUTING_MATRIX
-    assert "course_summary" in ROUTING_MATRIX
+    assert "course_summary" not in ROUTING_MATRIX
 
 
 def test_out_of_scope_no_retrieval():

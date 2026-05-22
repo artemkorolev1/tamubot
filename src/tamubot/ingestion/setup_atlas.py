@@ -260,7 +260,7 @@ def setup_standard_indexes_v4(db):
     chunks_v4.create_index("term", name="idx_term")
     chunks_v4.create_index("source", name="idx_source")
     chunks_v4.create_index(
-        [("crn", 1), ("chunk_index", 1)],
+        [("crn", 1), ("chunk_index", 1), ("chunk_tag", 1)],
         unique=True,
         name="idx_crn_chunk_unique",
     )
@@ -289,6 +289,7 @@ def setup_search_indexes_v4(db):
                 {"type": "filter", "path": "course_id"},
                 {"type": "filter", "path": "term"},
                 {"type": "filter", "path": "source"},
+                {"type": "filter", "path": "chunk_tag"},
             ]
         },
         name="vector_index_v4",
@@ -305,6 +306,7 @@ def setup_search_indexes_v4(db):
                     "course_id": {"type": "token"},
                     "term": {"type": "token"},
                     "source": {"type": "token"},
+                    "chunk_tag": {"type": "token"},
                     "instructor_name": {"type": "string", "analyzer": "lucene.standard"},
                 },
             }

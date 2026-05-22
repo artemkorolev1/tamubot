@@ -43,7 +43,6 @@ def _make(**kwargs):
         "course_ids": [],
         "intent_type": None,
         "recursive_search": False,
-        "use_summary": False,
         "rewritten_query": "rewritten",
         "section": None,
         "subqueries": [],
@@ -275,3 +274,24 @@ def test_intent_type_none_passes_silently():
     cleaned, tele = _validate_and_repair(_make(intent_type=None), query="q")
     assert cleaned["intent_type"] is None
     assert "intent_type_rejected" not in tele["repairs_applied"]
+
+
+def test_no_use_summary_reset_multifacet_when_flag_set():
+    cleaned, tele = _validate_and_repair(
+        {
+            "course_ids": ["ISEN 625"],
+            "subqueries": ["a", "b"],
+            "rewritten_query": "a",
+            "use_summary": True,
+            "intent_type": "ACADEMIC",
+            "recursive_search": False,
+            "section": None,
+        },
+        query="ISEN 625 a + b",
+    )
+    assert "use_summary_reset_multifacet" not in tele["repairs_applied"]
+
+
+def test_use_summary_absent_from_cleaned_output():
+    cleaned, _ = _validate_and_repair(_make(), query="orig")
+    assert "use_summary" not in cleaned

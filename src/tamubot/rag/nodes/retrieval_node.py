@@ -283,31 +283,6 @@ def retrieval_node(state: PipelineState) -> dict:
                 out["retrieval_partial_errors"] = errors
             return out
 
-        elif function == "course_summary":
-            from tamubot.rag.tools.mongo import get_course_summary_chunks
-
-            summary_chunks = get_course_summary_chunks(course_ids) or []
-            summary_token_total = sum(c.get("token_count", 0) for c in summary_chunks)
-            summaries_sufficient = len(summary_chunks) >= 2 and summary_token_total >= 200
-            if summaries_sufficient:
-                node_trace.append("course_summary_retrieval")
-                return {"retrieved_chunks": summary_chunks, "node_trace": node_trace}
-            # Fallback: summaries missing or too thin — supplement with hybrid hits
-            logging.info(
-                "retrieval_node: summaries thin for %s (n=%d, tokens=%d), supplementing with hybrid",
-                course_ids,
-                len(summary_chunks),
-                summary_token_total,
-            )
-            all_chunks = []
-            for cid in course_ids:
-                all_chunks.extend(hybrid_search(rewritten_query, cid, retrieve_k or 40))
-            reranked = voyage_rerank(rewritten_query, all_chunks, top_k=rerank_k or 15)
-            return {
-                "retrieved_chunks": list(summary_chunks) + list(reranked),
-                "node_trace": node_trace,
-            }
-
         else:
             return {"retrieved_chunks": [], "node_trace": node_trace}
 
