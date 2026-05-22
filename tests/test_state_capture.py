@@ -71,6 +71,63 @@ def test_serialize_state_truncates_chunks():
     assert dump["retrieval"]["n_followup"] == 50  # original count preserved
 
 
+def test_serialize_state_captures_context_primer():
+    """context_primer must be captured separately from retrieved_chunks."""
+    from tamubot.rag.observability.state_capture import serialize_state
+
+    primer = "[Course CSCE 670]\nOverview text."
+    state = {
+        "query": "what is CSCE 670 about?",
+        "function": "hybrid_course",
+        "course_ids": ["CSCE 670"],
+        "rewritten_query": "CSCE 670",
+        "retrieved_chunks": [{"chunk_id": "a", "score": 0.9}],
+        "recursive_chunks": [],
+        "context_primer": primer,
+    }
+    dump = serialize_state(state)
+    assert dump["retrieval"]["context_primer"] == primer
+    assert dump["retrieval"]["context_primer_len"] == len(primer)
+    # Chunks remain unchanged (primer is in a separate field).
+    assert len(dump["retrieval"]["chunks"]) == 1
+
+
+def test_serialize_state_primer_only_no_chunks():
+    """Retrieval block must still appear when only primer is set (no chunks)."""
+    from tamubot.rag.observability.state_capture import serialize_state
+
+    state = {
+        "query": "tell me about ISEN 625",
+        "function": "hybrid_course",
+        "course_ids": ["ISEN 625"],
+        "rewritten_query": "ISEN 625",
+        "retrieved_chunks": [],
+        "recursive_chunks": [],
+        "context_primer": "[Course ISEN 625]\nOverview.",
+    }
+    dump = serialize_state(state)
+    assert "retrieval" in dump
+    assert dump["retrieval"]["context_primer"].startswith("[Course ISEN 625]")
+    assert dump["retrieval"]["chunks"] == []
+
+
+def test_serialize_state_no_primer_field_omitted_when_none():
+    """When context_primer is None, the captured value must be None (not omitted)."""
+    from tamubot.rag.observability.state_capture import serialize_state
+
+    state = {
+        "query": "q",
+        "function": "hybrid_course",
+        "course_ids": ["CSCE 670"],
+        "rewritten_query": "q",
+        "retrieved_chunks": [{"chunk_id": "a", "score": 0.5}],
+        "recursive_chunks": [],
+    }
+    dump = serialize_state(state)
+    assert dump["retrieval"]["context_primer"] is None
+    assert dump["retrieval"]["context_primer_len"] == 0
+
+
 def test_serialize_state_history_summary():
     from tamubot.rag.observability.state_capture import serialize_state
 

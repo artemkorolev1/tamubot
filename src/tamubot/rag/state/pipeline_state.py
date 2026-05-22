@@ -40,6 +40,9 @@ class PipelineState(TypedDict, total=False):
     subqueries_chunk_counts: list[int]  # post-rerank count per subquery variant
     data_gaps: list[tuple[str, str]]
     data_integrity: bool
+    # Non-citable course-overview primer prepended to context XML as <overview>;
+    # not counted as a retrieved chunk and invisible to Ragas precision/recall.
+    context_primer: Optional[str]
 
     # --- Generation ---
     answer: str

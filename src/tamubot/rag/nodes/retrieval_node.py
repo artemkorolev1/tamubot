@@ -46,6 +46,32 @@ def _chunk_rrf_key(chunk: dict):
     return (cid, idx, hdr)
 
 
+def _build_context_primer(course_ids: list[str]) -> str | None:
+    """Fetch per-course summaries and concatenate into a single primer string.
+
+    Returns None when the flag is off, when no course is named, or when no
+    summary is found. Missing summaries are silently skipped — telemetry is
+    already emitted by ``get_course_summary_chunks``.
+    """
+    if not config.SUMMARY_AS_PRIMER or not course_ids:
+        return None
+    from tamubot.rag.tools.mongo import get_course_summary_chunks
+
+    chunks = get_course_summary_chunks(course_ids) or []
+    if not chunks:
+        return None
+    parts: list[str] = []
+    for doc in chunks:
+        cid = doc.get("course_id", "")
+        content = doc.get("content", "") or ""
+        if not content:
+            continue
+        parts.append(f"[Course {cid}]\n{content}")
+    if not parts:
+        return None
+    return "\n\n".join(parts)
+
+
 def _cap_per_course(chunks: list[dict], cap: int) -> list[dict]:
     """Walk ``chunks`` in order, keeping at most ``cap`` items per ``course_id``.
 
@@ -135,7 +161,12 @@ def retrieval_node(state: PipelineState) -> dict:
                 get_client().update_current_span(metadata={"cache_hit": True})
             except Exception:
                 pass
-            return {"retrieved_chunks": cached_chunks, "node_trace": node_trace}
+            cache_out: dict = {"retrieved_chunks": cached_chunks, "node_trace": node_trace}
+            if function == "hybrid_course":
+                primer = _build_context_primer(course_ids)
+                if primer is not None:
+                    cache_out["context_primer"] = primer
+            return cache_out
 
     try:
         if function == "hybrid_course":
@@ -191,6 +222,9 @@ def retrieval_node(state: PipelineState) -> dict:
                 "node_trace": node_trace,
                 "subqueries_chunk_counts": per_variant_chunk_counts,
             }
+            primer = _build_context_primer(course_ids)
+            if primer is not None:
+                result["context_primer"] = primer
             if all_errors:
                 result["retrieval_partial_errors"] = all_errors
             return result

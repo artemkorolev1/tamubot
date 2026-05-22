@@ -156,6 +156,8 @@ Place ONE citation after each factual sentence. Example: \
 3. Do NOT answer questions outside TAMU academics — politely decline.
 4. Be concise but thorough. Use markdown formatting for readability.
 5. When using markdown tables, do NOT pad cells with extra spaces. Keep columns compact.
+6. When an <overview> block is present, it provides course-level context for grounding only. \
+Do NOT cite it — it has no [Source N] number. All citations must reference numbered <chunk> entries inside <context>.
 """
 
 # System prompt for generate_comparison() — free-form markdown output, streamed.
@@ -169,6 +171,8 @@ If information is not in the context, write "Not found".
 2. Cite sources using [Source N, p.X] notation when the source has a page= attribute; \
 otherwise [Source N]. Place one citation per factual sentence.
 3. Use compact markdown formatting.
+4. When an <overview> block is present, it provides course-level context for grounding only. \
+Do NOT cite it — it has no [Source N] number. All citations must reference numbered <chunk> entries inside <context>.
 
 OUTPUT FORMAT:
 Begin with a heading: ## Course Comparison: <Course 1 ID> vs <Course 2 ID>

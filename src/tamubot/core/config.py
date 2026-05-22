@@ -122,6 +122,12 @@ RERANK_KNEE_MIN_GAP_FALLBACK: float = float(os.getenv("RERANK_KNEE_MIN_GAP_FALLB
 # "mongodb" (default) or "vertex" (legacy fallback)
 RETRIEVAL_BACKEND = os.getenv("RETRIEVAL_BACKEND", "mongodb")
 
+# --- Course-summary primer ---
+# When True, hybrid_course also fetches the per-course summary as a non-citable
+# <overview> primer prepended to the context XML. The primer is NOT counted as
+# a retrieved chunk (invisible to Ragas precision/recall).
+SUMMARY_AS_PRIMER: bool = os.getenv("SUMMARY_AS_PRIMER", "true").lower() == "true"
+
 # --- Observability ---
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 APP_MODE = os.getenv("APP_MODE", "test")

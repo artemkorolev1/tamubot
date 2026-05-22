@@ -7,9 +7,10 @@ Lost-in-the-Middle attention degradation.
 
 import html
 import re
+from typing import Optional
 
 
-def format_context_xml(results: list[dict]) -> str:
+def format_context_xml(results: list[dict], primer: Optional[str] = None) -> str:
     """Format retrieval results as XML-tagged chunks for the generator.
 
     Implements primacy-recency bracketing to combat Lost-in-the-Middle attention degradation:
@@ -18,9 +19,20 @@ def format_context_xml(results: list[dict]) -> str:
     - Ranks 3–N → Middle (descending rank order)
 
     Each chunk gets metadata attributes so the LLM can cite sources precisely.
+
+    If `primer` is non-empty, it is prepended verbatim inside an `<overview>`
+    block with no `source=` attribute and no `<chunk>` wrapper, so the generator
+    cannot construct a `[Source N]` citation for it.
     """
+    parts: list[str] = []
+    if primer:
+        parts.append("<overview>")
+        parts.append(primer)
+        parts.append("</overview>")
+
     if not results:
-        return "<context>\nNo relevant documents found.\n</context>"
+        parts.append("<context>\nNo relevant documents found.\n</context>")
+        return "\n".join(parts)
 
     # Apply primacy-recency reordering: [rank_1, ranks_3_to_N, rank_2]
     # No reorder needed for 1-2 results; for 3+, rank 1 at start, rank 2 at end.
@@ -30,20 +42,6 @@ def format_context_xml(results: list[dict]) -> str:
     else:
         ordered_results = [results[0]] + results[2:] + [results[1]]
         rank_mapping = [1] + list(range(3, len(results) + 1)) + [2]
-
-    # Prepend course summaries if available — skip when chunks ARE summaries (course_summary path)
-    from tamubot.rag.tools.mongo import get_course_summaries
-
-    all_summary_chunks = all(doc.get("source") == "course_summary" for doc in results)
-    course_ids = list({doc.get("course_id") for doc in results if doc.get("course_id")})
-    summaries = get_course_summaries(course_ids) if course_ids and not all_summary_chunks else {}
-
-    parts = []
-    if summaries:
-        parts.append("<course_summaries>")
-        for cid, summary in sorted(summaries.items()):
-            parts.append(f'<summary course="{html.escape(cid)}">{html.escape(summary)}</summary>')
-        parts.append("</course_summaries>")
 
     parts.append("<context>")
     for position, (rank, doc) in enumerate(zip(rank_mapping, ordered_results), 1):

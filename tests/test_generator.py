@@ -91,6 +91,53 @@ class TestFormatContextXmlPrimacyRecency:
         assert "&quot;" in xml or '"' in xml  # Quotes might be in attribute or content
 
 
+class TestFormatContextXmlPrimer:
+    """Test non-citable <overview> primer prepending."""
+
+    def test_no_primer_no_overview_block(self):
+        results = [{"content": "c0", "course_id": "TEST-101"}]
+        xml = format_context_xml(results)
+        assert "<overview>" not in xml
+
+    def test_no_primer_empty_results_unchanged(self):
+        """Flag-off + empty results must return today's exact 'no documents' string."""
+        xml = format_context_xml([])
+        assert xml == "<context>\nNo relevant documents found.\n</context>"
+
+    def test_primer_prepended_before_context(self):
+        primer = "[Course ISEN 625]\nSummary text."
+        results = [{"content": "c0", "course_id": "ISEN 625"}]
+        xml = format_context_xml(results, primer=primer)
+        assert xml.startswith("<overview>")
+        assert "[Course ISEN 625]" in xml
+        assert "Summary text." in xml
+        assert xml.index("</overview>") < xml.index("<context>")
+
+    def test_primer_has_no_source_attribute(self):
+        primer = "[Course ISEN 625]\nSummary."
+        xml = format_context_xml([], primer=primer)
+        # The whole overview block must not carry any source= attribute,
+        # otherwise the generator could try to fabricate a [Source N] cite for it.
+        overview_block = xml[xml.index("<overview>") : xml.index("</overview>") + len("</overview>")]
+        assert "source=" not in overview_block
+        assert "<chunk" not in overview_block
+
+    def test_primer_multi_course_subheaders(self):
+        primer = "[Course CSCE 638]\nText A.\n\n[Course CSCE 605]\nText B."
+        xml = format_context_xml([], primer=primer)
+        assert "[Course CSCE 638]" in xml
+        assert "[Course CSCE 605]" in xml
+        assert xml.index("[Course CSCE 638]") < xml.index("[Course CSCE 605]")
+
+    def test_primer_with_empty_results_still_emits_overview(self):
+        primer = "[Course X]\nOnly overview, no chunks."
+        xml = format_context_xml([], primer=primer)
+        assert "<overview>" in xml
+        assert "Only overview" in xml
+        # Empty-result context block still appears
+        assert "No relevant documents found." in xml
+
+
 class TestTemperatureRouting:
     """Test temperature configuration for function types."""
 
@@ -247,7 +294,10 @@ def test_base_system_no_chain_of_thought_instruction():
 def test_comparison_system_exists_and_is_compact():
     from tamubot.rag.prompts import COMPARISON_SYSTEM
 
-    assert len(COMPARISON_SYSTEM) < 1200
+    # 1700 char ceiling — bumped from 1200 to accommodate the non-citable
+    # <overview> rule added for SUMMARY_AS_PRIMER. Keep this guard so the prompt
+    # doesn't drift toward kitchen-sink bloat.
+    assert len(COMPARISON_SYSTEM) < 1700
     assert "compare" in COMPARISON_SYSTEM.lower()
 
 

@@ -89,6 +89,7 @@ def generate(
     data_gaps: list[tuple[str, str]] | None = None,
     data_integrity: bool = True,
     history_context: str | None = None,
+    context_primer: str | None = None,
 ) -> str:
     """Generate a grounded response with citations using Gemini 2.0 Flash.
 
@@ -111,9 +112,9 @@ def generate(
     # Route multi-course known-course queries to streaming comparison.
     # Recursive queries may have multiple anchor course IDs but need pairing framing, not comparison.
     if course_ids and len(course_ids) > 1 and function != "recursive":
-        return "".join(generate_comparison(results, question, course_ids))
+        return "".join(generate_comparison(results, question, course_ids, context_primer=context_primer))
 
-    context_xml = format_context_xml(results)
+    context_xml = format_context_xml(results, primer=context_primer)
     system_prompt = build_system_prompt(function, course_ids, intent_type)
     if history_context:
         user_message = (
@@ -175,6 +176,7 @@ def generate_comparison(
     results: list[dict],
     question: str,
     course_ids: list[str],
+    context_primer: str | None = None,
 ):
     """Stream a multi-course comparison as free-form markdown.
 
@@ -184,11 +186,12 @@ def generate_comparison(
         results:    Reranked retrieval results (list of chunk dicts).
         question:   The user's original question.
         course_ids: List of course IDs being compared (len > 1).
+        context_primer: Optional non-citable course-overview primer.
 
     Yields:
         str: Text tokens as they arrive.
     """
-    context_xml = format_context_xml(results)
+    context_xml = format_context_xml(results, primer=context_primer)
     courses_list = ", ".join(course_ids)
     user_message = f"{context_xml}\n\nQuestion: {question}\n\nCompare the following courses: {courses_list}."
     messages = [
@@ -229,6 +232,7 @@ def generate_stream(
     data_integrity: bool = True,
     conflicted_course_ids: list[str] | None = None,
     history_context: str | None = None,
+    context_primer: str | None = None,
 ):
     """Streaming variant of generate(). Yields text chunks as they arrive.
 
@@ -256,7 +260,7 @@ def generate_stream(
     # Multi-course known-course comparison: stream free-form markdown directly.
     # Recursive queries with multiple anchors stream normally using their own prompts.
     if course_ids and len(course_ids) > 1 and function != "recursive":
-        yield from generate_comparison(results, question, course_ids)
+        yield from generate_comparison(results, question, course_ids, context_primer=context_primer)
         return
 
     # Prepend data integrity disclaimer before streaming begins
@@ -265,7 +269,7 @@ def generate_stream(
         disclaimer = f"⚠️ Note: The following data was not found in the syllabus database:\n{gap_lines}\n\n"
         yield disclaimer
 
-    context_xml = format_context_xml(results)
+    context_xml = format_context_xml(results, primer=context_primer)
     system_prompt = build_system_prompt(function, course_ids, intent_type)
     if history_context:
         user_message = (

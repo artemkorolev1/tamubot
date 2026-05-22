@@ -58,7 +58,8 @@ def serialize_state(state: dict[str, Any], max_chunks: int = _MAX_CHUNKS) -> dic
         "repairs_applied": list(state.get("repairs_applied", []) or []),
     }
 
-    if all_chunks:
+    context_primer = state.get("context_primer")
+    if all_chunks or context_primer:
         dump["retrieval"] = {
             "rewritten_query": rewritten or query,
             "course_ids": list(state.get("course_ids", []) or []),
@@ -66,6 +67,10 @@ def serialize_state(state: dict[str, Any], max_chunks: int = _MAX_CHUNKS) -> dic
             "n_followup": len(chunks),
             "chunks": [_summarize_chunk(c, i + 1) for i, c in enumerate(all_chunks[:max_chunks])],
             "subqueries_chunk_counts": list(state.get("subqueries_chunk_counts", []) or []),
+            # Non-citable primer (course-overview text). Captured separately from chunks
+            # so Ragas precision/recall stays computed against retrieved_chunks only.
+            "context_primer": context_primer,
+            "context_primer_len": len(context_primer) if context_primer else 0,
         }
 
     answer = state.get("answer", "") or ""

@@ -159,3 +159,141 @@ def test_course_summary_falls_back_when_thin():
     assert contents[0] == "thin summary", "summary chunk must come first"
     assert contents[1:] == ["H1", "H2", "H3"], "hybrid hits must follow, in order"
     assert len(chunks) == 4
+
+
+# ---------------------------------------------------------------------------
+# Change 4 — SUMMARY_AS_PRIMER: course-overview primer on hybrid_course
+# ---------------------------------------------------------------------------
+
+
+def _summary_chunks(*course_ids: str) -> list[dict]:
+    return [
+        {
+            "course_id": cid,
+            "content": f"Overview text for {cid}.",
+            "header_path": "Course Overview",
+            "section": "",
+            "source": "course_summary",
+            "source_file": f"{cid}.pdf",
+            "chunk_index": 0,
+            "pipeline_version": "v4",
+        }
+        for cid in course_ids
+    ]
+
+
+def test_hybrid_course_primer_flag_off_no_primer():
+    """With SUMMARY_AS_PRIMER=False, no context_primer key is emitted."""
+    chunks = [{"course_id": "ISEN 625", "chunk_index": 1, "content": "A"}]
+
+    with (
+        patch("tamubot.core.config.SUMMARY_AS_PRIMER", False),
+        patch("tamubot.rag.tools.mongo.hybrid_search", return_value=chunks),
+        patch(
+            "tamubot.rag.tools.voyage.rerank",
+            side_effect=lambda q, ch, top_k, **kw: ch[:top_k],
+        ),
+    ):
+        out = retrieval_node(
+            _state(
+                function="hybrid_course",
+                course_ids=["ISEN 625"],
+                subqueries=["only"],
+            )
+        )
+
+    assert "context_primer" not in out
+    assert out["retrieved_chunks"] == chunks
+
+
+def test_hybrid_course_primer_flag_on_returns_primer():
+    """Flag on + course_ids → context_primer carries [Course <id>] sub-header per course."""
+    hybrid_hits = [{"course_id": "ISEN 625", "chunk_index": 1, "content": "A"}]
+
+    with (
+        patch("tamubot.core.config.SUMMARY_AS_PRIMER", True),
+        patch(
+            "tamubot.rag.tools.mongo.get_course_summary_chunks",
+            return_value=_summary_chunks("ISEN 625"),
+        ),
+        patch("tamubot.rag.tools.mongo.hybrid_search", return_value=hybrid_hits),
+        patch(
+            "tamubot.rag.tools.voyage.rerank",
+            side_effect=lambda q, ch, top_k, **kw: ch[:top_k],
+        ),
+    ):
+        out = retrieval_node(
+            _state(
+                function="hybrid_course",
+                course_ids=["ISEN 625"],
+                subqueries=["only"],
+            )
+        )
+
+    assert out["retrieved_chunks"] == hybrid_hits, "retrieved_chunks untouched by primer"
+    primer = out.get("context_primer")
+    assert primer is not None
+    assert "[Course ISEN 625]" in primer
+    assert "Overview text for ISEN 625." in primer
+
+
+def test_hybrid_course_primer_multi_course_concatenated():
+    """Multi-course primer concatenates per-course content with [Course <id>] sub-headers."""
+    with (
+        patch("tamubot.core.config.SUMMARY_AS_PRIMER", True),
+        patch(
+            "tamubot.rag.tools.mongo.get_course_summary_chunks",
+            return_value=_summary_chunks("CSCE 638", "CSCE 605"),
+        ),
+        patch("tamubot.rag.tools.mongo.hybrid_search", return_value=[]),
+        patch(
+            "tamubot.rag.tools.voyage.rerank",
+            side_effect=lambda q, ch, top_k, **kw: ch[:top_k],
+        ),
+    ):
+        out = retrieval_node(
+            _state(
+                function="hybrid_course",
+                course_ids=["CSCE 638", "CSCE 605"],
+                subqueries=["only"],
+            )
+        )
+
+    primer = out["context_primer"]
+    assert "[Course CSCE 638]" in primer
+    assert "[Course CSCE 605]" in primer
+
+
+def test_hybrid_course_primer_missing_summaries_no_primer():
+    """Flag on + no summary docs in Mongo → primer is absent (silently skipped)."""
+    with (
+        patch("tamubot.core.config.SUMMARY_AS_PRIMER", True),
+        patch("tamubot.rag.tools.mongo.get_course_summary_chunks", return_value=[]),
+        patch("tamubot.rag.tools.mongo.hybrid_search", return_value=[]),
+        patch(
+            "tamubot.rag.tools.voyage.rerank",
+            side_effect=lambda q, ch, top_k, **kw: ch[:top_k],
+        ),
+    ):
+        out = retrieval_node(
+            _state(
+                function="hybrid_course",
+                course_ids=["UNKNOWN 999"],
+                subqueries=["only"],
+            )
+        )
+    assert "context_primer" not in out
+
+
+def test_hybrid_course_primer_not_emitted_for_semantic_general():
+    """Primer is hybrid_course-only; semantic_general must not emit one."""
+    with (
+        patch("tamubot.core.config.SUMMARY_AS_PRIMER", True),
+        patch("tamubot.rag.tools.mongo.semantic_search", return_value=[]),
+        patch(
+            "tamubot.rag.tools.voyage.rerank",
+            side_effect=lambda q, ch, top_k, **kw: ch[:top_k],
+        ),
+    ):
+        out = retrieval_node(_state(function="semantic_general", subqueries=["only"]))
+    assert "context_primer" not in out
