@@ -211,16 +211,6 @@ _FUNCTION_PROMPTS: dict[str, str] = {
         "If the evidence is insufficient to answer fully, state: "
         "'I don't have enough data to answer this accurately based on the available syllabi.'"
     ),
-    "course_summary": (
-        "The user is asking for a general overview of one or more courses. "
-        "The context contains course summaries with key information like topics, "
-        "grading breakdown, meeting times, and prerequisites. "
-        "Provide a clear, comprehensive overview covering the course purpose, "
-        "key topics, and any notable features. "
-        "If comparing courses, highlight similarities and differences. "
-        "Start with a level-2 heading (##) for the course ID and title. "
-        "Use level-3 headings (###) to organize the overview sections."
-    ),
 }
 
 # Advisory overlay appended when intent_type is present (recursive and semantic_general).
@@ -246,12 +236,11 @@ _SEMANTIC_TYPE_PROMPTS: dict[str, str] = {
 }
 
 # Per-function generation temperature (function-based stochasticity).
-# hybrid_course, course_summary: 0.0 (deterministic extraction, maximum fidelity to context).
+# hybrid_course: 0.0 (deterministic extraction, maximum fidelity to context).
 # recursive, semantic_general: 0.2 (advisory reasoning, linguistic fluidity for synthesis).
 # out_of_scope: 0.0 (canned response, no generation).
 _FUNCTION_TEMPERATURES: dict[str, float] = {
     "hybrid_course": 0.0,
-    "course_summary": 0.0,
     "recursive": 0.2,
     "semantic_general": 0.2,
     "out_of_scope": 0.0,
