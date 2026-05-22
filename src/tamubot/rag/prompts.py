@@ -69,22 +69,6 @@ Rule: If a specific course ID is mentioned as a point of comparison, sequence an
 or a contrast for finding others, recursive_search must be true.
 False when the question is about a named course only, or no course ID is mentioned.
 
-USE SUMMARY
-Set use_summary = true when the user asks for a general overview, description, or broad
-comparison of course(s) and does NOT target a specific syllabus section.
-Specific sections include: grading, schedule, attendance, exams, assignments, textbooks,
-prerequisites, office hours, AI policy, late policy, makeup policy, instructor info.
-When in doubt, set false (the system will search detailed chunks).
-
-Examples:
-- "What is ISEN 625 about?" → true (general overview)
-- "Tell me about ISEN 630" → true (general overview)
-- "Compare ISEN 625 and ISEN 630" → true (broad comparison)
-- "What's the grading policy for ISEN 625?" → false (specific section)
-- "When does ISEN 625 meet?" → false (specific detail)
-- "Who teaches ISEN 625?" → false (specific detail)
-- "What are the prerequisites for ISEN 625?" → false (specific section)
-
 QUERY REWRITING
 For recursive queries, rewritten_query is an anchor course lookup ONLY.
 Strip ALL discovery intent — the discovery goal is handled in a later step.
@@ -113,7 +97,6 @@ Output ONLY a JSON object with these fields:
   "section": null,
   "intent_type": null,
   "recursive_search": false,
-  "use_summary": false,
   "rewritten_query": "...",
   "subqueries": ["..."]
 }}
