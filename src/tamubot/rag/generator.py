@@ -131,8 +131,9 @@ def generate(
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message},
     ]
+    gen_model = config.GENERATOR_MODEL or (config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL)
     _lf_get_client().update_current_generation(
-        model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
+        model=gen_model,
         input=messages,
     )
     llm_result = None
@@ -142,6 +143,7 @@ def generate(
             temperature=_FUNCTION_TEMPERATURES.get(function, 0.1),
             max_tokens=4096,
             thinking_budget=thinking_budget,
+            model=config.GENERATOR_MODEL,
         )
         text = llm_result.text
     except Exception:
@@ -198,8 +200,9 @@ def generate_comparison(
         {"role": "system", "content": COMPARISON_SYSTEM},
         {"role": "user", "content": user_message},
     ]
+    gen_model = config.GENERATOR_MODEL or (config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL)
     _lf_get_client().update_current_generation(
-        model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
+        model=gen_model,
         input=messages,
     )
     usage_out: list = []
@@ -208,6 +211,7 @@ def generate_comparison(
         temperature=0.2,
         max_tokens=4096,
         usage_out=usage_out,
+        model=config.GENERATOR_MODEL,
     ):
         yield token
     if usage_out:
@@ -286,8 +290,9 @@ def generate_stream(
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message},
     ]
+    gen_model = config.GENERATOR_MODEL or (config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL)
     _lf_get_client().update_current_generation(
-        model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
+        model=gen_model,
         input=messages,
     )
     all_parts: list[str] = []
@@ -301,6 +306,7 @@ def generate_stream(
         max_tokens=4096,
         thinking_budget=thinking_budget,
         usage_out=usage_out,
+        model=config.GENERATOR_MODEL,
     ):
         all_parts.append(chunk)
         yield chunk

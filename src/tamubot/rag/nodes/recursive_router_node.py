@@ -4,6 +4,7 @@ Acts like a mini-router: given original query + history + anchor course chunks,
 it decides what to search for next (function, course_ids, rewritten_query).
 These fields overwrite state so retrieval_node runs with the resolved strategy.
 """
+
 from __future__ import annotations
 
 import json
@@ -22,18 +23,24 @@ _VALID_FUNCTIONS = {"semantic_general", "hybrid_course"}
 def _classify_recursive(prompt: str) -> dict:
     """Call the LLM to synthesize a follow-up routing decision from anchor chunks."""
     from tamubot.rag.tools.llm import call_llm
+
     messages = [{"role": "user", "content": prompt}]
+    rec_model = config.RECURSIVE_ROUTER_MODEL or (config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL)
     _lf_get_client().update_current_generation(
-        model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
+        model=rec_model,
         input=messages,
     )
-    llm_result = call_llm(messages, temperature=0.2, max_tokens=4096, json_mode=True)
+    llm_result = call_llm(
+        messages, temperature=0.2, max_tokens=4096, json_mode=True, model=config.RECURSIVE_ROUTER_MODEL
+    )
     _lf_get_client().update_current_generation(
         output=llm_result.text,
         usage_details={
             "input": llm_result.input_tokens or 0,
             "output": llm_result.output_tokens or 0,
-        } if llm_result.input_tokens is not None else None,
+        }
+        if llm_result.input_tokens is not None
+        else None,
     )
     return json.loads(llm_result.text)
 
@@ -51,8 +58,7 @@ def recursive_router_node(state: PipelineState) -> dict:
 
     # Summarize anchor content, capped to avoid token bloat
     anchor_text = " ".join(
-        f"{c.get('header_text', '')} {c.get('content', '') or c.get('text', '')}"
-        for c in recursive_chunks
+        f"{c.get('header_text', '')} {c.get('content', '') or c.get('text', '')}" for c in recursive_chunks
     )[:2000]
 
     history_block = f"Conversation history:\n{history_context}\n\n" if history_context else ""
@@ -73,9 +79,9 @@ def recursive_router_node(state: PipelineState) -> dict:
         f'"course_ids": [], '
         f'"rewritten_query": "targeted search string"}}\n\n'
         f'Use "hybrid_course" with specific course_ids only when the answer requires '
-        f'looking up named specific courses (e.g. prerequisites listed in the anchor). '
+        f"looking up named specific courses (e.g. prerequisites listed in the anchor). "
         f'Use "semantic_general" for discovery (similar topics, complementary courses, '
-        f'courses to take after/with the anchor, etc).'
+        f"courses to take after/with the anchor, etc)."
     )
 
     try:

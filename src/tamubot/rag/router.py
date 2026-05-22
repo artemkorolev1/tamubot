@@ -290,8 +290,9 @@ def classify_query(
         query = hint + query
     prompt = ROUTER_PROMPT.format(query=query)
 
+    router_model = config.ROUTER_MODEL or (config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL)
     _lf_get_client().update_current_generation(
-        model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
+        model=router_model,
         input=[{"role": "user", "content": prompt}],
         metadata={"prior_context": prior_context or ""},
     )
@@ -304,6 +305,7 @@ def classify_query(
             max_tokens=4096,
             json_mode=True,
             thinking_budget=512,
+            model=config.ROUTER_MODEL,
         )
         raw_text = llm_result.text
     except Exception:

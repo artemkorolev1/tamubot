@@ -4,6 +4,7 @@ Uses a lightweight LLM call to acknowledge the user's specific topic before
 politely redirecting them to TAMU academics, rather than returning a generic
 canned string.
 """
+
 from __future__ import annotations
 
 from langfuse import get_client as _lf_get_client
@@ -24,17 +25,21 @@ def _generate_oos_response(query: str) -> list[str]:
         {"role": "system", "content": OUT_OF_SCOPE_SYSTEM},
         {"role": "user", "content": query},
     ]
+    oos_model = config.OUT_OF_SCOPE_MODEL or (config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL)
     _lf_get_client().update_current_generation(
-        model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
+        model=oos_model,
         input=messages,
     )
     usage_out: list = []
-    tokens = list(stream_llm(
-        messages=messages,
-        temperature=0.3,
-        max_tokens=4096,
-        usage_out=usage_out,
-    ))
+    tokens = list(
+        stream_llm(
+            messages=messages,
+            temperature=0.3,
+            max_tokens=4096,
+            usage_out=usage_out,
+            model=config.OUT_OF_SCOPE_MODEL,
+        )
+    )
     if usage_out:
         _lf_get_client().update_current_generation(
             usage_details={"input": usage_out[0] or 0, "output": usage_out[1] or 0},

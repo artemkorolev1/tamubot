@@ -43,6 +43,14 @@ TAMU_MODEL = os.getenv("TAMU_MODEL", "protected.gemini-2.5-flash")
 # ingestion_pipeline/process_syllabi.py is excluded (uses PDF multimodal input).
 USE_TAMU_API: bool = LLM_PROVIDER == "tamu"
 
+# Per-stage model overrides. Each defaults to None → call_llm falls back to
+# TAMU_MODEL (on TAMU path) or GENERATION_MODEL (on Gemini path).
+ROUTER_MODEL: str | None = os.getenv("ROUTER_MODEL") or None
+GENERATOR_MODEL: str | None = os.getenv("GENERATOR_MODEL") or None
+HISTORY_UPDATE_MODEL: str | None = os.getenv("HISTORY_UPDATE_MODEL") or None
+RECURSIVE_ROUTER_MODEL: str | None = os.getenv("RECURSIVE_ROUTER_MODEL") or None
+OUT_OF_SCOPE_MODEL: str | None = os.getenv("OUT_OF_SCOPE_MODEL") or None
+
 # --- LLM guardrails ---
 # Hard cap on output tokens (application-layer; TAMU gateway ignores max_tokens).
 LLM_MAX_OUTPUT_TOKENS: int = int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "8000"))

@@ -2,6 +2,7 @@
 
 Runs AFTER generator.
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,7 +51,7 @@ def history_update_node(state: PipelineState) -> dict:
     history_compressed = False
     if len(history) > max_turns * 2:
         history_compressed = True
-        history = history[-(max_turns * 2):]
+        history = history[-(max_turns * 2) :]
 
     # Incremental session summary (LLM) — always update, independent of MEM0_ENABLED
     if query and answer:
@@ -60,6 +61,7 @@ def history_update_node(state: PipelineState) -> dict:
     answer_cache_update = {}
     if config.SESSION_CACHE_ENABLED and query and answer:
         from tamubot.rag.utils import normalize_query
+
         existing_cache = state.get("answer_cache", {})
         answer_cache_update = {**existing_cache, normalize_query(query): answer}
 
@@ -71,6 +73,7 @@ def history_update_node(state: PipelineState) -> dict:
                 Mem0Manager(session_id).add_turn_async(query, answer)
             except Exception:
                 import logging
+
                 logging.getLogger(__name__).exception("mem0 add_turn_async failed (non-fatal)")
 
     logger.info("history_update: done history_len=%d summary_len=%d", len(history), len(history_summary))
@@ -100,22 +103,26 @@ def _update_summary(existing_summary: str, user_msg: str, assistant_msg: str) ->
             ),
         }
     ]
+    hist_model = config.HISTORY_UPDATE_MODEL or (config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL)
     _lf_get_client().update_current_generation(
-        model=config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL,
+        model=hist_model,
         input=messages,
     )
     try:
-        result = call_llm(messages, temperature=0.0, max_tokens=4096)
+        result = call_llm(messages, temperature=0.0, max_tokens=4096, model=config.HISTORY_UPDATE_MODEL)
         updated = result.text.strip()
         _lf_get_client().update_current_generation(
             output=updated,
             usage_details={
                 "input": result.input_tokens or 0,
                 "output": result.output_tokens or 0,
-            } if result.input_tokens is not None else None,
+            }
+            if result.input_tokens is not None
+            else None,
         )
         return updated if updated else existing_summary
     except Exception:
         import logging
+
         logging.getLogger(__name__).exception("summary update failed (non-fatal)")
         return existing_summary

@@ -163,6 +163,17 @@ class LLMResult(NamedTuple):
     thinking_tokens: int | None = None
 
 
+def _resolved_model(model: str | None) -> str:
+    """Pick the model name for a single call.
+
+    Per-call ``model`` wins; otherwise falls back to the global TAMU_MODEL or
+    GENERATION_MODEL based on USE_TAMU_API.
+    """
+    if model:
+        return model
+    return config.TAMU_MODEL if config.USE_TAMU_API else config.GENERATION_MODEL
+
+
 def call_llm(
     messages: list[dict],
     temperature: float = 0.1,
@@ -171,6 +182,7 @@ def call_llm(
     json_schema: dict | None = None,
     response_schema=None,
     thinking_budget: int = 0,
+    model: str | None = None,
 ) -> LLMResult:
     """Make a blocking LLM call, returning an LLMResult with the full response text.
 
@@ -223,6 +235,7 @@ def call_llm(
                 json_schema,
                 response_schema,
                 thinking_budget,
+                model,
             )
         except Exception as exc:
             last_exc = exc
@@ -257,6 +270,7 @@ def stream_llm(
     max_tokens: int = 4096,
     thinking_budget: int = 0,
     usage_out: list | None = None,
+    model: str | None = None,
 ) -> Iterator[str]:
     """Streaming LLM call — yields text tokens as they arrive.
 
@@ -302,6 +316,7 @@ def stream_llm(
                 max_tokens,
                 thinking_budget,
                 usage_out,
+                model,
             )
             return  # success — exit retry loop
         except Exception as exc:
@@ -326,6 +341,7 @@ def _call_with_timeout(
     json_schema,
     response_schema,
     thinking_budget,
+    model,
 ) -> LLMResult:
     """Dispatch to the correct backend, with optional timeout."""
     timeout = config.LLM_TIMEOUT_SECONDS
@@ -338,6 +354,7 @@ def _call_with_timeout(
             json_schema,
             response_schema,
             thinking_budget,
+            model,
         )
 
     import concurrent.futures
@@ -352,6 +369,7 @@ def _call_with_timeout(
             json_schema,
             response_schema,
             thinking_budget,
+            model,
         )
         try:
             return future.result(timeout=timeout)
@@ -367,11 +385,13 @@ def _call_raw(
     json_schema,
     response_schema,
     thinking_budget,
+    model,
 ) -> LLMResult:
     """Dispatch to TAMU or Gemini backend (no guardrails)."""
+    resolved = _resolved_model(model)
     if config.USE_TAMU_API:
-        return _call_tamu(messages, temperature, max_tokens, json_mode, json_schema)
-    return _call_gemini(messages, temperature, max_tokens, json_mode, response_schema, thinking_budget)
+        return _call_tamu(messages, temperature, max_tokens, json_mode, json_schema, resolved)
+    return _call_gemini(messages, temperature, max_tokens, json_mode, response_schema, thinking_budget, resolved)
 
 
 def _stream_with_cap(
@@ -380,16 +400,18 @@ def _stream_with_cap(
     max_tokens: int,
     thinking_budget: int,
     usage_out: list | None,
+    model: str | None,
 ) -> Iterator[str]:
     """Stream tokens with output cap — stops consuming once limit is reached."""
     output_cap = config.LLM_MAX_OUTPUT_TOKENS
     accumulated_tokens = 0
     truncated = False
 
+    resolved = _resolved_model(model)
     if config.USE_TAMU_API:
-        inner = _stream_tamu(messages, temperature, max_tokens, usage_out=usage_out)
+        inner = _stream_tamu(messages, temperature, max_tokens, usage_out=usage_out, model=resolved)
     else:
-        inner = _stream_gemini(messages, temperature, max_tokens, thinking_budget, usage_out=usage_out)
+        inner = _stream_gemini(messages, temperature, max_tokens, thinking_budget, usage_out=usage_out, model=resolved)
 
     for token_text in inner:
         chunk_tokens = _count_tokens_approx(token_text)
@@ -421,11 +443,12 @@ def _call_tamu(
     max_tokens: int,
     json_mode: bool,
     json_schema: dict | None,
+    model: str,
 ) -> LLMResult:
     """Blocking call via TAMU gateway.  Always uses stream=True (gateway SSE quirk)."""
     tamu = config.get_tamu_client()
     kwargs: dict = dict(
-        model=config.TAMU_MODEL,
+        model=model,
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
@@ -450,12 +473,13 @@ def _stream_tamu(
     temperature: float,
     max_tokens: int,
     usage_out: list | None = None,
+    model: str | None = None,
 ) -> Iterator[str]:
     """Streaming call via TAMU gateway — yields tokens."""
     tamu = config.get_tamu_client()
     input_tokens = _count_messages_tokens(messages) if usage_out is not None else None
     stream = tamu.chat.completions.create(
-        model=config.TAMU_MODEL,
+        model=model or config.TAMU_MODEL,
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
@@ -526,13 +550,14 @@ def _call_gemini(
     json_mode: bool,
     response_schema,
     thinking_budget: int,
+    model: str,
 ) -> LLMResult:
     """Blocking call via Google Gemini direct."""
     system_instruction, contents = _extract_messages(messages)
     cfg = _build_genai_config(system_instruction, temperature, max_tokens, json_mode, response_schema, thinking_budget)
     client = config.get_genai_client()
     response = client.models.generate_content(
-        model=config.GENERATION_MODEL,
+        model=model,
         contents=contents,
         config=cfg,
     )
@@ -552,6 +577,7 @@ def _stream_gemini(
     max_tokens: int,
     thinking_budget: int,
     usage_out: list | None = None,
+    model: str | None = None,
 ) -> Iterator[str]:
     """Streaming call via Google Gemini direct — yields tokens."""
     system_instruction, contents = _extract_messages(messages)
@@ -559,7 +585,7 @@ def _stream_gemini(
     client = config.get_genai_client()
     last_chunk = None
     for chunk in client.models.generate_content_stream(
-        model=config.GENERATION_MODEL,
+        model=model or config.GENERATION_MODEL,
         contents=contents,
         config=cfg,
     ):
