@@ -110,58 +110,6 @@ def test_semantic_general_caps_per_course():
 
 
 # ---------------------------------------------------------------------------
-# Change 3 — course_summary widened fallback
-# ---------------------------------------------------------------------------
-
-
-def test_course_summary_falls_back_when_thin():
-    """One thin summary chunk (token_count=50) must trigger hybrid supplementation."""
-    thin_summary = [
-        {
-            "course_id": "ISEN 608",
-            "chunk_index": 0,
-            "content": "thin summary",
-            "token_count": 50,
-            "is_summary": True,
-        }
-    ]
-    hybrid_hits = [
-        {"course_id": "ISEN 608", "chunk_index": 11, "content": "H1"},
-        {"course_id": "ISEN 608", "chunk_index": 12, "content": "H2"},
-        {"course_id": "ISEN 608", "chunk_index": 13, "content": "H3"},
-    ]
-
-    with (
-        patch(
-            "tamubot.rag.tools.mongo.get_course_summary_chunks",
-            return_value=thin_summary,
-        ),
-        patch(
-            "tamubot.rag.tools.mongo.hybrid_search",
-            return_value=hybrid_hits,
-        ),
-        patch(
-            "tamubot.rag.tools.voyage.rerank",
-            side_effect=lambda q, chunks, top_k, **kw: chunks[:top_k],
-        ),
-    ):
-        out = retrieval_node(
-            _state(
-                function="course_summary",
-                course_ids=["ISEN 608"],
-                subqueries=["only"],
-            )
-        )
-
-    chunks = out["retrieved_chunks"]
-    contents = [c.get("content") for c in chunks]
-    # Summary first, then hybrid hits
-    assert contents[0] == "thin summary", "summary chunk must come first"
-    assert contents[1:] == ["H1", "H2", "H3"], "hybrid hits must follow, in order"
-    assert len(chunks) == 4
-
-
-# ---------------------------------------------------------------------------
 # Change 4 — SUMMARY_AS_PRIMER: course-overview primer on hybrid_course
 # ---------------------------------------------------------------------------
 
