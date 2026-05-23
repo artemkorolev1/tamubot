@@ -135,8 +135,13 @@ def _rrf_fuse(result_lists: list[list[dict]], k: int = 60) -> list[dict]:
 
 
 @observe(name="node.retrieval.search.hybrid")
-def hybrid_search(query: str, course_id: str, k: int) -> list[dict]:
-    """RRF hybrid search (vector + BM25) filtered to one course."""
+def hybrid_search(query: str, course_id: str, k: int, *, with_meta: bool = False):
+    """RRF hybrid search (vector + BM25) filtered to one course.
+
+    Returns the fused chunk list. When ``with_meta=True``, returns a
+    ``(results, meta)`` tuple where ``meta`` is
+    ``{"vector_raw": int, "bm25_raw": int, "fused": int}``.
+    """
     from langfuse import get_client as _lf
 
     from tamubot.rag.tools.voyage import embed_query
@@ -182,12 +187,25 @@ def hybrid_search(query: str, course_id: str, k: int) -> list[dict]:
     except Exception:
         pass
 
+    if with_meta:
+        meta = {
+            "vector_only": source_counts["vector"],
+            "bm25_only": source_counts["bm25"],
+            "overlap": source_counts["both"],
+            "total": len(results),
+        }
+        return results, meta
     return results
 
 
 @observe(name="node.retrieval.search.semantic")
-def semantic_search(query: str, k: int) -> list[dict]:
-    """Corpus-wide hybrid search (vector + BM25)."""
+def semantic_search(query: str, k: int, *, with_meta: bool = False):
+    """Corpus-wide hybrid search (vector + BM25).
+
+    Returns the fused chunk list. When ``with_meta=True``, returns a
+    ``(results, meta)`` tuple where ``meta`` is
+    ``{"vector_raw": int, "bm25_raw": int, "fused": int}``.
+    """
     from langfuse import get_client as _lf
 
     from tamubot.rag.tools.voyage import embed_query
@@ -231,6 +249,14 @@ def semantic_search(query: str, k: int) -> list[dict]:
     except Exception:
         pass
 
+    if with_meta:
+        meta = {
+            "vector_only": source_counts["vector"],
+            "bm25_only": source_counts["bm25"],
+            "overlap": source_counts["both"],
+            "total": len(results),
+        }
+        return results, meta
     return results
 
 

@@ -38,6 +38,13 @@ class PipelineState(TypedDict, total=False):
     recursive_chunks: list[dict]  # first-pass anchor chunks (recursive path only)
     retrieved_chunks: list[dict]  # second-pass or standard retrieval chunks
     subqueries_chunk_counts: list[int]  # post-rerank count per subquery variant
+    # Per-stage chunk tallies summed across subqueries × courses:
+    # {
+    #   "raw":    {"vector_only", "bm25_only", "overlap", "total"},  # post-fusion, per search call
+    #   "cutoff": {"vector_only", "bm25_only", "overlap", "total"},  # post-rerank, post-threshold+knee
+    # }
+    # Stage C (final) is derived directly from retrieved_chunks at the eval row.
+    retrieval_meta: dict
     data_gaps: list[tuple[str, str]]
     data_integrity: bool
     # Non-citable course-overview primer prepended to context XML as <overview>;

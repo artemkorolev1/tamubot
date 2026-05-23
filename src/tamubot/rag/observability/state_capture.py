@@ -25,6 +25,7 @@ def _summarize_chunk(chunk: dict, idx: int) -> dict:
         "course_id": chunk.get("course_id"),
         "chunk_tag": chunk.get("chunk_tag"),
         "score": chunk.get("score") or chunk.get("rerank_score"),
+        "rrf_source": chunk.get("rrf_source"),
     }
 
 
@@ -67,6 +68,7 @@ def serialize_state(state: dict[str, Any], max_chunks: int = _MAX_CHUNKS) -> dic
             "n_followup": len(chunks),
             "chunks": [_summarize_chunk(c, i + 1) for i, c in enumerate(all_chunks[:max_chunks])],
             "subqueries_chunk_counts": list(state.get("subqueries_chunk_counts", []) or []),
+            "retrieval_meta": dict(state.get("retrieval_meta", {}) or {}),
             # Non-citable primer (course-overview text). Captured separately from chunks
             # so Ragas precision/recall stays computed against retrieved_chunks only.
             "context_primer": context_primer,
