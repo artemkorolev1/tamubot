@@ -88,11 +88,28 @@ class BenchmarkRow:
     router_intent_type: str  # empty string when None (out_of_scope)
 
     # Retrieval
-    chunks_retrieved: int  # number of chunks returned after reranking
+    chunks_retrieved: int  # number of chunks returned after reranking + dedup + cap (= final_total)
 
     # Token estimates (chars/4 — TAMU SSE doesn't expose counts)
     est_input_tokens: int  # query + all chunk content
     est_output_tokens: int  # answer length
+    chunk_tokens: int  # chunk-content tokens only (chars/4), no query
+
+    # Stage-by-stage chunk attribution by RRF source tag.
+    # Stage A: post-fusion (per search call, summed across subqueries × courses)
+    raw_vector_only: int
+    raw_bm25_only: int
+    raw_overlap: int
+    raw_total: int
+    # Stage B: post-rerank, post-threshold/knee cutoff (summed across rerank calls)
+    cutoff_vector_only: int
+    cutoff_bm25_only: int
+    cutoff_overlap: int
+    cutoff_total: int
+    # Stage C: final list delivered to generator (after dedup + per-course cap)
+    final_vector_only: int
+    final_bm25_only: int
+    final_overlap: int
 
     # Timing (ms)
     pipeline_ms: float  # router + retrieval combined (v4 graph)
@@ -133,6 +150,83 @@ class BenchmarkRow:
 # ---------------------------------------------------------------------------
 
 
+_SCORE_NAMES = (
+    "chunks_retrieved",
+    "chunk_tokens",
+    "raw_vector_only",
+    "raw_bm25_only",
+    "raw_overlap",
+    "raw_total",
+    "cutoff_vector_only",
+    "cutoff_bm25_only",
+    "cutoff_overlap",
+    "cutoff_total",
+    "final_vector_only",
+    "final_bm25_only",
+    "final_overlap",
+)
+
+
+def _post_retrieval_scores(lf, trace_id: Optional[str], retr: dict, chunks_retrieved: int) -> None:
+    """Post per-question retrieval metrics to Langfuse as numeric scores.
+
+    These show up as aggregable columns in the dataset-run view next to
+    context_precision / context_recall so different runs can be compared
+    on per-stage chunk attribution and chunk-token counts.
+    """
+    if not (lf and trace_id):
+        return
+    fields = {**retr, "chunks_retrieved": chunks_retrieved}
+    for name in _SCORE_NAMES:
+        value = fields.get(name)
+        if value is None:
+            continue
+        try:
+            lf.create_score(trace_id=trace_id, name=name, value=float(value))
+        except Exception:
+            pass
+
+
+def _retrieval_metrics(query: str, chunks: list[dict], raw_state: Optional[dict]) -> dict:
+    """Derive per-stage chunk attribution + token count from the pipeline output.
+
+    Stage A (raw, post-fusion) and Stage B (post-cutoff) come from
+    ``retrieval_meta`` populated by retrieval_node — zero-filled on the
+    recurrent path or when the meta key is missing.
+    Stage C (final) is tallied directly from the chunks list delivered
+    to the generator.
+    """
+    meta = (raw_state or {}).get("retrieval_meta") or {}
+    raw = meta.get("raw") or {}
+    cutoff = meta.get("cutoff") or {}
+
+    final_counts = {"vector_only": 0, "bm25_only": 0, "overlap": 0}
+    for c in chunks:
+        src = c.get("rrf_source")
+        if src == "vector":
+            final_counts["vector_only"] += 1
+        elif src == "bm25":
+            final_counts["bm25_only"] += 1
+        elif src == "both":
+            final_counts["overlap"] += 1
+
+    chunk_tokens = sum(len(c.get("content", "")) for c in chunks) // 4
+    return {
+        "chunk_tokens": chunk_tokens,
+        "raw_vector_only": int(raw.get("vector_only", 0) or 0),
+        "raw_bm25_only": int(raw.get("bm25_only", 0) or 0),
+        "raw_overlap": int(raw.get("overlap", 0) or 0),
+        "raw_total": int(raw.get("total", 0) or 0),
+        "cutoff_vector_only": int(cutoff.get("vector_only", 0) or 0),
+        "cutoff_bm25_only": int(cutoff.get("bm25_only", 0) or 0),
+        "cutoff_overlap": int(cutoff.get("overlap", 0) or 0),
+        "cutoff_total": int(cutoff.get("total", 0) or 0),
+        "final_vector_only": final_counts["vector_only"],
+        "final_bm25_only": final_counts["bm25_only"],
+        "final_overlap": final_counts["overlap"],
+    }
+
+
 def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: str = "") -> BenchmarkRow:
     """Run one golden set item through the full v4 pipeline (router → retrieval → generation)."""
     query = item["question"]
@@ -150,12 +244,20 @@ def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: s
     timing_ms: dict = {}
     trace_id: Optional[str] = None
 
+    raw_state: dict = {}
     with trace_context(obs, query=query) as (lf_trace, trace_id):
         # Full pipeline: router → retrieval → generation (single graph invocation)
         try:
-            chunks, rr_result, _data_gaps, _data_integrity, _conflicted, answer, timing_ms = run_pipeline_v4(
-                query, return_timing=True
-            )
+            (
+                chunks,
+                rr_result,
+                _data_gaps,
+                _data_integrity,
+                _conflicted,
+                answer,
+                timing_ms,
+                raw_state,
+            ) = run_pipeline_v4(query, return_timing=True, return_raw_state=True)
             if rr_result is not None:
                 rr = rr_result
             else:
@@ -181,7 +283,10 @@ def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: s
     merge_ms = timing_ms.get("merge_node") if is_recurrent else None
     total_ms = round((time.perf_counter() - t0) * 1000, 1)
 
-    # Post avg chunk relevance score to Langfuse
+    # Retrieval metrics (chunk counts, source attribution, tokens)
+    retr_metrics = _retrieval_metrics(query, chunks, raw_state)
+
+    # Post per-question scores to Langfuse so they aggregate in the dataset-run view
     lf = get_langfuse()
     if lf and trace_id:
         try:
@@ -193,7 +298,8 @@ def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: s
                     value=sum(chunk_scores) / len(chunk_scores),
                     comment="Mean Voyage reranker relevance score across retrieved chunks",
                 )
-                lf.flush()
+            _post_retrieval_scores(lf, trace_id, retr_metrics, len(chunks))
+            lf.flush()
         except Exception:
             pass
 
@@ -231,6 +337,18 @@ def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: s
         chunks_retrieved=len(chunks),
         est_input_tokens=max(0, (len(query) + sum(len(c.get("content", "")) for c in chunks)) // 4),
         est_output_tokens=len(answer) // 4,
+        chunk_tokens=retr_metrics["chunk_tokens"],
+        raw_vector_only=retr_metrics["raw_vector_only"],
+        raw_bm25_only=retr_metrics["raw_bm25_only"],
+        raw_overlap=retr_metrics["raw_overlap"],
+        raw_total=retr_metrics["raw_total"],
+        cutoff_vector_only=retr_metrics["cutoff_vector_only"],
+        cutoff_bm25_only=retr_metrics["cutoff_bm25_only"],
+        cutoff_overlap=retr_metrics["cutoff_overlap"],
+        cutoff_total=retr_metrics["cutoff_total"],
+        final_vector_only=retr_metrics["final_vector_only"],
+        final_bm25_only=retr_metrics["final_bm25_only"],
+        final_overlap=retr_metrics["final_overlap"],
         pipeline_ms=pipeline_ms,
         generator_ms=generator_ms,
         total_ms=total_ms,
@@ -332,6 +450,18 @@ def write_excel(
         ("Mean RAGAS relevancy", f"{avg_relevancy:.2f}" if avg_relevancy is not None else "not run (use --ragas)"),
         *extra_metric_means,
         ("Mean chunks retrieved", f"{avg_chunks:.1f}" if avg_chunks is not None else "N/A"),
+        ("Mean raw_vector_only", _avg(rows, "raw_vector_only")),
+        ("Mean raw_bm25_only", _avg(rows, "raw_bm25_only")),
+        ("Mean raw_overlap", _avg(rows, "raw_overlap")),
+        ("Mean raw_total", _avg(rows, "raw_total")),
+        ("Mean cutoff_vector_only", _avg(rows, "cutoff_vector_only")),
+        ("Mean cutoff_bm25_only", _avg(rows, "cutoff_bm25_only")),
+        ("Mean cutoff_overlap", _avg(rows, "cutoff_overlap")),
+        ("Mean cutoff_total", _avg(rows, "cutoff_total")),
+        ("Mean final_vector_only", _avg(rows, "final_vector_only")),
+        ("Mean final_bm25_only", _avg(rows, "final_bm25_only")),
+        ("Mean final_overlap", _avg(rows, "final_overlap")),
+        ("Mean chunk tokens", _avg(rows, "chunk_tokens")),
         ("Mean est. input tokens", _avg(rows, "est_input_tokens")),
         ("Mean est. output tokens", _avg(rows, "est_output_tokens")),
         ("Mean total latency (ms)", _avg(rows, "total_ms")),
@@ -382,8 +512,20 @@ def write_excel(
         ("router_rewritten_query", 42),
         ("router_course_ids", 22),
         ("router_intent_type", 16),
-        # Retrieval + tokens
+        # Retrieval + tokens — stage-by-stage attribution by RRF source
         ("chunks_retrieved", 10),
+        ("raw_vector_only", 13),
+        ("raw_bm25_only", 13),
+        ("raw_overlap", 11),
+        ("raw_total", 10),
+        ("cutoff_vector_only", 15),
+        ("cutoff_bm25_only", 15),
+        ("cutoff_overlap", 13),
+        ("cutoff_total", 11),
+        ("final_vector_only", 14),
+        ("final_bm25_only", 14),
+        ("final_overlap", 12),
+        ("chunk_tokens", 12),
         ("est_input_tokens", 14),
         ("est_output_tokens", 14),
         # Generation
@@ -430,6 +572,18 @@ def write_excel(
             r.router_course_ids,
             r.router_intent_type,
             r.chunks_retrieved,
+            r.raw_vector_only,
+            r.raw_bm25_only,
+            r.raw_overlap,
+            r.raw_total,
+            r.cutoff_vector_only,
+            r.cutoff_bm25_only,
+            r.cutoff_overlap,
+            r.cutoff_total,
+            r.final_vector_only,
+            r.final_bm25_only,
+            r.final_overlap,
+            r.chunk_tokens,
             r.est_input_tokens,
             r.est_output_tokens,
             r.citation_pass,
@@ -569,6 +723,76 @@ def write_excel(
             "router_intent_type",
             "str",
             "Advisory/evaluative intent detected by the LLM. Empty = purely factual or out_of_scope. Values: ACADEMIC, CAREER, DIFFICULTY, PLANNING, ADMINISTRATIVE, GENERAL.",
+        ),
+        # Retrieval — stage-by-stage chunk attribution by RRF source
+        #
+        # The pipeline goes:  vector + bm25 → RRF fusion → Voyage rerank → threshold+knee cutoff → dedup + per-course cap → generator
+        # At every stage after fusion, each chunk carries an rrf_source tag (vector / bm25 / both) that records which retriever(s) returned it.
+        # Counts at stages A and B are SUMS across subqueries × courses (a chunk hit by N subqueries is counted N times); stage C is the final list.
+        (
+            "chunks_retrieved",
+            "int",
+            "Stage C total: chunks delivered to the generator after dedup + per-course cap. Equals final_vector_only + final_bm25_only + final_overlap.",
+        ),
+        (
+            "raw_vector_only",
+            "int",
+            "Stage A (post-fusion, summed across search calls): chunks tagged 'vector' — only vector search returned them in this call's top-k.",
+        ),
+        (
+            "raw_bm25_only",
+            "int",
+            "Stage A: chunks tagged 'bm25' — only BM25 returned them.",
+        ),
+        (
+            "raw_overlap",
+            "int",
+            "Stage A: chunks tagged 'both' — both retrievers returned them in this call.",
+        ),
+        (
+            "raw_total",
+            "int",
+            "Stage A total = raw_vector_only + raw_bm25_only + raw_overlap. Sum of fused top-k sizes across all search calls (subqueries × courses).",
+        ),
+        (
+            "cutoff_vector_only",
+            "int",
+            "Stage B (post-rerank, post-threshold+knee cutoff, summed across rerank calls): chunks tagged 'vector' that survived the rerank score floor.",
+        ),
+        (
+            "cutoff_bm25_only",
+            "int",
+            "Stage B: chunks tagged 'bm25' that survived the rerank score floor.",
+        ),
+        (
+            "cutoff_overlap",
+            "int",
+            "Stage B: chunks tagged 'both' that survived the rerank score floor.",
+        ),
+        (
+            "cutoff_total",
+            "int",
+            "Stage B total = cutoff_vector_only + cutoff_bm25_only + cutoff_overlap. Reflects what the rerank threshold + knee filter let through, summed across rerank calls.",
+        ),
+        (
+            "final_vector_only",
+            "int",
+            "Stage C: chunks tagged 'vector' in the final list (after dedup + per-course cap on semantic_general). chunks_retrieved breakdown.",
+        ),
+        (
+            "final_bm25_only",
+            "int",
+            "Stage C: chunks tagged 'bm25' in the final list.",
+        ),
+        (
+            "final_overlap",
+            "int",
+            "Stage C: chunks tagged 'both' in the final list.",
+        ),
+        (
+            "chunk_tokens",
+            "int",
+            "Estimated tokens in retrieved chunk content only (no query): sum(len(chunk.content)) // 4. Use this for context-size analysis. est_input_tokens additionally includes the query.",
         ),
         # Timing
         ("pipeline_ms", "float (ms)", "Wall-clock time for the v4 graph (router + retrieval combined)."),
@@ -747,6 +971,18 @@ def write_markdown(
             if avg_relevancy is not None
             else "| Mean RAGAS relevancy | not run |",
             f"| Mean chunks retrieved | {_fmt_ms('chunks_retrieved')} |",
+            f"| Mean raw_vector_only | {_fmt_ms('raw_vector_only')} |",
+            f"| Mean raw_bm25_only | {_fmt_ms('raw_bm25_only')} |",
+            f"| Mean raw_overlap | {_fmt_ms('raw_overlap')} |",
+            f"| Mean raw_total | {_fmt_ms('raw_total')} |",
+            f"| Mean cutoff_vector_only | {_fmt_ms('cutoff_vector_only')} |",
+            f"| Mean cutoff_bm25_only | {_fmt_ms('cutoff_bm25_only')} |",
+            f"| Mean cutoff_overlap | {_fmt_ms('cutoff_overlap')} |",
+            f"| Mean cutoff_total | {_fmt_ms('cutoff_total')} |",
+            f"| Mean final_vector_only | {_fmt_ms('final_vector_only')} |",
+            f"| Mean final_bm25_only | {_fmt_ms('final_bm25_only')} |",
+            f"| Mean final_overlap | {_fmt_ms('final_overlap')} |",
+            f"| Mean chunk tokens | {_fmt_ms('chunk_tokens')} |",
             f"| Mean est. input tokens | {_fmt_ms('est_input_tokens')} |",
             f"| Mean est. output tokens | {_fmt_ms('est_output_tokens')} |",
             f"| Mean total latency (ms) | {_fmt_ms('total_ms')} |",

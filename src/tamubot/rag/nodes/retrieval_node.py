@@ -33,6 +33,40 @@ def _make_retrieval_cache_key(function, course_ids, rewritten_query, eval_query=
     return make_cache_key("retrieval", course_ids, rewritten_query)
 
 
+_ZERO_RAW = {"vector_only": 0, "bm25_only": 0, "overlap": 0, "total": 0}
+
+
+def _unpack_meta(result):
+    """Normalize search-function output.
+
+    ``hybrid_search`` / ``semantic_search`` called with ``with_meta=True`` return
+    ``(chunks, meta)``. Tests that mock these functions often return just a list
+    (no meta) — accept either shape so we don't have to update every mock.
+    """
+    if isinstance(result, tuple) and len(result) == 2 and isinstance(result[1], dict):
+        return result[0], result[1]
+    return result, dict(_ZERO_RAW)
+
+
+def _tally_by_source(chunks: list[dict]) -> dict:
+    """Count chunks by their ``rrf_source`` tag. Returns {vector_only, bm25_only, overlap, total}."""
+    out = {"vector_only": 0, "bm25_only": 0, "overlap": 0, "total": len(chunks)}
+    for c in chunks:
+        src = c.get("rrf_source")
+        if src == "vector":
+            out["vector_only"] += 1
+        elif src == "bm25":
+            out["bm25_only"] += 1
+        elif src == "both":
+            out["overlap"] += 1
+    return out
+
+
+def _accumulate(acc: dict, contrib: dict) -> None:
+    for k in ("vector_only", "bm25_only", "overlap", "total"):
+        acc[k] = acc.get(k, 0) + int(contrib.get(k, 0) or 0)
+
+
 def _chunk_rrf_key(chunk: dict):
     """Stable identity for RRF deduplication across subquery variants.
 
@@ -96,32 +130,51 @@ def _hybrid_course_for_query(
     retrieve_k: int,
     rerank_k: int,
     apply_knee: bool,
-) -> tuple[list[dict], list[str]]:
-    """Retrieve + rerank for a single (query, course_ids) pair. Returns (reranked, errors)."""
+) -> tuple[list[dict], list[str], dict, dict]:
+    """Retrieve + rerank for a single (query, course_ids) pair.
+
+    Returns ``(reranked, errors, raw_meta, cutoff_meta)`` where:
+      - raw_meta is the per-call sum of fusion-tagged counts before rerank.
+      - cutoff_meta is the rrf_source tally of the rerank output (post-cutoff).
+    Both dicts have keys ``vector_only / bm25_only / overlap / total``.
+    """
     all_chunks: list[dict] = []
     errors: list[str] = []
+    raw_acc = {"vector_only": 0, "bm25_only": 0, "overlap": 0, "total": 0}
+
+    def _call(cid: str):
+        try:
+            return hybrid_search(query, cid, retrieve_k, with_meta=True)
+        except TypeError:
+            # Some test mocks don't accept with_meta — fall back to legacy signature.
+            return hybrid_search(query, cid, retrieve_k)
 
     if len(course_ids) <= 1:
         if course_ids:
-            all_chunks = hybrid_search(query, course_ids[0], retrieve_k)
+            chunks_with_meta, meta = _unpack_meta(_call(course_ids[0]))
+            all_chunks = chunks_with_meta
+            _accumulate(raw_acc, meta)
     else:
         original_ctx = contextvars.copy_context()
         worker_ctxs = [original_ctx.run(contextvars.copy_context) for _ in course_ids]
         futures = {}
         with ThreadPoolExecutor(max_workers=min(len(course_ids), 8)) as executor:
             for wctx, cid in zip(worker_ctxs, course_ids):
-                futures[executor.submit(wctx.run, hybrid_search, query, cid, retrieve_k)] = cid
+                futures[executor.submit(wctx.run, _call, cid)] = cid
             for future in as_completed(futures):
                 cid = futures[future]
                 try:
-                    all_chunks.extend(future.result())
+                    chunks_with_meta, meta = _unpack_meta(future.result())
+                    all_chunks.extend(chunks_with_meta)
+                    _accumulate(raw_acc, meta)
                 except Exception as exc:  # noqa: BLE001
                     msg = f"hybrid_search failed for {cid}: {exc}"
                     errors.append(msg)
                     logging.warning("retrieval_node: %s", msg)
 
     reranked = voyage_rerank(query, all_chunks, top_k=rerank_k, apply_knee=apply_knee)
-    return reranked, errors
+    cutoff_meta = _tally_by_source(reranked)
+    return reranked, errors, raw_acc, cutoff_meta
 
 
 @observe(name="node.retrieval")
@@ -173,10 +226,12 @@ def retrieval_node(state: PipelineState) -> dict:
             all_errors: list[str] = []
             per_variant_results: list[list[dict]] = []
             per_variant_chunk_counts: list[int] = []
+            raw_acc = {"vector_only": 0, "bm25_only": 0, "overlap": 0, "total": 0}
+            cutoff_acc = {"vector_only": 0, "bm25_only": 0, "overlap": 0, "total": 0}
 
             for sq in subqueries:
                 try:
-                    reranked_variant, variant_errors = _hybrid_course_for_query(
+                    reranked_variant, variant_errors, variant_raw, variant_cutoff = _hybrid_course_for_query(
                         hybrid_search,
                         voyage_rerank,
                         sq,
@@ -187,6 +242,8 @@ def retrieval_node(state: PipelineState) -> dict:
                     )
                     per_variant_results.append(reranked_variant)
                     per_variant_chunk_counts.append(len(reranked_variant))
+                    _accumulate(raw_acc, variant_raw)
+                    _accumulate(cutoff_acc, variant_cutoff)
                     all_errors.extend(variant_errors)
                 except Exception as exc:  # noqa: BLE001
                     msg = f"subquery retrieval failed: {sq!r}: {exc}"
@@ -221,6 +278,7 @@ def retrieval_node(state: PipelineState) -> dict:
                 "retrieval_cache": retrieval_cache_update,
                 "node_trace": node_trace,
                 "subqueries_chunk_counts": per_variant_chunk_counts,
+                "retrieval_meta": {"raw": raw_acc, "cutoff": cutoff_acc},
             }
             primer = _build_context_primer(course_ids)
             if primer is not None:
@@ -233,15 +291,23 @@ def retrieval_node(state: PipelineState) -> dict:
             per_variant_results = []
             per_variant_chunk_counts = []
             errors: list[str] = []
+            raw_acc = {"vector_only": 0, "bm25_only": 0, "overlap": 0, "total": 0}
+            cutoff_acc = {"vector_only": 0, "bm25_only": 0, "overlap": 0, "total": 0}
             for sq in subqueries:
                 try:
-                    chunks = semantic_search(sq, retrieve_k)
+                    try:
+                        sq_result = semantic_search(sq, retrieve_k, with_meta=True)
+                    except TypeError:
+                        sq_result = semantic_search(sq, retrieve_k)
+                    chunks, sq_meta = _unpack_meta(sq_result)
+                    _accumulate(raw_acc, sq_meta)
                     reranked_variant = voyage_rerank(
                         sq,
                         chunks,
                         top_k=per_variant_k,
                         apply_knee=apply_knee,
                     )
+                    _accumulate(cutoff_acc, _tally_by_source(reranked_variant))
                     per_variant_results.append(reranked_variant)
                     per_variant_chunk_counts.append(len(reranked_variant))
                 except Exception as exc:  # noqa: BLE001
@@ -278,6 +344,7 @@ def retrieval_node(state: PipelineState) -> dict:
                 "retrieval_cache": retrieval_cache_update,
                 "node_trace": node_trace,
                 "subqueries_chunk_counts": per_variant_chunk_counts,
+                "retrieval_meta": {"raw": raw_acc, "cutoff": cutoff_acc},
             }
             if errors:
                 out["retrieval_partial_errors"] = errors

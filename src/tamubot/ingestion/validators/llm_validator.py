@@ -136,6 +136,7 @@ def validate_file(
     metadata: dict | None = None,
     output_dir: Path | None = None,
     propose_fixes: bool = True,
+    version_label: str | None = None,
 ) -> ValidationResult:
     stem = markdown_path.stem
     markdown = markdown_path.read_text(encoding="utf-8")
@@ -173,8 +174,17 @@ def validate_file(
 
     if output_dir:
         output_dir.mkdir(parents=True, exist_ok=True)
+        # Always write the canonical unversioned file (latest result).
         report_path = output_dir / f"{stem}_validation.json"
         report_path.write_text(json.dumps(asdict(vr), indent=2), encoding="utf-8")
+        # Also write a versioned snapshot when a label is provided, so the
+        # report builder can show v1/v2/... side-by-side without losing
+        # prior runs.
+        if version_label:
+            vpath = output_dir / f"{stem}_validation_{version_label}.json"
+            payload = asdict(vr)
+            payload["version"] = version_label
+            vpath.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     return vr
 
@@ -270,7 +280,7 @@ def validate_directory(
             if meta_path.exists():
                 metadata = json.loads(meta_path.read_text(encoding="utf-8"))
 
-        vr = validate_file(md_path, metadata=metadata, output_dir=output_dir)
+        vr = validate_file(md_path, metadata=metadata, output_dir=output_dir, version_label=version_label)
         results.append(vr)
         counts = vr.issue_counts
         summary = ", ".join(f"{k}={v}" for k, v in counts.items() if v > 0) or "clean"

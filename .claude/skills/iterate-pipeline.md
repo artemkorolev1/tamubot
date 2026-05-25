@@ -71,8 +71,11 @@ for f in data/syllabi/<DEPT>/bronze/<term_code>_<DEPT>_*.md; do
   n=$(grep -c '<!-- image -->' "$f")
   [ "$n" -ge 2 ] && echo "$f $n"
 done | wc -l
-# Then ask the user before running this:
-python -m tamubot.ingestion.pipeline_v4 --department <DEPT> --term "<Term>" --limit 10 --step image_recovery -y
+# Then ask the user. TWO PATHS:
+#   (a) Gemini (paid): python -m tamubot.ingestion.pipeline_v4 --department <DEPT> --term "<Term>" --limit 10 --step image_recovery -y
+#   (b) Claude visual (free): invoke the `recover-images` skill — Claude reads PDF page renders
+#       directly and rewrites markers. Same on-disk output contract (silver/01_image_recovery/<stem>.md),
+#       so downstream stages don't care which path was used. See [[recover-images]] for the workflow.
 
 # Rule-based filters (free)
 python -m tamubot.ingestion.pipeline_v4 --department <DEPT> --term "<Term>" --limit 10 --steps false_positive,boilerplate,hierarchy -y
@@ -155,6 +158,67 @@ python scripts/build_csce_pilot_report.py --dept <DEPT>
 
 Validation entries are dedupe-by-timestamp in the report builder — old runs are automatically superseded by new ones.
 
+### **MANDATORY: validate → rebuild after every silver change**
+
+If a code/registry fix changes any file under `silver/`, you MUST re-validate the
+affected files BEFORE rebuilding the report. Skipping this leaves
+`silver/06_validate/<stem>_validation.json` from the pre-fix state, and the
+report aggregates that stale JSON — the row will reference findings that no
+longer exist in the file.
+
+The loop is one atomic unit:
+
+1. Apply fix.
+2. Re-materialize / re-run the affected silver stage on the affected files.
+3. Re-run validate on those same files.
+4. Rebuild the report.
+
+Caught case (2026-05-21): tightened `_find_block_end` in
+`relocate_textbook.py`, re-materialized silver, but **forgot step 3**. The
+report kept showing a "block incorrectly placed within Textbook" finding
+that was actually fixed in the file. Re-validating 611_600 (2 LLM calls)
+cleared the obsolete finding and dropped the per-file total from 3 → 2.
+
+If LLM budget is tight, validate only the stems whose **content changed**
+(diff silver/03b vs prior to confirm). Files where the fix was a no-op
+don't need re-validation. But once a file's content has changed, its
+validation JSON is stale until re-run.
+
+### Report column versioning (v1/v2/... side-by-side)
+
+The pilot report supports up to 8 iteration columns per category. Each
+validate run should write a versioned snapshot so the report can show
+before/after deltas in one view.
+
+**How to label a run**: pass `version_label="vN"` to `validate_directory()` or
+`validate_file()`. The validator writes BOTH:
+- `silver/06_validate/<stem>_validation.json` — canonical latest (always)
+- `silver/06_validate/<stem>_validation_vN.json` — versioned snapshot (only when label set)
+
+The report builder (`scripts/build_v5_pilot_report.py`) scans the validate
+dir for `_v{N}_validation.json` files (N=1..8) and falls back to the
+unversioned `_validation.json` as v1 if no versioned files exist. Each
+version found populates its own column set.
+
+**Workflow for an iteration**:
+
+```python
+# Baseline run, before any fixes:
+validate_directory(input_dir=..., output_dir=..., version_label="v1")
+
+# Apply fixes, re-materialize silver, then:
+validate_directory(input_dir=..., output_dir=..., version_label="v2", file_pattern="<affected_stem>.md")
+
+# Rebuild report — shows v1, v2 side-by-side:
+python scripts/build_v5_pilot_report.py --dept CSCE
+```
+
+**Don't skip the label**: without `version_label`, the validator overwrites
+the canonical file in place and the prior findings are lost from the on-disk
+record (only the report's previously-saved cells preserve them). If you
+forget the label on the first run, you can hand-reconstruct `_v1.json` from
+the original report's findings text and re-label going forward.
+
 ## Step 5 — Ingest to MongoDB Atlas
 
 After the full corpus is chunked AND the report looks clean:
@@ -189,6 +253,7 @@ These were live as of CSCE pilot and are now patched. If you see regressions, ch
 - **`--limit` only applies via `find_pdfs` for copy/convert** historically; now also threaded through filter config and validate. If you run a step alone with `--limit N`, it works correctly.
 - **Source data vs pipeline issues**: image-based course schedules, empty Meeting Days for asynchronous-online sections, registrar 691 "Research" templates — these are source data limitations and won't be fixed by pipeline tweaks.
 - **Always invoke task-budget skill** before any step that calls `image_recovery`, `validate`, or `metadata_enrichment` on more than ~10 files. Estimate: ~5 Gemini calls + ~1-2 LLM calls/file for validate + ~2 LLM calls/file for enrich. A 100-file pilot can easily hit 400-600 model calls.
+- **Image recovery has a free path**: [[recover-images]] skill — Claude reads `pymupdf`-rendered PDF pages directly and rewrites markers, zero API spend. Same on-disk output contract as Gemini's `silver_image_recovery` asset, so downstream stages are agnostic. Use it on net-new departments, or whenever Gemini budget is tight. The skill itself takes care of `manual_edits.csv` logging and the `build_v5_pilot_report.py --dept <DEPT>` refresh — same report rules as the Gemini path.
 
 ## Page mapping — Docling sidecar (NOT PyMuPDF)
 
@@ -266,6 +331,55 @@ Each subagent:
 batches if rate-limited. Per-file independence means no shared-state
 conflicts. After subagents finish: refresh enrich headers via sidecar
 (`refresh_with_sidecar.py`), then re-chunk and final-validate.
+
+### Logging manual edits (mandatory)
+
+Every manual edit to a silver-stage file MUST be logged to
+`data/syllabi/<DEPT>/v5/logs/manual_edits.csv` (or the v4 equivalent for
+legacy work). Without this, the report has no record of why a stem's
+finding count changed between validation runs — and the next iteration
+session can't see what was already fixed by hand.
+
+CSV schema (append-only):
+```
+timestamp,stem,stage,applied_by,llm_calls,summary
+2026-05-22T03:00:00Z,202641_CSCE_605_600_62077,03b_relocate_textbook,agent-a48adbf,0,"Merged broken URL fragment; demoted Class Participation H4 to bold; renumbered list 2/3 → 1/2; removed duplicate table header"
+```
+
+Field rules:
+- `timestamp`: ISO-8601 UTC at the time of edit
+- `stem`: file stem without extension
+- `stage`: which silver subdir the file lives in (e.g. `03b_relocate_textbook`, `04_hierarchy`)
+- `applied_by`: `agent-<id>` for subagent edits, `main` for direct edits, `human` for user edits via Excel/IDE
+- `llm_calls`: count of LLM calls the edit itself consumed (excluding subsequent validate)
+- `summary`: one-line description, comma-escaped — quote the cell
+
+**Where this happens**: the dispatching agent (main loop) writes the row
+after the subagent reports back, using the subagent's summary text. The
+subagent does NOT write to the log itself — keep it stateless. A helper
+script is at `scripts/log_manual_edit.py` (see "Helper script" below); or
+inline:
+
+```python
+import csv, datetime
+from pathlib import Path
+log = Path(f"data/syllabi/{DEPT}/v5/logs/manual_edits.csv")
+log.parent.mkdir(parents=True, exist_ok=True)
+header = not log.exists()
+with log.open("a", newline="", encoding="utf-8") as f:
+    w = csv.writer(f)
+    if header:
+        w.writerow(["timestamp","stem","stage","applied_by","llm_calls","summary"])
+    w.writerow([
+        datetime.datetime.utcnow().isoformat(timespec="seconds")+"Z",
+        stem, stage, applied_by, llm_calls, summary,
+    ])
+```
+
+The v5 report builder picks this up automatically into a `Manual Edits`
+column on the Summary sheet — see `scripts/build_v5_pilot_report.py`.
+Each cell shows the most-recent summary, with a separator if multiple
+edits stack on the same stem.
 
 ## After manual refinement → refresh downstream artifacts
 

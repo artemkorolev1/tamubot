@@ -56,13 +56,18 @@ lightrag/storage/
 lightrag/storage_*/
 _archive/lightrag/storage*/
 
-# Auto-generated timestamped eval reports and result dumps
-tamu_data/evals/reports/eval_report_*.md
-tamu_data/evals/reports/eval_results_*.jsonl
-tamu_data/evals/reports/benchmark_*.md
-tamu_data/evals/reports/benchmark_*.xlsx
-# Keep: eval_analysis_*.md, eval_run_*.md (human-authored analysis docs)
-# Keep: tamu_data/evals/golden_sets/ (test data — commit canonical sets)
+# --- Data folders: ignore everything by default, carve back the source-of-truth ---
+# Rationale: data/ and tamu_data/ are for artifacts (golden sets, eval reports,
+# scrape dumps). Code references a small set of canonical inputs — those are
+# explicitly un-ignored below.
+data/
+tamu_data/**
+!tamu_data/**/
+!tamu_data/evals/eval_corpus.json
+!tamu_data/evals/personas/**
+!tamu_data/raw/missing_syllabuses/**
+!tamu_data/raw/simple_syllabus_metadata.json
+!tamu_data/raw/simple_syllabus/*/graduate/*/metadata.json
 
 # Debug output dumps (ad-hoc files generated during debugging sessions)
 *_output.txt

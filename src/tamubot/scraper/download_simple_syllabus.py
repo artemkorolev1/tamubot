@@ -20,7 +20,7 @@ from playwright.sync_api import sync_playwright
 
 # ── Config ───────────────────────────────────────────────────────────────────
 
-DEPARTMENTS = {"CSCE", "ISEN"}
+DEPARTMENTS = {"CSCE", "ISEN", "STAT", "ECEN"}
 GRADUATE_ONLY = True  # course number >= 600
 TARGET_TERMS = {"Summer 2025", "Fall 2025", "Spring 2026", "Summer 2026", "Fall 2026"}
 PAGE_SIZE = 50
@@ -38,9 +38,9 @@ _TERM_IDS = {
     "Fall 2026": "6dcfa515-e3c9-4cd0-8413-ff8c00517ae3",
 }
 _TERM_ID_QS = "&".join(f"term_ids[]={tid}" for t, tid in _TERM_IDS.items() if t in TARGET_TERMS)
-# Use search= to pre-filter by department name server-side (not exact, but cuts scan ~50x)
-_DEPT_SEARCH = "&".join(f"search={d}" for d in DEPARTMENTS)
-PARAMS = f"{_TERM_ID_QS}&{_DEPT_SEARCH}&page_size={{ps}}&page={{pg}}"
+# Use search= to pre-filter by department name server-side. The API only honors a
+# single search= value, so scan once per department and union the results.
+PARAMS = f"{_TERM_ID_QS}&search={{dept}}&page_size={{ps}}&page={{pg}}"
 
 TERM_SEMESTER = {"spring": "11", "summer": "21", "fall": "41"}
 
@@ -101,52 +101,60 @@ def main():
 
         print("Scanning syllabi…")
         candidates = []
-        pg = 0
-        total = None
+        seen_codes: set[str] = set()
 
-        while True:
-            url = f"{API}?{PARAMS.format(ps=PAGE_SIZE, pg=pg)}"
-            data = page.evaluate(f'''async () => {{
-                const r = await fetch("{url}", {{headers:{{Accept:"application/json"}}}});
-                return await r.json();
-            }}''')
+        for dept in sorted(DEPARTMENTS):
+            print(f"\n[scan] department={dept}")
+            pg = 0
+            total = None
+            dept_matches_before = len(candidates)
 
-            items = data.get("items", [])
-            if total is None:
-                total = data["pagination"]["total"]
-                pages = -(-total // PAGE_SIZE)
-                print(f"  Total: {total} ({pages} pages)")
+            while True:
+                url = f"{API}?{PARAMS.format(dept=dept, ps=PAGE_SIZE, pg=pg)}"
+                data = page.evaluate(f'''async () => {{
+                    const r = await fetch("{url}", {{headers:{{Accept:"application/json"}}}});
+                    return await r.json();
+                }}''')
 
-            for item in items:
-                title = item.get("title", "")
-                term_name = item.get("term_name", "")
-                code = item.get("code", "")
+                items = data.get("items", [])
+                if total is None:
+                    total = data["pagination"]["total"]
+                    pages = -(-total // PAGE_SIZE)
+                    print(f"  Total: {total} ({pages} pages)")
 
-                term = term_name.split(" - ")[0] if " - " in term_name else term_name
-                # Handle code-style term names (e.g. "202521" → "Summer 2025")
-                term = _CODE_TO_TERM.get(term, term)
-                if term not in TARGET_TERMS:
-                    continue
-                if " - " in term_name and "College Station" not in term_name:
-                    continue
+                for item in items:
+                    title = item.get("title", "")
+                    term_name = item.get("term_name", "")
+                    code = item.get("code", "")
 
-                parsed = parse_title(title)
-                if not parsed:
-                    continue
-                if parsed["subject"] not in DEPARTMENTS:
-                    continue
-                if GRADUATE_ONLY and int(parsed["course"]) < 600:
-                    continue
+                    term = term_name.split(" - ")[0] if " - " in term_name else term_name
+                    # Handle code-style term names (e.g. "202521" → "Summer 2025")
+                    term = _CODE_TO_TERM.get(term, term)
+                    if term not in TARGET_TERMS:
+                        continue
+                    if " - " in term_name and "College Station" not in term_name:
+                        continue
 
-                candidates.append({"code": code, "term_name": term_name, "term": term, **parsed})
+                    parsed = parse_title(title)
+                    if not parsed:
+                        continue
+                    if parsed["subject"] not in DEPARTMENTS:
+                        continue
+                    if GRADUATE_ONLY and int(parsed["course"]) < 600:
+                        continue
+                    if code in seen_codes:
+                        continue
+                    seen_codes.add(code)
 
-            fetched = pg * PAGE_SIZE + len(items)
-            print(f"  Page {pg}: {fetched}/{total} scanned, {len(candidates)} matches")
+                    candidates.append({"code": code, "term_name": term_name, "term": term, **parsed})
 
-            if fetched >= total or not items:
-                break
-            pg += 1
-            time.sleep(DELAY)
+                fetched = pg * PAGE_SIZE + len(items)
+                print(f"  Page {pg}: {fetched}/{total} scanned, {len(candidates) - dept_matches_before} dept matches")
+
+                if fetched >= total or not items:
+                    break
+                pg += 1
+                time.sleep(DELAY)
 
         print(f"\nFound {len(candidates)} syllabi to download.")
 

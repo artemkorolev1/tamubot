@@ -51,7 +51,13 @@ set_collection_env(pre_arg("--chunks-collection"), pre_arg("--chunk-tag"))
 
 from tamubot.evals.golden_set import append_run_column  # noqa: E402
 from tamubot.evals.golden_set import load as load_golden_set
-from tamubot.evals.run_benchmark import BenchmarkRow, write_excel, write_markdown  # noqa: E402
+from tamubot.evals.run_benchmark import (  # noqa: E402
+    BenchmarkRow,
+    _post_retrieval_scores,
+    _retrieval_metrics,
+    write_excel,
+    write_markdown,
+)
 from tamubot.rag import RouterResult  # noqa: E402
 from tamubot.rag.graph.pipeline import run_pipeline, run_pipeline_eval  # noqa: E402
 from tamubot.rag.observability import (  # noqa: E402
@@ -170,6 +176,17 @@ def _run_question(
     is_recurrent = rr.function == "recurrent"
     import re
 
+    retr = _retrieval_metrics(query, chunks, raw_state)
+
+    # Post retrieval metrics to Langfuse so they show in the dataset-run view
+    lf = get_langfuse()
+    if lf and trace_id:
+        try:
+            _post_retrieval_scores(lf, trace_id, retr, len(chunks))
+            lf.flush()
+        except Exception:
+            pass
+
     row = BenchmarkRow(
         question_id=question_idx,
         question=query,
@@ -184,6 +201,18 @@ def _run_question(
         chunks_retrieved=len(chunks),
         est_input_tokens=max(0, (len(query) + sum(len(c.get("content", "")) for c in chunks)) // 4),
         est_output_tokens=len(answer) // 4,
+        chunk_tokens=retr["chunk_tokens"],
+        raw_vector_only=retr["raw_vector_only"],
+        raw_bm25_only=retr["raw_bm25_only"],
+        raw_overlap=retr["raw_overlap"],
+        raw_total=retr["raw_total"],
+        cutoff_vector_only=retr["cutoff_vector_only"],
+        cutoff_bm25_only=retr["cutoff_bm25_only"],
+        cutoff_overlap=retr["cutoff_overlap"],
+        cutoff_total=retr["cutoff_total"],
+        final_vector_only=retr["final_vector_only"],
+        final_bm25_only=retr["final_bm25_only"],
+        final_overlap=retr["final_overlap"],
         pipeline_ms=round(total_ms - (timing_ms.get("generator_node") or 0.0), 1),
         generator_ms=timing_ms.get("generator_node") or 0.0,
         total_ms=total_ms,
