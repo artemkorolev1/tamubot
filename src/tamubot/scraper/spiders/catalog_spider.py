@@ -16,6 +16,15 @@ DEPT_PATHS = {
         "/graduate/colleges-schools-interdisciplinary/engineering/industrial-systems/",
         "/graduate/course-descriptions/isen/",
     ],
+    "STAT": [
+        "/graduate/colleges-schools-interdisciplinary/science/statistics/",
+        "/graduate/colleges-schools-interdisciplinary/arts-and-sciences/statistics/",
+        "/graduate/course-descriptions/stat/",
+    ],
+    "ECEN": [
+        "/graduate/colleges-schools-interdisciplinary/engineering/electrical-computer/",
+        "/graduate/course-descriptions/ecen/",
+    ],
 }
 
 

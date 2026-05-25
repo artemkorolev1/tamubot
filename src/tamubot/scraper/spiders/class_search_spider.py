@@ -11,7 +11,7 @@ class ClassSearchSpider(scrapy.Spider):
     start_urls = ["https://howdyportal.tamu.edu/uPortal/p/public-class-search-ui.ctf1/max/render.uP"]
 
     # ── Config ──────────────────────────────────────────────────────────
-    DEPARTMENTS = {"CSCE", "ISEN"}
+    DEPARTMENTS = {"CSCE", "ISEN", "STAT", "ECEN"}
     GRADUATE_ONLY = True  # course number >= 600
     TARGET_TERMS = {
         "202511",

@@ -26,31 +26,82 @@ from tamubot.ingestion.filters.base import FilterResult
 HEADER_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 BLOCK_START_RE = re.compile(r"^\s*This material Is\b", re.IGNORECASE)
 BLOCK_MARKER_RE = re.compile(r"^\s*(ISBN|Authors|Publisher|Publication Date):", re.IGNORECASE)
-TEXTBOOK_HEADER_RE = re.compile(r"^\s*textbook(?:\s+and/?or)?(?:\s+resource)?(?:\s+materials?)?\s*:?\s*$", re.IGNORECASE)
+FIELD_MARKER_RE = re.compile(
+    r"^\s*(ISBN|Authors?|Publisher|Publication Date|Edition|Notes?|Material(s)? Type|Source):?\s*$",
+    re.IGNORECASE,
+)
+TEXTBOOK_HEADER_RE = re.compile(
+    r"^\s*textbook(?:\s+and/?or)?(?:\s+resource)?(?:\s+materials?)?\s*:?\s*$", re.IGNORECASE
+)
 
 LOOKAHEAD = 15  # max non-blank lines after "This material Is" to look for ISBN/Authors
+PROSE_LEN_THRESHOLD = 180  # paragraph longer than this and not a field-value = end of block
+
+# Docling sometimes emits a "Credit Hours: / <value>" block twice back-to-back
+# inside the Course Information area. The second copy is verbatim and adds no
+# value. Match the canonical layout (blank-separated, value on its own line).
+_CREDIT_HOURS_DUP_RE = re.compile(
+    r"(Credit Hours:\s*\n+\s*[^\n#]+?\s*\n+)\s*Credit Hours:\s*\n+\s*\1?[^\n#]+?\s*\n",
+    re.IGNORECASE,
+)
+# Tighter form for the actual observed pattern (value lines repeat verbatim):
+_CREDIT_HOURS_DUP_STRICT_RE = re.compile(
+    r"(Credit Hours:\s*\n+\s*([^\n#]+?)\s*\n+)(?:\s*\n+)?Credit Hours:\s*\n+\s*\2\s*\n",
+    re.IGNORECASE,
+)
+
+# Gemini/Docling sometimes injects a textbook-cover *description* in place of
+# the image. The line adds no information beyond the structured Textbook block
+# that already exists. Match conservatively: lines starting with these stems
+# that describe a book cover.
+_COVER_DESCRIPTION_RE = re.compile(
+    r"^\s*(?:An?\s+)?(?:image\s+(?:of|shows|displays)|the\s+image\s+(?:shows|displays))[^\n]*?"
+    r"(?:textbook\s+cover|cover\s+of\s+(?:the\s+)?(?:textbook\b|['\"][^'\"]+['\"]))[^\n]*\n",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
 def _find_block_end(lines: list[str], start: int) -> int:
     """Return the index just past the end of a textbook block starting at ``start``.
 
-    A block ends when we hit the next markdown header (#) at any level, or 2+
-    consecutive blank lines, or an obvious section-break line.
+    A block ends when we hit any of:
+      1. The next markdown header (#).
+      2. The next ``This material Is`` line (adjacent textbook block).
+      3. 3+ consecutive blank lines.
+      4. A long-form prose paragraph that doesn't follow a field marker
+         (i.e. course-specific text that was bleeding into the misplaced block).
     """
     i = start + 1
     blank_streak = 0
+    last_field_idx = start  # treat the "This material Is" header as a field anchor
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
         if HEADER_RE.match(stripped):
             break
+        if i > start and BLOCK_START_RE.match(line):
+            # Next textbook block — current block ends here.
+            break
         if stripped == "":
             blank_streak += 1
             if blank_streak >= 3:
-                # Long blank gap — block ends at the start of this gap.
                 return i - blank_streak + 1
-        else:
-            blank_streak = 0
+            i += 1
+            continue
+        # Non-blank line.
+        if FIELD_MARKER_RE.match(stripped):
+            last_field_idx = i
+        elif len(stripped) >= PROSE_LEN_THRESHOLD and i - last_field_idx > 3:
+            # Long-form prose paragraph not anchored to a recent field marker —
+            # this is course-specific text that got mixed in. End the block
+            # before this paragraph.
+            # Walk back to the most recent blank line so we don't truncate
+            # mid-paragraph for the prior textbook content.
+            j = i - 1
+            while j > start and lines[j].strip() != "":
+                j -= 1
+            return j + 1 if j > start else i
+        blank_streak = 0
         i += 1
     # Trim trailing blank lines
     while i > start + 1 and lines[i - 1].strip() == "":
@@ -80,6 +131,31 @@ def _section_for_line(headers_by_line: list[tuple[int, str]], line_no: int) -> s
         else:
             break
     return cur
+
+
+def cleanup_artifacts(text: str) -> tuple[str, dict[str, int]]:
+    """Strip Docling layout artifacts that survive earlier silver stages.
+
+    Currently:
+      - Duplicated ``Credit Hours: / <value>`` blocks (Docling artifact in the
+        Course Information block — verbatim second copy).
+      - Standalone Gemini/Docling textbook-cover *description* lines (e.g.
+        "An image of the textbook cover for 'Introduction to Algorithms'…").
+        These add no value beyond the structured textbook fields.
+
+    Returns ``(new_text, {"credit_hours_dedup": n, "cover_desc_stripped": n})``.
+    """
+    metrics = {"credit_hours_dedup": 0, "cover_desc_stripped": 0}
+
+    new_text, n = _CREDIT_HOURS_DUP_STRICT_RE.subn(r"\1", text)
+    metrics["credit_hours_dedup"] = n
+
+    new_text, n = _COVER_DESCRIPTION_RE.subn("", new_text)
+    metrics["cover_desc_stripped"] = n
+
+    # Tidy: collapse 3+ blank lines and trim trailing whitespace per line.
+    new_text = re.sub(r"\n{3,}", "\n\n", new_text)
+    return new_text, metrics
 
 
 def relocate_in_text(text: str, mode: str = "move") -> tuple[str, list[dict[str, Any]]]:
@@ -135,9 +211,7 @@ def relocate_in_text(text: str, mode: str = "move") -> tuple[str, list[dict[str,
         cut_blocks.append(lines[start:end])
         for i in range(start, end):
             remove_mask[i] = True
-        detections.append(
-            {"from_header": parent, "preview": lines[start].strip()[:80], "moved": True}
-        )
+        detections.append({"from_header": parent, "preview": lines[start].strip()[:80], "moved": True})
 
     # 2. Determine where to splice the textbook content.
     # Prefer the existing "Textbook and/or Resource Materials" header; if absent,
@@ -229,7 +303,7 @@ class RelocateTextbookFilter:
         mode = config.get("mode", "move")
         pattern = config.get("file_pattern", "*.md")
         md_files = sorted(input_dir.glob(pattern))
-        if (limit := config.get("limit")):
+        if limit := config.get("limit"):
             md_files = md_files[:limit]
 
         result = FilterResult()
@@ -237,17 +311,22 @@ class RelocateTextbookFilter:
         total_moved = 0
         total_flagged = 0
 
+        total_credit_dedup = 0
+        total_cover_stripped = 0
         for md_path in md_files:
             text = md_path.read_text(encoding="utf-8")
             new_text, detections = relocate_in_text(text, mode=mode)
+            new_text, cleanup_metrics = cleanup_artifacts(new_text)
             (output_dir / md_path.name).write_text(new_text, encoding="utf-8")
 
             moved = sum(1 for d in detections if d["moved"])
             flagged = sum(1 for d in detections if not d["moved"])
             total_moved += moved
             total_flagged += flagged
-            if moved or flagged:
-                result.modified_count += 1 if moved else 0
+            total_credit_dedup += cleanup_metrics["credit_hours_dedup"]
+            total_cover_stripped += cleanup_metrics["cover_desc_stripped"]
+            if moved or cleanup_metrics["credit_hours_dedup"] or cleanup_metrics["cover_desc_stripped"]:
+                result.modified_count += 1
 
             result.log_entries.append(
                 {
@@ -256,6 +335,8 @@ class RelocateTextbookFilter:
                     "blocks_moved": moved,
                     "blocks_flagged": flagged,
                     "detections": detections,
+                    "credit_hours_dedup": cleanup_metrics["credit_hours_dedup"],
+                    "cover_desc_stripped": cleanup_metrics["cover_desc_stripped"],
                 }
             )
 
@@ -263,6 +344,8 @@ class RelocateTextbookFilter:
             "total_moved": total_moved,
             "total_flagged": total_flagged,
             "mode": mode,
+            "credit_hours_dedup": total_credit_dedup,
+            "cover_desc_stripped": total_cover_stripped,
         }
         return result
 

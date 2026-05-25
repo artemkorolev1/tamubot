@@ -25,6 +25,7 @@ Source artifacts (all in data/syllabi/<DEPT>/v5/):
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 from collections import defaultdict
@@ -105,6 +106,26 @@ def _count_headers_in_md(path: Path) -> set[str]:
     return out
 
 
+def _load_manual_edits(dept: str) -> dict[str, list[dict]]:
+    """Read manual_edits.csv if present. Returns {stem: [edit_dict, ...]}.
+
+    Each edit_dict has keys: timestamp, stage, applied_by, llm_calls, summary.
+    Multiple edits per stem stack in chronological order (CSV order).
+    """
+    path = DATA_ROOT / dept.upper() / "v5" / "logs" / "manual_edits.csv"
+    edits: dict[str, list[dict]] = defaultdict(list)
+    if not path.exists():
+        return edits
+    with path.open(encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            stem = (row.get("stem") or "").strip()
+            if not stem:
+                continue
+            edits[stem].append(row)
+    return edits
+
+
 def collect(dept: str) -> tuple[dict[str, dict], dict[str, dict]]:
     v5 = DATA_ROOT / dept.upper() / "v5"
     bronze = v5 / "bronze"
@@ -114,15 +135,19 @@ def collect(dept: str) -> tuple[dict[str, dict], dict[str, dict]]:
     s06 = v5 / "silver" / "06_validate"
 
     rows: dict[str, dict] = defaultdict(dict)
-    validation: dict[str, dict] = defaultdict(
-        lambda: {
+    manual_edits = _load_manual_edits(dept)
+
+    def _empty_version() -> dict:
+        return {
             "content_preservation": [],
             "strip_completeness": [],
             "structural_coherence": [],
             "metadata_accuracy": [],
             "proposals": {},
         }
-    )
+
+    # validation[stem][version_label] -> per-category findings
+    validation: dict[str, dict[str, dict]] = defaultdict(lambda: defaultdict(_empty_version))
 
     stems = sorted(p.stem for p in bronze.glob("*.md"))
 
@@ -179,34 +204,51 @@ def collect(dept: str) -> tuple[dict[str, dict], dict[str, dict]]:
         rows[stem]["hier_status"] = "corrected"
         rows[stem]["hier_levels"] = rows[stem].get("convert_hierarchy_depth", "")
 
-        # validation findings + counts
-        vjson = s06 / f"{stem}_validation.json"
-        if vjson.exists():
+        # validation findings + counts — read versioned JSONs (_validation_v{N}.json)
+        # Falls back to legacy unversioned file _validation.json as v1 if no _v1
+        # file exists. Findings populate per-version columns; row aggregates use
+        # the latest available version present on disk.
+        version_files: list[tuple[str, Path]] = []
+        for n in range(1, 9):
+            p = s06 / f"{stem}_validation_v{n}.json"
+            if p.exists():
+                version_files.append((f"v{n}", p))
+        if not version_files:
+            legacy = s06 / f"{stem}_validation.json"
+            if legacy.exists():
+                version_files.append(("v1", legacy))
+
+        for vlabel, vpath in version_files:
             try:
-                data = json.loads(vjson.read_text(encoding="utf-8"))
+                data = json.loads(vpath.read_text(encoding="utf-8"))
             except Exception:
-                data = None
-            if data:
-                findings = data.get("findings") or {}
-                for cat in (
-                    "content_preservation",
-                    "strip_completeness",
-                    "structural_coherence",
-                    "metadata_accuracy",
-                ):
-                    items = findings.get(cat) or []
-                    if items:
-                        validation[stem][cat] = items
-                    rows[stem][f"val_{cat}"] = len(items)
-                rows[stem]["val_total"] = sum(
-                    len(findings.get(c) or [])
-                    for c in ("content_preservation", "strip_completeness", "structural_coherence", "metadata_accuracy")
-                )
-                if data.get("proposals"):
-                    validation[stem]["proposals"] = data["proposals"]
+                continue
+            findings = data.get("findings") or {}
+            cats = ("content_preservation", "strip_completeness", "structural_coherence", "metadata_accuracy")
+            for cat in cats:
+                items = findings.get(cat) or []
+                if items:
+                    validation[stem][vlabel][cat] = items
+                rows[stem][f"{vlabel}_val_{cat}"] = len(items)
+            rows[stem][f"{vlabel}_val_total"] = sum(len(findings.get(c) or []) for c in cats)
+            if data.get("proposals") and vlabel == version_files[-1][0]:
+                # Keep proposals from the latest version only
+                validation[stem]["proposals"] = data["proposals"]
+
+        # Backwards-compat: val_* keys reflect latest version, for Summary cells
+        # that aren't yet version-aware.
+        if version_files:
+            latest = version_files[-1][0]
+            for cat in ("content_preservation", "strip_completeness", "structural_coherence", "metadata_accuracy"):
+                rows[stem][f"val_{cat}"] = rows[stem].get(f"{latest}_val_{cat}", 0)
+            rows[stem]["val_total"] = rows[stem].get(f"{latest}_val_total", 0)
 
         # Source detection: stems ending _HP are Howdy Portal
         rows[stem]["course_type"] = "Howdy Portal" if stem.endswith("_HP") else "Simple Syllabus"
+
+        # Manual edits log (if any rows for this stem)
+        if stem in manual_edits:
+            rows[stem]["_manual_edits"] = manual_edits[stem]
 
     return rows, validation
 
@@ -273,6 +315,7 @@ SUMMARY_HEADERS = [
     "v8 Structural",
     "v8 Metadata",
     "v8 Total",
+    "Manual Edits",
 ]
 
 SUMMARY_WIDTHS = {
@@ -294,6 +337,7 @@ SUMMARY_WIDTHS = {
     "BP Tokens Out": 11,
     "Hierarchy Corrected": 14,
     "Heading Levels": 30,
+    "Manual Edits": 60,
 }
 
 FINDINGS_HEADERS = [
@@ -352,11 +396,16 @@ def _write_summary(wb: Workbook, rows: dict[str, dict]) -> None:
         ws.cell(ri, _ci("Tokens Out"), data.get("bp_tokens_out", ""))
         ws.cell(ri, _ci("Sections Stripped"), data.get("bp_sections_stripped", ""))
 
-        ws.cell(ri, _ci("v1 Content"), data.get("val_content_preservation", ""))
-        ws.cell(ri, _ci("v1 Strip"), data.get("val_strip_completeness", ""))
-        ws.cell(ri, _ci("v1 Structural"), data.get("val_structural_coherence", ""))
-        ws.cell(ri, _ci("v1 Metadata"), data.get("val_metadata_accuracy", ""))
-        ws.cell(ri, _ci("v1 Total"), data.get("val_total", ""))
+        for n in range(1, 9):
+            vlabel = f"v{n}"
+            total_key = f"{vlabel}_val_total"
+            if total_key not in data:
+                continue
+            ws.cell(ri, _ci(f"{vlabel} Content"), data.get(f"{vlabel}_val_content_preservation", ""))
+            ws.cell(ri, _ci(f"{vlabel} Strip"), data.get(f"{vlabel}_val_strip_completeness", ""))
+            ws.cell(ri, _ci(f"{vlabel} Structural"), data.get(f"{vlabel}_val_structural_coherence", ""))
+            ws.cell(ri, _ci(f"{vlabel} Metadata"), data.get(f"{vlabel}_val_metadata_accuracy", ""))
+            ws.cell(ri, _ci(f"{vlabel} Total"), data.get(total_key, ""))
 
         ws.cell(ri, _ci("Img Markers Before"), data.get("img_before", ""))
         ws.cell(ri, _ci("Img Markers After"), data.get("img_after", ""))
@@ -377,9 +426,22 @@ def _write_summary(wb: Workbook, rows: dict[str, dict]) -> None:
         ws.cell(ri, _ci("Hierarchy Corrected"), "YES" if data.get("hier_status") == "corrected" else "—")
         ws.cell(ri, _ci("Heading Levels"), str(data.get("hier_levels", "")))
 
-        # color v1 Total based on severity
-        total = data.get("val_total")
-        if isinstance(total, int):
+        edits = data.get("_manual_edits") or []
+        if edits:
+            # Show each edit on its own line as: "[ts | by] summary"
+            lines = [
+                f"[{e.get('timestamp', '?')} | {e.get('applied_by', '?')}] {e.get('summary', '').strip()}"
+                for e in edits
+            ]
+            cell = ws.cell(ri, _ci("Manual Edits"), "\n".join(lines))
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+        # color per-version Total cells based on severity
+        for n in range(1, 9):
+            vlabel = f"v{n}"
+            total = data.get(f"{vlabel}_val_total")
+            if not isinstance(total, int):
+                continue
             fill = None
             if total == 0:
                 fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
@@ -388,7 +450,7 @@ def _write_summary(wb: Workbook, rows: dict[str, dict]) -> None:
             elif total >= 3:
                 fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
             if fill:
-                ws.cell(ri, _ci("v1 Total")).fill = fill
+                ws.cell(ri, _ci(f"{vlabel} Total")).fill = fill
 
         ri += 1
 
@@ -402,30 +464,40 @@ def _write_findings_sheet(wb: Workbook, title: str, category: str, validation: d
         ws.cell(1, ci, label)
     _style_header_row(ws, len(FINDINGS_HEADERS), DARK_HDR_FILL, HDR_FONT)
 
+    # Column index lookup. FINDINGS_HEADERS is: File, v1 Count..v5 Count, v1 Findings..v5 Findings, v6 Count, v6 Findings, v7 Count, v7 Findings, v8 Count, v8 Findings
+    count_col = {f"v{n}": 1 + n for n in range(1, 6)}  # 2..6
+    find_col = {f"v{n}": 6 + n for n in range(1, 6)}  # 7..11
+    for n in range(6, 9):
+        count_col[f"v{n}"] = 12 + (n - 6) * 2  # 12, 14, 16
+        find_col[f"v{n}"] = 13 + (n - 6) * 2  # 13, 15, 17
+
     ri = 2
     for stem in sorted(validation.keys()):
-        findings = validation[stem].get(category) or []
+        per_version = validation[stem]
+        # per_version is a defaultdict that may also hold a "proposals" entry;
+        # skip non-version keys.
         ws.cell(ri, 1, stem)
-        ws.cell(ri, 2, len(findings))
-        if findings:
-            ws.cell(ri, 7, "\n".join(f"• {f}" for f in findings))
-            ws.cell(ri, 7).alignment = Alignment(wrap_text=True, vertical="top")
+        max_findings = 0
+        for vlabel, cats in per_version.items():
+            if not vlabel.startswith("v"):
+                continue
+            findings = cats.get(category) or []
+            ws.cell(ri, count_col[vlabel], len(findings))
+            if findings:
+                cell = ws.cell(ri, find_col[vlabel], "\n".join(f"• {f}" for f in findings))
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+                max_findings = max(max_findings, len(findings))
+        if max_findings:
+            ws.row_dimensions[ri].height = min(320, max(48, 16 * max_findings + 8))
         ri += 1
 
     ws.column_dimensions["A"].width = 38
     for c in range(2, 7):
         ws.column_dimensions[get_column_letter(c)].width = 10
-    ws.column_dimensions["G"].width = 110
-    for c in range(8, 12):
-        ws.column_dimensions[get_column_letter(c)].width = 40
+    for c in range(7, 12):
+        ws.column_dimensions[get_column_letter(c)].width = 60
     for c in range(12, 18):
-        ws.column_dimensions[get_column_letter(c)].width = 12 if c % 2 == 0 else 40
-
-    for r in range(2, ri):
-        stem = ws.cell(r, 1).value
-        n = (validation.get(stem) or {}).get(category) or []
-        if n:
-            ws.row_dimensions[r].height = min(320, max(48, 16 * len(n) + 8))
+        ws.column_dimensions[get_column_letter(c)].width = 12 if c % 2 == 0 else 60
 
 
 def _write_stripped_headers(wb: Workbook, rows: dict[str, dict]) -> None:

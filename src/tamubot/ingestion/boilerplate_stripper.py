@@ -71,6 +71,15 @@ BOILERPLATE_REGISTRY: dict[str, list[str]] = {
         "mental health and wellness",  # Short variant without "Statement on" prefix
         "additional departmental, college, and university policies",  # Catch-all policy pointer
         "campus-specific policies",  # Campus-specific policy block
+        "optional syllabus statements",  # HP "Optional Syllabus Statements" wrapper containing nested boilerplate (Free Speech, AI, etc.) as plain text
+        "recording statement",  # TAMU canned recording-permissions paragraph (validator-flagged, 2+ files)
+        "optional course information items",  # HP wrapper for optional template fields, 3 HP files
+        "course material policy",  # Variant of "course material and copyright" (verbatim TAMU template)
+        "course auditing",  # TAMU registrar audit policy (CSCE 605)
+        # NOTE: "attendance certification" intentionally NOT stripped — section contains
+        # course-specific deadline date (financial-aid-relevant) buried in otherwise-template text.
+        "incomplete grade policy",  # TAMU I-grade policy (CSCE 605)
+        "professionalism and respect",  # Generic respect/conduct boilerplate (CSCE 605)
     ],
     # IT helpdesk / tool support blocks (zero course-specific content)
     "TECH_SUPPORT": [
@@ -129,6 +138,13 @@ SENTENCE_STRIPS: list[str] = [
 
 _SENTENCE_STRIP_PATTERNS: list[re.Pattern] = [re.compile(p, re.IGNORECASE) for p in SENTENCE_STRIPS]
 
+# Howdy Portal repeats this 3-4 line page-header block on every page (lands in
+# extracted markdown as a table-leakage fragment). Match across line breaks.
+_HP_PAGE_HEADER_RE = re.compile(
+    r"^\|?\s*TEXAS A&M\s*\n\s*UNIVERSITY\.?\s*\n(?:\s*\n)?\s*Course Syllabus\s*$",
+    re.MULTILINE | re.IGNORECASE,
+)
+
 
 def strip_template_sentences(text: str) -> tuple[str, int]:
     """Remove stray TAMU-template sentences anywhere they appear in body text.
@@ -139,6 +155,8 @@ def strip_template_sentences(text: str) -> tuple[str, int]:
     for pat in _SENTENCE_STRIP_PATTERNS:
         text, n = pat.subn("", text)
         total += n
+    text, n = _HP_PAGE_HEADER_RE.subn("", text)
+    total += n
     # Collapse runs of 3+ blank lines that the strip can leave behind.
     text = re.sub(r"\n{3,}", "\n\n", text)
     # Tidy doubled spaces left by mid-paragraph strips.
@@ -151,7 +169,9 @@ _LEADING_NUMBER_RE = re.compile(r"^[\d.]+\s+")
 
 def classify_header(text: str) -> str | None:
     """Return boilerplate category label if text matches registry, else None."""
-    norm = text.lower().strip().rstrip(":")
+    # Collapse internal whitespace (tabs/multiple spaces) so headers like
+    # "University\tPolicies" match the registry key "university policies".
+    norm = re.sub(r"\s+", " ", text.lower().strip()).rstrip(":")
     result = _HEADER_MAP.get(norm)
     if result:
         return result

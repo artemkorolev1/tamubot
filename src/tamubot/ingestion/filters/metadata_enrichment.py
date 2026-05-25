@@ -326,8 +326,9 @@ def _default_sidecar_dir(stem: str) -> Path | None:
 def _load_headers_sidecar(stem: str, sidecar_dir: Path | None) -> list[dict] | None:
     """Return the sidecar header list if present, else None.
 
-    Sidecar format (per ``scripts/extract_docling_headers.py``):
-        [{"text": str, "level": int, "page": int}, ...]
+    Accepts two on-disk shapes:
+      - flat list (v4): ``[{"text": str, "level": int, "page": int}, ...]``
+      - wrapped (v5):   ``{"schema_version": "v1", "headers": [{...}, ...]}``
     """
     if sidecar_dir is None:
         sidecar_dir = _default_sidecar_dir(stem)
@@ -337,9 +338,14 @@ def _load_headers_sidecar(stem: str, sidecar_dir: Path | None) -> list[dict] | N
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+    if isinstance(data, dict) and "headers" in data:
+        return data["headers"]
+    if isinstance(data, list):
+        return data
+    return None
 
 
 def _build_headers_from_sidecar(markdown: str, sidecar: list[dict]) -> list[dict]:
@@ -571,7 +577,13 @@ def detect_format(location: str | None, meeting_times: str | None) -> str:
 # ── Main enrichment logic ────────────────────────────────────────────────────
 
 
-def enrich_file(md_path: Path, output_dir: Path, client: Any, scraped_meta: dict[str, dict]) -> dict[str, Any]:
+def enrich_file(
+    md_path: Path,
+    output_dir: Path,
+    client: Any,
+    scraped_meta: dict[str, dict],
+    sidecar_dir: Path | None = None,
+) -> dict[str, Any]:
     """Enrich a single markdown file.
 
     Returns dict with keys: source_file, pipeline_version, source, course_type,
@@ -637,7 +649,7 @@ def enrich_file(md_path: Path, output_dir: Path, client: Any, scraped_meta: dict
     # Step 6: Header-to-page mapping
     # Prefer Docling-emitted sidecar (authoritative page provenance);
     # fall back to PyMuPDF text-matching if no sidecar exists.
-    sidecar = _load_headers_sidecar(stem, sidecar_dir=None)
+    sidecar = _load_headers_sidecar(stem, sidecar_dir=sidecar_dir)
     headers_source: str
     if sidecar is not None:
         headers = _build_headers_from_sidecar(markdown, sidecar)

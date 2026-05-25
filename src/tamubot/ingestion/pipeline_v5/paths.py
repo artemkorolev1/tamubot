@@ -34,6 +34,7 @@ SILVER_STAGES = {
     "image_recovery": "01_image_recovery",
     "false_positive": "02_false_positive",
     "boilerplate": "03_boilerplate",
+    "relocate_textbook": "03b_relocate_textbook",
     "hierarchy": "04_hierarchy",
     "enrich": "05_enrich",
     "validate": "06_validate",
