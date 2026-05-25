@@ -27,8 +27,8 @@ langchain-google-vertexai
 scrapy
 trafilatura
 pymupdf
-docling
-docling-hierarchical-pdf
+docling-slim[standard]
+scikit-learn  # required by vendored hierarchical postprocessor (DBSCAN clustering)
 pydantic>=2.0
 dagster>=1.13
 

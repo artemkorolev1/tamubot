@@ -9,6 +9,9 @@ services:
       - C:/Users/iredl/.ssh:/home/claude/.ssh:ro
       - C:/Users/iredl/.gitconfig:/home/claude/.gitconfig:ro
       - C:/Users/iredl/.config/ccstatusline:/home/claude/.config/ccstatusline:ro
+      - ./.docker-cache/pip:/home/claude/.cache/pip
+      - ./.docker-cache/huggingface:/home/claude/.cache/huggingface
+      - ./.docker-cache/torch:/home/claude/.cache/torch
     env_file: .env
     ports:
       - "8501:8501"
@@ -16,6 +19,7 @@ services:
       - PYTHONPATH=/workspace:/workspace/src
       - TAMU_BASE_URL=http://api-proxy:8080/tamu
       - VOYAGE_BASE_URL=http://api-proxy:8080/voyage
+      - PIP_USER=0
     depends_on: [api-proxy]
     restart: unless-stopped
     stdin_open: true
@@ -30,3 +34,20 @@ services:
       - API_PROXY_TAMU_SESSION=1000
     volumes:
       - ./logs:/workspace/logs
+
+  beszel:
+    image: henrygd/beszel:latest
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./.beszel-data:/beszel_data
+
+  beszel-agent:
+    image: henrygd/beszel-agent:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - LISTEN=45876
+      - KEY=${BESZEL_KEY:-}

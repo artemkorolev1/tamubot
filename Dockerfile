@@ -1,6 +1,8 @@
 FROM python:3.14-slim
 WORKDIR /workspace
 
+ENV PIP_USER=0
+
 # System deps + Bun
 RUN apt-get update && apt-get install -y \
     git curl build-essential nodejs npm unzip \

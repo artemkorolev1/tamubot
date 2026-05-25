@@ -109,6 +109,10 @@ _archive/
 .claude_notify.py
 .dagster_home/
 
+# Docker cache bind-mounts (host-side, regeneratable)
+.docker-cache/
+.beszel-data/
+
 # Local zip + extracted department bundles (regeneratable)
 tamu_data/csce_syllabuses_no_url/
 tamu_data/csce_syllabuses_no_url.zip

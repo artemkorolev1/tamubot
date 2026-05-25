@@ -20,7 +20,7 @@ from docling_core.transforms.serializer.markdown import (
     MarkdownTextSerializer,
 )
 from docling_core.types.doc.document import SectionHeaderItem, TitleItem
-from hierarchical.postprocessor import ResultPostprocessor
+from tamubot.ingestion._vendor.hierarchical.postprocessor import ResultPostprocessor
 
 log = logging.getLogger(__name__)
 
