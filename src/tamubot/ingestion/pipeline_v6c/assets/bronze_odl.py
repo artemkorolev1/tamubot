@@ -13,15 +13,24 @@ pypdfium2's extraction as ground-truth vocabulary — pypdfium2 extracts the
 same PDFs cleanly.
 """
 
-from __future__ import annotations
-
 import json
 import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dagster import (
+    AssetExecutionContext,
+    AssetKey,
+    AssetSpec,
+    MaterializeResult,
+    MetadataValue,
+    multi_asset,
+)
+
 from tamubot.ingestion.pipeline_v5.schemas import HeaderEntry, HeadersSidecar
+from tamubot.ingestion.pipeline_v5.util import code_version_of
+from tamubot.ingestion.pipeline_v6c.partitions import stem_partitions
 
 
 @dataclass
@@ -304,10 +313,8 @@ def odl_convert(
     )
 
 
-def _bronze_compute(context):
-    """Dagster compute: ODL-convert one stem's raw PDF, write markdown + sidecar + meta."""
-    from dagster import AssetKey, MaterializeResult, MetadataValue
-
+def _compute_bronze_odl(context: AssetExecutionContext):
+    """Dagster compute: ODL-convert one stem's raw PDF, yield two assets."""
     from tamubot.ingestion.pipeline_v5.util import dept_from_stem, hash_file
     from tamubot.ingestion.pipeline_v6c import paths as v6c_paths
 
@@ -351,24 +358,47 @@ def _bronze_compute(context):
     md_sha = hash_file(md_out)
     token_estimate = len(result.markdown) // 4
 
-    md_meta = {
-        "stem": stem,
-        "dept": dept,
-        "output_path": MetadataValue.path(str(md_out)),
-        "converter": "opendataloader-pdf",
-        "timing_s": round(result.timing_s, 2),
-        "page_count": result.page_count,
-        "header_count": len(result.headers),
-        "token_count_estimate": token_estimate,
-        "sha256": md_sha,
-        "preview": MetadataValue.md(result.markdown[:1000]),
-    }
-    sidecar_meta = {
-        "stem": stem,
-        "dept": dept,
-        "output_path": MetadataValue.path(str(sidecar_out)),
-        "header_entries": len(result.headers),
-    }
+    yield MaterializeResult(
+        asset_key=AssetKey("v6c_bronze_markdown"),
+        metadata={
+            "stem": stem,
+            "dept": dept,
+            "output_path": MetadataValue.path(str(md_out)),
+            "converter": "opendataloader-pdf",
+            "timing_s": round(result.timing_s, 2),
+            "page_count": result.page_count,
+            "header_count": len(result.headers),
+            "token_count_estimate": token_estimate,
+            "letter_drop_word_fixes": result.repair_word_fixes,
+            "letter_drop_merge_fixes": result.repair_merge_fixes,
+            "sha256": md_sha,
+            "preview": MetadataValue.md(result.markdown[:1000]),
+        },
+    )
+    yield MaterializeResult(
+        asset_key=AssetKey("v6c_bronze_headers_sidecar"),
+        metadata={
+            "stem": stem,
+            "dept": dept,
+            "output_path": MetadataValue.path(str(sidecar_out)),
+            "header_entries": len(result.headers),
+        },
+    )
 
-    yield MaterializeResult(asset_key=AssetKey("v6c_bronze_markdown"), metadata=md_meta)
-    yield MaterializeResult(asset_key=AssetKey("v6c_bronze_headers_sidecar"), metadata=sidecar_meta)
+
+bronze_odl = multi_asset(
+    specs=[
+        AssetSpec(
+            "v6c_bronze_markdown",
+            group_name="v6c_bronze",
+            description="opendataloader-pdf markdown (letter-drop repaired).",
+        ),
+        AssetSpec(
+            "v6c_bronze_headers_sidecar",
+            group_name="v6c_bronze",
+            description="Heading hierarchy extracted from ODL JSON tree.",
+        ),
+    ],
+    partitions_def=stem_partitions,
+    code_version=code_version_of(_compute_bronze_odl),
+)(_compute_bronze_odl)
