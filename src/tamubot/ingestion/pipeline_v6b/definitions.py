@@ -24,6 +24,7 @@ from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
     v6b_silver_modal_budget_not_exceeded,
+    v6b_silver_modal_result_schema_valid,
 )
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource
 
@@ -42,6 +43,7 @@ defs = Definitions(
         v6b_bronze_blocks_no_replacement_chars,
         v6b_bronze_blocks_header_hierarchy_valid,
         v6b_silver_modal_budget_not_exceeded,
+        v6b_silver_modal_result_schema_valid,
     ],
     resources={
         "docling": DoclingConverterResource(),
