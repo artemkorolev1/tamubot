@@ -2,7 +2,8 @@
         ingest-corpus test typecheck lint format probe probe-v3 probe-full \
         eval-draft import-draft bench bench-ragas test-v4 probe-v4 \
         eval eval-gen eval-chunking diff-runs ragas-testset \
-        sandbox-up sandbox-down sandbox-shell agent
+        sandbox-up sandbox-down sandbox-shell agent \
+        dagster-v6b dagster-v6c
 
 # --- App ---
 run:
@@ -143,3 +144,10 @@ sandbox-shell:
 
 agent:
 	docker exec -it tamubot-dev-1 claude --dangerously-skip-permissions
+
+# --- Dagster UI ---
+dagster-v6b:   ## launch Dagster UI for pipeline_v6b at localhost:3000
+	dagster dev -f src/tamubot/ingestion/pipeline_v6b/definitions.py
+
+dagster-v6c:   ## launch Dagster UI for pipeline_v6c at localhost:3001
+	dagster dev -f src/tamubot/ingestion/pipeline_v6c/definitions.py --port 3001
