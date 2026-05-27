@@ -207,13 +207,23 @@ def _promote_label_headings(md: str) -> str:
     return "\n".join(out)
 
 
+_URL_FRAGMENT_RE = re.compile(r"^[a-z]+$")
+
+
+def _is_likely_url_fragment(text: str) -> bool:
+    """A single lowercase word is almost certainly a wrapped URL fragment,
+    not a real section heading. Real syllabus headings start with a
+    capitalized word (or all-caps acronym)."""
+    return bool(_URL_FRAGMENT_RE.match(text.strip()))
+
+
 def _walk_headings(node, out: list[HeaderEntry]) -> None:
     if isinstance(node, dict):
         if node.get("type") == "heading":
             text = (node.get("content") or "").strip()
             level = node.get("heading level")
             page = node.get("page number")
-            if text and isinstance(level, int):
+            if text and isinstance(level, int) and not _is_likely_url_fragment(text):
                 out.append(HeaderEntry(text=text, level=level, page=page))
         for v in node.values():
             _walk_headings(v, out)

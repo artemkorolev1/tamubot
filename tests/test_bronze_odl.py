@@ -148,3 +148,24 @@ class TestRepairDigitDrops:
         vocab = _build_vocab("STAT600 STAT600")
         out, _, _ = _repair_letter_drops("STAT60", vocab)  # one '0' dropped
         assert "STAT600" in out, f"got {out!r}"
+
+
+class TestWalkHeadingsUrlFragmentGuard:
+    def test_rejects_single_lowercase_word_heading(self):
+        raw = {
+            "children": [
+                {"type": "heading", "content": "statement", "heading level": 1, "page number": 5},
+                {"type": "heading", "content": "Course Description", "heading level": 1, "page number": 1},
+            ],
+        }
+        out: list[HeaderEntry] = []
+        _walk_headings(raw, out)
+        assert [h.text for h in out] == ["Course Description"], (
+            f"expected 'statement' rejected as URL fragment, got {[h.text for h in out]!r}"
+        )
+
+    def test_accepts_capitalized_short_heading(self):
+        raw = {"type": "heading", "content": "Notes", "heading level": 2, "page number": 1}
+        out: list[HeaderEntry] = []
+        _walk_headings(raw, out)
+        assert [h.text for h in out] == ["Notes"]
