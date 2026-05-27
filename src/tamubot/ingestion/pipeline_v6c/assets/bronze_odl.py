@@ -35,10 +35,10 @@ class OdlConvertResult:
     repair_merge_fixes: int = 0
 
 
-_WORD_RE = re.compile(r"[A-Za-z]+")
-_TOKEN_SPLIT_RE = re.compile(r"([A-Za-z]+)")
-_SHORT_WORD_RE = re.compile(r"^[A-Za-z]{1,2}$")
-_LONGER_WORD_RE = re.compile(r"^[A-Za-z]{2,}$")
+_WORD_RE = re.compile(r"[A-Za-z0-9]+")
+_TOKEN_SPLIT_RE = re.compile(r"([A-Za-z0-9]+)")
+_SHORT_WORD_RE = re.compile(r"^[A-Za-z0-9]{1,2}$")
+_LONGER_WORD_RE = re.compile(r"^[A-Za-z0-9]{2,}$")
 
 
 def _collapse_dups(s: str) -> str:
@@ -61,6 +61,8 @@ def _build_vocab(text: str) -> dict[str, set[str]]:
 
 
 def _match_case(template: str, replacement: str) -> str:
+    if template.isdigit():
+        return replacement
     if template.isupper():
         return replacement.upper()
     if template[:1].isupper():

@@ -132,3 +132,19 @@ class TestRepairMergeBoundaries:
         vocab = _build_vocab("common common common")
         out, _, _ = _repair_letter_drops("co\nmon", vocab)
         assert "common" not in out, "merge should not span newline"
+
+
+class TestRepairDigitDrops:
+    def test_digit_drop_in_section_number(self):
+        # Section "600" got collapsed to "60" by veraPDF.
+        vocab = _build_vocab("Section 600 Section 600")
+        out, n_word, _ = _repair_letter_drops("Section 60 meets here", vocab)
+        assert "Section 600" in out, f"expected digit restore, got {out!r}"
+        assert n_word == 1
+
+    def test_alphanum_token_repair(self):
+        # Duplicate-digit drop: vocab "STAT600" → collapse key "stat60";
+        # input "STAT60" has same collapse key. Repair restores the dropped '0'.
+        vocab = _build_vocab("STAT600 STAT600")
+        out, _, _ = _repair_letter_drops("STAT60", vocab)  # one '0' dropped
+        assert "STAT600" in out, f"got {out!r}"
