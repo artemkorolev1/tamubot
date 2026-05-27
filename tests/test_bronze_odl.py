@@ -118,3 +118,17 @@ class TestPromoteLabelHeadings:
         md = f"Intro.\n\n{long_label}\n\nbody."
         out = _promote_label_headings(md)
         assert f"## {long_label}" not in out
+
+
+class TestRepairMergeBoundaries:
+    def test_no_merge_across_colon(self):
+        vocab = _build_vocab("Notes Interactive")
+        # 'N' is the orphan; 'Interactiveotes:' starts a new label after a colon.
+        # The current merge pass would produce 'NInteractiveotes' — that is the bug.
+        out, _, _ = _repair_letter_drops("Foo:\nN Interactive notes", vocab)
+        assert "NInteractive" not in out, f"merge should not cross newline/colon boundary, got {out!r}"
+
+    def test_no_merge_across_newline(self):
+        vocab = _build_vocab("common common common")
+        out, _, _ = _repair_letter_drops("co\nmon", vocab)
+        assert "common" not in out, "merge should not span newline"

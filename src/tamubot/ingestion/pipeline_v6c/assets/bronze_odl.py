@@ -116,12 +116,33 @@ def _repair_letter_drops(md: str, vocab: dict[str, set[str]]) -> tuple[str, int,
     i = 0
     while i < len(tokens):
         # Look for: word ([1-2 letters]) + " " separator + word ([2+ letters])
+        sep = tokens[i + 1] if i + 1 < len(tokens) else ""
         if (
             i + 2 < len(tokens)
             and _SHORT_WORD_RE.match(tokens[i] or "")
-            and tokens[i + 1] == " "
+            # Only a single space between tokens — no newlines, tabs, or
+            # punctuation. Prevents merging across line/label/sentence boundaries.
+            and sep == " "
             and _LONGER_WORD_RE.match(tokens[i + 2] or "")
         ):
+            # Reject merge if the surrounding context crosses a label or
+            # sentence boundary — i.e., the preceding non-whitespace char
+            # (before tokens[i]) is ':' or newline, or the following
+            # non-whitespace char (after tokens[i+2]) starts with ':'.
+            # These are veraPDF-specific cues that the short token is the
+            # start of a new label, not a letter-dropped fragment.
+            if i > 0:
+                preceding = tokens[i - 1]
+                if preceding and preceding[-1:] in ":;\n":
+                    out.append(tokens[i])
+                    i += 1
+                    continue
+            if i + 3 < len(tokens):
+                following = tokens[i + 3]
+                if following and following[:1] == ":":
+                    out.append(tokens[i])
+                    i += 1
+                    continue
             a, b = tokens[i], tokens[i + 2]
             combined = (a + b).lower()
             combined_key = _collapse_dups(combined)
