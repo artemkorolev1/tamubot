@@ -53,6 +53,12 @@ def silver_tag_path(stem: str, variant: str = "semantic") -> Path:
     return v6b_root(dept_from_stem(stem)) / "silver" / "03_tag" / f"{stem}.json"
 
 
+def silver_embed_path(stem: str) -> Path:
+    """Embedded-chunk output for v6b_silver_embed. Separate from silver_tag's
+    output so silver_embed does not mutate upstream artifacts."""
+    return v6b_root(dept_from_stem(stem)) / "silver" / "04_embed" / f"{stem}.json"
+
+
 def modal_cache_path() -> Path:
     """Cross-stem cache for vision LLM calls. Keyed by image/table content hash."""
     return DATA_ROOT / "_meta" / "modal_cache.jsonl"
