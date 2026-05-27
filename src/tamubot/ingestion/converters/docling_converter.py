@@ -28,15 +28,18 @@ log = logging.getLogger(__name__)
 HEADER_RE = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
 _INDENTED_HEADER_RE = re.compile(r"^(\s+)(#{1,6}\s+.+)$")
 _ANCHORED_HEADER_RE = re.compile(r"^(#{1,6})\s+(.+)$")
+_INLINE_LABEL_RE = re.compile(r"^[A-Z][A-Za-z0-9 /&'\"-]{2,40}:\s.+$")
 
 
 def _apply_hierarchy_safety_net(markdown: str, original_header_texts_lower: set[str]) -> str:
     """Reconcile postprocessor output with Docling's pre-postprocessor header set.
 
-    1. Dedent indented header lines (postprocessor sometimes emits
-       ``    ## Heading`` which breaks ``^#`` matching).
+    1. Dedent indented header lines.
     2. Demote H1/H2 lines whose text was never a SectionHeaderItem in the
        original Docling output — these are postprocessor false positives.
+    3. Demote H1/H2 lines that look like inline labels (``Label: rest``) to H3
+       — these are real headings in the Docling output but were over-promoted
+       (e.g. ``# This material Is: Required`` should be H3, not H1).
     """
     out: list[str] = []
     for line in markdown.splitlines():
@@ -49,6 +52,8 @@ def _apply_hierarchy_safety_net(markdown: str, original_header_texts_lower: set[
             text = hm.group(2).strip()
             if level <= 2 and text.lower() not in original_header_texts_lower:
                 line = text
+            elif level <= 2 and _INLINE_LABEL_RE.match(text):
+                line = "### " + text  # demote inline labels to H3
         out.append(line)
     return "\n".join(out)
 
