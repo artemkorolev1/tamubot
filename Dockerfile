@@ -26,6 +26,10 @@ RUN pip install --no-cache-dir -e ".[v4]"
 # Non-root user (required for claude --dangerously-skip-permissions)
 RUN useradd -m -s /bin/bash claude && chown -R claude:claude /workspace
 
+# Persistent home for Dagster's event log + run storage (mounted volume in compose)
+ENV DAGSTER_HOME=/dagster_home
+RUN mkdir -p /dagster_home && chown claude:claude /dagster_home
+
 # Bake ccstatusline config so it persists across container restarts
 COPY .ccstatusline-settings.json /home/claude/.config/ccstatusline/settings.json
 RUN chown -R claude:claude /home/claude/.config

@@ -12,6 +12,7 @@ services:
       - ./.docker-cache/pip:/home/claude/.cache/pip
       - ./.docker-cache/huggingface:/home/claude/.cache/huggingface
       - ./.docker-cache/torch:/home/claude/.cache/torch
+      - dagster_home:/dagster_home
     env_file: .env
     ports:
       - "8501:8501"
@@ -51,3 +52,6 @@ services:
     environment:
       - LISTEN=45876
       - KEY=${BESZEL_KEY:-}
+
+volumes:
+  dagster_home:
