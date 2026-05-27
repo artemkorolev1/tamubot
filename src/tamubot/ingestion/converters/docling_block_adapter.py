@@ -236,6 +236,22 @@ def _render_table_png(
         return False
 
 
+def _render_picture_png(
+    pdf_path: Path,
+    page: int,
+    bbox: Optional[tuple],
+    out_path: Path,
+) -> bool:
+    """Render a PictureItem bbox to PNG. Returns True on success.
+
+    Delegates to _render_table_png — bbox→PNG rendering is identical
+    regardless of the source item type.
+    """
+    if bbox is None or any(v is None for v in bbox):
+        return False
+    return _render_table_png(pdf_path, page, bbox, out_path)
+
+
 def _extract_table_body(item) -> List[List[str]]:
     """Pull a 2-D list of cell strings out of a Docling TableItem.
 
@@ -288,6 +304,8 @@ def docling_to_blocks(
     idx = 0
     table_render_idx = 0
     tables_dir = output_dir / "tables" / stem
+    picture_render_idx = 0
+    pictures_dir = output_dir / "pictures" / stem
 
     # First pass: collect table bboxes per page. Docling with
     # do_table_structure=False emits each table cell as a separate TextItem
@@ -334,10 +352,13 @@ def docling_to_blocks(
                 }
             )
         elif isinstance(item, PictureItem):
+            png_path = pictures_dir / f"picture_{picture_render_idx:03d}.png"
+            rendered = _render_picture_png(pdf_path, page, bbox, png_path)
+            picture_render_idx += 1
             blocks.append(
                 {
                     "type": "image",
-                    "img_path": "",
+                    "img_path": str(png_path.resolve()) if rendered else "",
                     "image_caption": _caption_text(item, result_obj.document),
                     "image_footnote": "",
                     "page_idx": page,

@@ -141,6 +141,29 @@ class TestDoclingBlockAdapter:
         p = get_parser("docling")
         assert p.__class__.__name__ == "DoclingBlockParser"
 
+    def test_picture_img_path_emitted(self, tmp_path):
+        from docling_core.types.doc.document import PictureItem
+
+        pic = _fake_text_item("")
+        pic.caption_text = "Logo"
+        pic.__class__ = PictureItem
+
+        fake_converter = MagicMock()
+        fake_converter.convert = MagicMock(return_value=_fake_convert_result([pic]))
+
+        with patch.object(dba, "convert"), patch.object(dba, "_render_picture_png", return_value=True):
+            blocks = dba.docling_to_blocks(
+                pdf_path=tmp_path / "stub.pdf",
+                output_dir=tmp_path / "out",
+                converter=fake_converter,
+            )
+
+        img_blocks = [b for b in blocks if b["type"] == "image"]
+        assert len(img_blocks) == 1
+        assert img_blocks[0]["img_path"].endswith(".png"), (
+            f"Expected non-empty .png path, got {img_blocks[0]['img_path']!r}"
+        )
+
     def test_table_body_populated_from_cells(self, tmp_path):
         """TableItem with parsed cells should produce non-empty table_body rows."""
         from docling_core.types.doc.document import TableItem

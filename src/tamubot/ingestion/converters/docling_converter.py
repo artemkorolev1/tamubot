@@ -177,6 +177,11 @@ def convert(
     # Fix HTML encoding artifacts
     markdown = markdown.replace("&amp;", "&")
 
+    # Drop Docling's HTML-comment image placeholders — replaced by typed
+    # image blocks in blocks.json; the markdown should not carry empty
+    # placeholders that confuse downstream readers.
+    markdown = re.sub(r"^\s*<!--\s*image\s*-->\s*$\n?", "", markdown, flags=re.MULTILINE)
+
     if apply_hierarchy:
         markdown = _apply_hierarchy_safety_net(markdown, orig_headers_lower)
 
