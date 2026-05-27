@@ -28,6 +28,10 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_chunk_checks import (
     v6b_silver_chunk_no_oversized,
     v6b_silver_chunk_schema_valid,
 )
+from tamubot.ingestion.pipeline_v6b.checks.silver_embed_checks import (
+    v6b_silver_embed_count_matches_chunks,
+    v6b_silver_embed_model_field_present,
+)
 from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
     v6b_silver_modal_budget_not_exceeded,
     v6b_silver_modal_result_schema_valid,
@@ -58,6 +62,8 @@ defs = Definitions(
         v6b_silver_chunk_no_oversized,
         v6b_silver_chunk_schema_valid,
         v6b_silver_tag_chunk_count_preserved,
+        v6b_silver_embed_count_matches_chunks,
+        v6b_silver_embed_model_field_present,
     ],
     resources={
         "docling": DoclingConverterResource(),
