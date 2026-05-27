@@ -10,6 +10,10 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6c import paths
+from tamubot.ingestion.validation.baseline_diff import (
+    compute_baseline_delta,
+    read_metadata_history,
+)
 from tamubot.ingestion.validation.header_hierarchy import (
     check_header_hierarchy_valid,
     check_min_headers,
@@ -100,5 +104,70 @@ def v6c_bronze_sidecar_hierarchy_valid(
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.ERROR,
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6c_bronze_markdown", blocking=False)
+def v6c_bronze_markdown_token_count_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    stem = context.partition_key
+    md = _read_md(stem)
+    current = len(md) // 4
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6c_bronze_markdown",
+        partition_key=stem,
+        metadata_key="token_count_estimate",
+        last_n=5,
+    )
+    outcome = compute_baseline_delta(current=current, history=history, max_drift_pct=0.20)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6c_bronze_markdown", blocking=False)
+def v6c_bronze_markdown_letter_drops_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    stem = context.partition_key
+    outcome_now = check_letter_drops(_read_md(stem), threshold=0)
+    current = outcome_now.metadata["letter_drop_count"]
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6c_bronze_markdown",
+        partition_key=stem,
+        metadata_key="letter_drop_word_fixes",
+        last_n=5,
+    )
+    outcome = compute_baseline_delta(current=current, history=history, max_drift_pct=0.50)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6c_bronze_headers_sidecar", blocking=False)
+def v6c_bronze_sidecar_header_count_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    stem = context.partition_key
+    headers = _read_headers(stem)
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6c_bronze_headers_sidecar",
+        partition_key=stem,
+        metadata_key="header_entries",
+        last_n=5,
+    )
+    outcome = compute_baseline_delta(current=len(headers), history=history, max_drift_pct=0.20)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
         metadata=outcome.metadata,
     )
