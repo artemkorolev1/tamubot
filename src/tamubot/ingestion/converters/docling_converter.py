@@ -20,6 +20,7 @@ from docling_core.transforms.serializer.markdown import (
     MarkdownTextSerializer,
 )
 from docling_core.types.doc.document import SectionHeaderItem, TitleItem
+
 from tamubot.ingestion._vendor.hierarchical.postprocessor import ResultPostprocessor
 
 log = logging.getLogger(__name__)
@@ -80,7 +81,7 @@ def create_converter() -> DocumentConverter:
     """Create a Docling DocumentConverter (expensive — call once, reuse)."""
     pipeline_options = PdfPipelineOptions(
         do_ocr=False,
-        do_table_structure=False,
+        do_table_structure=True,  # was False — see plan v6b-table-content
         do_picture_classification=False,
         do_picture_description=False,
         do_code_enrichment=False,
