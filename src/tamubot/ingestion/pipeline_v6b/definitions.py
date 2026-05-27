@@ -24,6 +24,7 @@ from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_nonempty,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_atlas_upsert_checks import (
+    v6b_silver_atlas_golden_recall_at_5,
     v6b_silver_atlas_index_size_vs_baseline,
     v6b_silver_atlas_index_status_ready,
     v6b_silver_atlas_vector_count_matches_chunks,
@@ -80,6 +81,7 @@ defs = Definitions(
         v6b_silver_chunk_flagged_rate_vs_baseline,
         v6b_silver_embed_voyage_calls_vs_baseline,
         v6b_silver_atlas_index_size_vs_baseline,
+        v6b_silver_atlas_golden_recall_at_5,
     ],
     resources={
         "docling": DoclingConverterResource(),

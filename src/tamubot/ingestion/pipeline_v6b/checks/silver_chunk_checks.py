@@ -10,6 +10,10 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.validation.baseline_diff import (
+    compute_baseline_delta,
+    read_metadata_history,
+)
 from tamubot.ingestion.validation.schema_validation import check_chunks_schema_valid
 from tamubot.ingestion.validation.token_distribution import (
     check_chunk_count_nonzero,

@@ -6,11 +6,18 @@ from dagster import (
     AssetCheckExecutionContext,
     AssetCheckResult,
     AssetCheckSeverity,
+    AssetKey,
+    DagsterEventType,
+    EventRecordsFilter,
     asset_check,
 )
 
 from tamubot.ingestion.ingest import EMBEDDING_MODEL
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.validation.baseline_diff import (
+    compute_baseline_delta,
+    read_metadata_history,
+)
 
 
 def _load_embed(stem: str) -> dict:
