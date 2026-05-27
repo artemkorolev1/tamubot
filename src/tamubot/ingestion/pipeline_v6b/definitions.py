@@ -18,6 +18,8 @@ from tamubot.ingestion.pipeline_v6b.assets.silver_modal import silver_modal
 from tamubot.ingestion.pipeline_v6b.assets.silver_tag import silver_tag_semantic
 from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_has_text,
+    v6b_bronze_blocks_header_hierarchy_valid,
+    v6b_bronze_blocks_no_replacement_chars,
     v6b_bronze_blocks_nonempty,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
@@ -37,6 +39,8 @@ defs = Definitions(
     asset_checks=[
         v6b_bronze_blocks_nonempty,
         v6b_bronze_blocks_has_text,
+        v6b_bronze_blocks_no_replacement_chars,
+        v6b_bronze_blocks_header_hierarchy_valid,
         v6b_silver_modal_budget_not_exceeded,
     ],
     resources={
