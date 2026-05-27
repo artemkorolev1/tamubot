@@ -139,6 +139,12 @@ def _repair_letter_drops(md: str, vocab: dict[str, set[str]]) -> tuple[str, int,
                     out.append(tokens[i])
                     i += 1
                     continue
+                # '&' belongs INSIDE a token (e.g. 'A&M'); never bridge it.
+                # The 'M' of 'A&M' is not a letter-dropped fragment.
+                if preceding.endswith("&"):
+                    out.append(tokens[i])
+                    i += 1
+                    continue
             if i + 3 < len(tokens):
                 following = tokens[i + 3]
                 if following and following[:1] == ":":

@@ -169,3 +169,12 @@ class TestWalkHeadingsUrlFragmentGuard:
         out: list[HeaderEntry] = []
         _walk_headings(raw, out)
         assert [h.text for h in out] == ["Notes"]
+
+
+class TestRepairProtectsAmpersand:
+    def test_amp_letter_sequence_not_extended(self):
+        # 'A&M' appears in the PDF; an unrelated 'iss' is in the body. The
+        # merge pass MUST NOT combine 'A&M' + 'iss' → 'A&Miss'.
+        vocab = _build_vocab("Texas A&M Mississippi Mississippi miss")
+        out, _, _ = _repair_letter_drops("Texas A&M is committed", vocab)
+        assert "A&Miss" not in out, f"merge wrongly extended 'A&M' with 'is', got {out!r}"
