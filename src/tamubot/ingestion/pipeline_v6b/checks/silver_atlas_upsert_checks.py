@@ -72,3 +72,31 @@ def v6b_silver_atlas_index_status_ready(
         severity=AssetCheckSeverity.WARN,
         metadata=outcome.metadata,
     )
+
+
+@asset_check(asset="v6b_silver_atlas_upsert", blocking=False)
+def v6b_silver_atlas_index_size_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    if not config.V6B_INGEST_ENABLED:
+        return AssetCheckResult(
+            passed=True,
+            severity=AssetCheckSeverity.WARN,
+            metadata={"skipped_reason": "V6B_INGEST_ENABLED=false (dry-run)"},
+        )
+    stem = context.partition_key
+    coll = _atlas_collection()
+    current = coll.count_documents({"source_file": stem, "chunk_tag": "v6b_semantic"})
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6b_silver_atlas_upsert",
+        partition_key=stem,
+        metadata_key="atlas_upserted",
+        last_n=5,
+    )
+    outcome = compute_baseline_delta(current=current, history=history, max_drift_pct=0.20)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        metadata=outcome.metadata,
+    )

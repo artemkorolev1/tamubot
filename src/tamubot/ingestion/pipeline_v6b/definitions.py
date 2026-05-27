@@ -17,24 +17,29 @@ from tamubot.ingestion.pipeline_v6b.assets.silver_embed import silver_embed
 from tamubot.ingestion.pipeline_v6b.assets.silver_modal import silver_modal
 from tamubot.ingestion.pipeline_v6b.assets.silver_tag import silver_tag_semantic
 from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
+    v6b_bronze_blocks_block_count_vs_baseline,
     v6b_bronze_blocks_has_text,
     v6b_bronze_blocks_header_hierarchy_valid,
     v6b_bronze_blocks_no_replacement_chars,
     v6b_bronze_blocks_nonempty,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_atlas_upsert_checks import (
+    v6b_silver_atlas_index_size_vs_baseline,
     v6b_silver_atlas_index_status_ready,
     v6b_silver_atlas_vector_count_matches_chunks,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_chunk_checks import (
     v6b_silver_chunk_count_nonzero,
+    v6b_silver_chunk_flagged_rate_vs_baseline,
     v6b_silver_chunk_low_no_header_rate,
     v6b_silver_chunk_no_oversized,
     v6b_silver_chunk_schema_valid,
+    v6b_silver_chunk_total_vs_baseline,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_embed_checks import (
     v6b_silver_embed_count_matches_chunks,
     v6b_silver_embed_model_field_present,
+    v6b_silver_embed_voyage_calls_vs_baseline,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
     v6b_silver_modal_budget_not_exceeded,
@@ -70,6 +75,11 @@ defs = Definitions(
         v6b_silver_embed_model_field_present,
         v6b_silver_atlas_vector_count_matches_chunks,
         v6b_silver_atlas_index_status_ready,
+        v6b_bronze_blocks_block_count_vs_baseline,
+        v6b_silver_chunk_total_vs_baseline,
+        v6b_silver_chunk_flagged_rate_vs_baseline,
+        v6b_silver_embed_voyage_calls_vs_baseline,
+        v6b_silver_atlas_index_size_vs_baseline,
     ],
     resources={
         "docling": DoclingConverterResource(),

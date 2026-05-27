@@ -50,3 +50,40 @@ def v6b_silver_embed_model_field_present(
             "total": len(chunks),
         },
     )
+
+
+@asset_check(asset="v6b_silver_embed", blocking=False)
+def v6b_silver_embed_voyage_calls_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    stem = context.partition_key
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6b_silver_embed",
+        partition_key=stem,
+        metadata_key="voyage_calls",
+        last_n=5,
+    )
+    recent = context.instance.get_event_records(
+        EventRecordsFilter(
+            event_type=DagsterEventType.ASSET_MATERIALIZATION,
+            asset_key=AssetKey("v6b_silver_embed"),
+            asset_partitions=[stem],
+        ),
+        limit=1,
+        ascending=False,
+    )
+    if not recent:
+        return AssetCheckResult(
+            passed=True,
+            severity=AssetCheckSeverity.WARN,
+            metadata={"skipped": "no materialization found"},
+        )
+    mat = recent[0].event_log_entry.dagster_event.event_specific_data.materialization
+    voyage_calls = float(mat.metadata["voyage_calls"].value)
+    outcome = compute_baseline_delta(current=voyage_calls, history=history, max_drift_pct=0.50)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        metadata=outcome.metadata,
+    )

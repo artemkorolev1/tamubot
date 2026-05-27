@@ -11,6 +11,10 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.validation.baseline_diff import (
+    compute_baseline_delta,
+    read_metadata_history,
+)
 from tamubot.ingestion.validation.header_hierarchy import check_header_hierarchy_valid
 from tamubot.ingestion.validation.text_quality import check_no_replacement_chars
 
@@ -73,5 +77,26 @@ def v6b_bronze_blocks_header_hierarchy_valid(
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.ERROR,
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False)
+def v6b_bronze_blocks_block_count_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6b_bronze_blocks",
+        partition_key=stem,
+        metadata_key="block_count",
+        last_n=5,
+    )
+    outcome = compute_baseline_delta(current=len(blocks), history=history, max_drift_pct=0.20)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
         metadata=outcome.metadata,
     )
