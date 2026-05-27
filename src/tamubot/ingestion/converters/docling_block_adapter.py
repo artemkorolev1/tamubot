@@ -320,6 +320,8 @@ def docling_to_blocks(
                 continue
             table_bboxes_by_page.setdefault(_page_idx(item), []).append(tb)
 
+    _last_text_key: tuple[int, str] | None = None  # (page_idx, normalized_text)
+
     for item, _level in items:
         page = _page_idx(item)
         bbox = _bbox_tuple(item)
@@ -329,6 +331,7 @@ def docling_to_blocks(
             text = (getattr(item, "text", "") or "").strip()
             if not text:
                 continue
+            _last_text_key = None
             blocks.append(
                 {
                     "type": "heading",
@@ -342,6 +345,7 @@ def docling_to_blocks(
             text = (getattr(item, "text", "") or "").strip()
             if not text:
                 continue
+            _last_text_key = None
             blocks.append(
                 {
                     "type": "heading",
@@ -355,6 +359,7 @@ def docling_to_blocks(
             png_path = pictures_dir / f"picture_{picture_render_idx:03d}.png"
             rendered = _render_picture_png(pdf_path, page, bbox, png_path)
             picture_render_idx += 1
+            _last_text_key = None
             blocks.append(
                 {
                     "type": "image",
@@ -369,6 +374,7 @@ def docling_to_blocks(
             png_path = tables_dir / f"table_{table_render_idx:03d}.png"
             rendered = _render_table_png(pdf_path, page, bbox, png_path)
             table_render_idx += 1
+            _last_text_key = None
             blocks.append(
                 {
                     "type": "table",
@@ -389,6 +395,11 @@ def docling_to_blocks(
             # the GFM markdown returned by silver_modal already covers them.
             if _inside_any_table(bbox, page, table_bboxes_by_page):
                 continue
+            norm = " ".join(text.split())  # collapse whitespace for dedup key
+            key = (page, norm)
+            if key == _last_text_key:
+                continue
+            _last_text_key = key
             blocks.append(
                 {
                     "type": "text",

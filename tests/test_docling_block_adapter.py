@@ -141,6 +141,59 @@ class TestDoclingBlockAdapter:
         p = get_parser("docling")
         assert p.__class__.__name__ == "DoclingBlockParser"
 
+    def test_consecutive_duplicate_text_deduped(self, tmp_path):
+        """Two TextItems with identical normalized text on the same page should
+        collapse to one block."""
+        from docling_core.types.doc.document import TextItem
+
+        a = _fake_text_item("approved online distribution applets")
+        a.__class__ = TextItem
+        b = _fake_text_item("approved online distribution applets")
+        b.__class__ = TextItem
+        c = _fake_text_item("different sentence")
+        c.__class__ = TextItem
+
+        fake_converter = MagicMock()
+        fake_converter.convert = MagicMock(return_value=_fake_convert_result([a, b, c]))
+
+        with patch.object(dba, "convert"):
+            blocks = dba.docling_to_blocks(
+                pdf_path=tmp_path / "stub.pdf",
+                output_dir=tmp_path / "out",
+                converter=fake_converter,
+            )
+
+        texts = [b["text"] for b in blocks if b["type"] == "text"]
+        assert texts == [
+            "approved online distribution applets",
+            "different sentence",
+        ], f"expected one of the duplicates dropped, got {texts!r}"
+
+    def test_non_adjacent_duplicates_preserved(self, tmp_path):
+        """Same text repeated across sections (with a heading between) must NOT be deduped."""
+        from docling_core.types.doc.document import SectionHeaderItem, TextItem
+
+        a = _fake_text_item("see the syllabus")
+        a.__class__ = TextItem
+        h = _fake_text_item("Notes")
+        h.level = 2
+        h.__class__ = SectionHeaderItem
+        c = _fake_text_item("see the syllabus")
+        c.__class__ = TextItem
+
+        fake_converter = MagicMock()
+        fake_converter.convert = MagicMock(return_value=_fake_convert_result([a, h, c]))
+
+        with patch.object(dba, "convert"):
+            blocks = dba.docling_to_blocks(
+                pdf_path=tmp_path / "stub.pdf",
+                output_dir=tmp_path / "out",
+                converter=fake_converter,
+            )
+
+        texts = [b["text"] for b in blocks if b["type"] == "text"]
+        assert texts == ["see the syllabus", "see the syllabus"]
+
     def test_picture_img_path_emitted(self, tmp_path):
         from docling_core.types.doc.document import PictureItem
 
