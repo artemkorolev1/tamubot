@@ -10,18 +10,18 @@ resolves under v5/raw/) so v6b never copies PDFs.
 
 from dagster import Definitions
 
-from tamubot.ingestion.pipeline_v6b.assets.bronze_blocks import (
-    bronze_blocks,
+from tamubot.ingestion.pipeline_v6b.assets.bronze_blocks import bronze_blocks
+from tamubot.ingestion.pipeline_v6b.assets.silver_chunk_semantic import silver_chunk_semantic
+from tamubot.ingestion.pipeline_v6b.assets.silver_ingest import silver_ingest
+from tamubot.ingestion.pipeline_v6b.assets.silver_modal import silver_modal
+from tamubot.ingestion.pipeline_v6b.assets.silver_tag import silver_tag_semantic
+from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_has_text,
     v6b_bronze_blocks_nonempty,
 )
-from tamubot.ingestion.pipeline_v6b.assets.silver_chunk_semantic import silver_chunk_semantic
-from tamubot.ingestion.pipeline_v6b.assets.silver_ingest import silver_ingest
-from tamubot.ingestion.pipeline_v6b.assets.silver_modal import (
-    silver_modal,
+from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
     v6b_silver_modal_budget_not_exceeded,
 )
-from tamubot.ingestion.pipeline_v6b.assets.silver_tag import silver_tag_semantic
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource
 
 defs = Definitions(

@@ -16,15 +16,11 @@ import json
 from typing import Optional
 
 from dagster import (
-    AssetCheckExecutionContext,
-    AssetCheckResult,
-    AssetCheckSeverity,
     AssetExecutionContext,
     AssetKey,
     MaterializeResult,
     MetadataValue,
     asset,
-    asset_check,
 )
 
 from tamubot.core import config
@@ -195,20 +191,3 @@ silver_modal = asset(
         "Defaults to no-op pass-through (V6B_MODAL_ENABLED=false)."
     ),
 )(_compute_silver_modal)
-
-
-@asset_check(asset="v6b_silver_modal", blocking=False)
-def v6b_silver_modal_budget_not_exceeded(
-    context: AssetCheckExecutionContext,
-) -> AssetCheckResult:
-    """WARN if modal was enabled and the run hit the budget — likely incomplete."""
-    stem = context.partition_key
-    modal_blocks = json.loads(paths.silver_modal_path(stem).read_text(encoding="utf-8"))
-
-    # Detect "exceeded" by counting image/table blocks without modal_result
-    unprocessed = sum(1 for b in modal_blocks if b.get("type") in ("image", "table") and not b.get("modal_result"))
-    return AssetCheckResult(
-        passed=unprocessed == 0,
-        severity=AssetCheckSeverity.WARN,
-        metadata={"unprocessed_image_or_table_blocks": unprocessed},
-    )
