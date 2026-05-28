@@ -61,6 +61,10 @@ def merge_extracts(extracts: list[SyllabusExtract]) -> SyllabusExtract:
     return merged
 
 
+def _all_populated(extract: SyllabusExtract) -> bool:
+    return all(_is_populated(getattr(extract, f)) for f in SyllabusExtract.model_fields)
+
+
 def _extract_via_vision(extractor, pdf_path) -> SyllabusExtract:
     import fitz  # pymupdf
     from PIL import Image
@@ -71,14 +75,17 @@ def _extract_via_vision(extractor, pdf_path) -> SyllabusExtract:
         pix = doc[page_index].get_pixmap(dpi=_VISION_DPI)
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
         page_extracts.append(extractor.extract_image(img))
+        # Each page is a ~30s vision call; stop once every field is filled rather
+        # than always rendering all 8 pages.
+        if _all_populated(merge_extracts(page_extracts)):
+            break
     return merge_extracts(page_extracts)
 
 
-def _compute_silver_structured(context: AssetExecutionContext) -> MaterializeResult:
-    extractor = context.resources.nuextract.get_extractor()
-    stem = context.partition_key
-    dept = dept_from_stem(stem)
-
+def extract_stem(extractor, stem: str) -> tuple[SyllabusExtract, bool]:
+    """Run NuExtract over one stem's bronze markdown, returning (extract,
+    used_vision). Vision fallback only when the markdown is too thin (scan).
+    Shared by the Dagster asset and the load-once batch runner."""
     md_path = paths.bronze_md_path(stem)
     if not md_path.exists():
         raise FileNotFoundError(f"v6b bronze md missing for {stem!r}: {md_path}")
@@ -95,7 +102,15 @@ def _compute_silver_structured(context: AssetExecutionContext) -> MaterializeRes
     else:
         extract = extractor.extract_text(markdown)
 
-    extract = apply_course_code_fix(extract, stem)
+    return apply_course_code_fix(extract, stem), used_vision
+
+
+def _compute_silver_structured(context: AssetExecutionContext) -> MaterializeResult:
+    extractor = context.resources.nuextract.get_extractor()
+    stem = context.partition_key
+    dept = dept_from_stem(stem)
+
+    extract, used_vision = extract_stem(extractor, stem)
 
     out_path = paths.silver_structured_path(stem)
     out_path.parent.mkdir(parents=True, exist_ok=True)

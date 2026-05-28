@@ -8,7 +8,7 @@ asset. The bronze_blocks asset reads through `paths.raw_path(stem)` (which
 resolves under v5/raw/) so v6b never copies PDFs.
 """
 
-from dagster import Definitions
+from dagster import Definitions, in_process_executor
 
 from tamubot.ingestion.pipeline_v6b.assets.bronze_blocks import bronze_blocks
 from tamubot.ingestion.pipeline_v6b.assets.silver_atlas_upsert import silver_atlas_upsert
@@ -89,4 +89,7 @@ defs = Definitions(
         "docling": DoclingConverterResource(),
         "nuextract": NuExtractResource(),
     },
+    # GPU-bound stages (NuExtract, modal vision) must not run as parallel
+    # subprocesses on a single 8 GB card — they'd each load a model copy and OOM.
+    executor=in_process_executor,
 )

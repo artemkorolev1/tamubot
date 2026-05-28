@@ -32,9 +32,7 @@ SYLLABUS_TEMPLATE: dict[str, Any] = {
     "instructor_name": "verbatim-string",
     "instructor_email": "verbatim-string",
     "credit_hours": "integer",
-    "meeting_schedule": [
-        {"day": "verbatim-string", "time": "verbatim-string", "location": "verbatim-string"}
-    ],
+    "meeting_schedule": [{"day": "verbatim-string", "time": "verbatim-string", "location": "verbatim-string"}],
     "assessment_weights": [{"component": "verbatim-string", "weight_pct": "number"}],
     "letter_grade_cutoffs": [{"grade": "verbatim-string", "min_percent": "number"}],
     "prerequisites": ["verbatim-string"],
@@ -95,7 +93,10 @@ class NuExtractExtractor:
         model = AutoModelForImageTextToText.from_pretrained(model_id, **kwargs).eval()
         return cls(model, processor)
 
-    def _generate(self, content: list[dict], *, max_new_tokens: int = 4096) -> str:
+    # 1024 caps a degenerate no-EOS run (which would otherwise decode to the old
+    # 4096 cap at ~8 tok/s ≈ 8 min). Real syllabus extracts top out near 710 tok,
+    # so this never truncates a healthy output.
+    def _generate(self, content: list[dict], *, max_new_tokens: int = 1024) -> str:
         import torch
 
         inputs = self.processor.apply_chat_template(
@@ -110,9 +111,7 @@ class NuExtractExtractor:
         with torch.inference_mode():
             gen = self.model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
         gen = gen[:, inputs.input_ids.shape[1] :]
-        return self.processor.batch_decode(
-            gen, skip_special_tokens=True, clean_up_tokenization_spaces=False
-        )[0].strip()
+        return self.processor.batch_decode(gen, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0].strip()
 
     def extract_text(self, markdown: str) -> SyllabusExtract:
         return parse_extract(self._generate([{"type": "text", "text": markdown}]))
