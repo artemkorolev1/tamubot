@@ -15,6 +15,7 @@ from tamubot.ingestion.pipeline_v6b.assets.silver_atlas_upsert import silver_atl
 from tamubot.ingestion.pipeline_v6b.assets.silver_chunk_semantic import silver_chunk_semantic
 from tamubot.ingestion.pipeline_v6b.assets.silver_embed import silver_embed
 from tamubot.ingestion.pipeline_v6b.assets.silver_modal import silver_modal
+from tamubot.ingestion.pipeline_v6b.assets.silver_structured import silver_structured
 from tamubot.ingestion.pipeline_v6b.assets.silver_tag import silver_tag_semantic
 from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_block_count_vs_baseline,
@@ -49,7 +50,7 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
 from tamubot.ingestion.pipeline_v6b.checks.silver_tag_checks import (
     v6b_silver_tag_chunk_count_preserved,
 )
-from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource
+from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource, NuExtractResource
 
 defs = Definitions(
     assets=[
@@ -59,6 +60,7 @@ defs = Definitions(
         silver_tag_semantic,
         silver_embed,
         silver_atlas_upsert,
+        silver_structured,
     ],
     asset_checks=[
         v6b_bronze_blocks_nonempty,
@@ -85,5 +87,6 @@ defs = Definitions(
     ],
     resources={
         "docling": DoclingConverterResource(),
+        "nuextract": NuExtractResource(),
     },
 )

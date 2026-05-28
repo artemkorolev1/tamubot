@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from tamubot.rag.models import Instructor
 
@@ -80,3 +80,50 @@ class CourseDocV4(BaseModel):
     pipeline_version: str = "v4"
     source_file: str = ""
     ingested_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class MeetingSlot(BaseModel):
+    """One scheduled meeting (lecture or office hours)."""
+
+    day: Optional[str] = None
+    time: Optional[str] = None
+    location: Optional[str] = None
+
+
+class AssessmentWeight(BaseModel):
+    """A graded component and its weight toward the final grade (e.g. Midterm = 25%)."""
+
+    component: Optional[str] = None
+    weight_pct: Optional[float] = None
+
+
+class LetterGradeCutoff(BaseModel):
+    """A letter grade and its minimum percentage cutoff (e.g. A >= 90)."""
+
+    grade: Optional[str] = None
+    min_percent: Optional[float] = None
+
+
+class SyllabusExtract(BaseModel):
+    """Structured fields extracted from a single syllabus by NuExtract3.
+
+    `grading` is split into two distinct concepts: `assessment_weights`
+    (component -> weight toward grade) and `letter_grade_cutoffs` (letter ->
+    minimum percent). The model conflated these when they shared one field.
+    Unknown fields the model occasionally emits are dropped (extra="ignore").
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    course_code: Optional[str] = None
+    course_title: Optional[str] = None
+    instructor_name: Optional[str] = None
+    instructor_email: Optional[str] = None
+    credit_hours: Optional[int] = None
+    meeting_schedule: list[MeetingSlot] = Field(default_factory=list)
+    assessment_weights: list[AssessmentWeight] = Field(default_factory=list)
+    letter_grade_cutoffs: list[LetterGradeCutoff] = Field(default_factory=list)
+    prerequisites: list[str] = Field(default_factory=list)
+    learning_outcomes: list[str] = Field(default_factory=list)
+    attendance_policy: Optional[str] = None
+    academic_integrity_policy: Optional[str] = None

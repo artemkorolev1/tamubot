@@ -59,6 +59,12 @@ def silver_embed_path(stem: str) -> Path:
     return v6b_root(dept_from_stem(stem)) / "silver" / "04_embed" / f"{stem}.json"
 
 
+def silver_structured_path(stem: str) -> Path:
+    """Per-syllabus structured JSON from NuExtract3 extraction. Parallel branch
+    off bronze markdown — independent of the chunk/tag/embed chain."""
+    return v6b_root(dept_from_stem(stem)) / "silver" / "05_structured" / f"{stem}.json"
+
+
 def modal_cache_path() -> Path:
     """Cross-stem cache for vision LLM calls. Keyed by image/table content hash."""
     return DATA_ROOT / "_meta" / "modal_cache.jsonl"
