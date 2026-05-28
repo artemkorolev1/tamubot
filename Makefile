@@ -147,7 +147,7 @@ agent:
 
 # --- Dagster UI ---
 dagster-v6b:   ## launch Dagster UI for pipeline_v6b at localhost:3000
-	dagster dev -f src/tamubot/ingestion/pipeline_v6b/definitions.py
+	dagster dev -f src/tamubot/ingestion/pipeline_v6b/definitions.py --host 0.0.0.0
 
 dagster-v6c:   ## launch Dagster UI for pipeline_v6c at localhost:3001
-	dagster dev -f src/tamubot/ingestion/pipeline_v6c/definitions.py --port 3001
+	dagster dev -f src/tamubot/ingestion/pipeline_v6c/definitions.py --host 0.0.0.0 --port 3001

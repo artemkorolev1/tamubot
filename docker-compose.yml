@@ -16,11 +16,24 @@ services:
     env_file: .env
     ports:
       - "8501:8501"
+      - "3000:3000"
+      - "3001:3001"
     environment:
       - PYTHONPATH=/workspace:/workspace/src
       - TAMU_BASE_URL=http://api-proxy:8080/tamu
       - VOYAGE_BASE_URL=http://api-proxy:8080/voyage
       - PIP_USER=0
+    mem_limit: 22g
+    cpus: "11"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          memory: 8g
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     depends_on: [api-proxy]
     restart: unless-stopped
     stdin_open: true
