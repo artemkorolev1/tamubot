@@ -116,19 +116,30 @@ def main() -> None:
     # --- batched text path ---
     if text_items:
         if http_backend:
-            # The sidecar continuous-batches server-side; skip local token-bucketing
-            # and fan out every doc at once via the client's bounded concurrency.
+            # The sidecar continuous-batches server-side; fan out bounded-concurrency
+            # requests and report each as it completes, so a long run shows live
+            # progress instead of looking frozen until the whole batch returns.
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
             t0 = time.time()
-            extracts = extractor.extract_text_batch([md for _, md in text_items])
-            for (stem, _), ex in zip(text_items, extracts):
-                _write_extract(stem, apply_course_code_fix(ex, stem))
-                ok += 1
-            dt = time.time() - t0
-            print(
-                f"{len(text_items)} text docs via http (server-batched) in {dt:.1f}s "
-                f"({dt / len(text_items):.1f}s/doc)",
-                flush=True,
-            )
+            n = len(text_items)
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                futures = {pool.submit(extractor.extract_text, md): stem for stem, md in text_items}
+                for done, fut in enumerate(as_completed(futures), 1):
+                    stem = futures[fut]
+                    try:
+                        ex = fut.result()
+                    except Exception as exc:  # noqa: BLE001
+                        errors += 1
+                        print(f"  [http {done}/{n}] {stem}: ERROR {type(exc).__name__}: {exc}", flush=True)
+                        continue
+                    _write_extract(stem, apply_course_code_fix(ex, stem))
+                    ok += 1
+                    print(
+                        f"  [http {done}/{n}] {stem}: {ex.course_code or '-'}  ({time.time() - t0:.1f}s elapsed)",
+                        flush=True,
+                    )
+            print(f"{n} text docs via http in {time.time() - t0:.1f}s", flush=True)
         else:
             tok = extractor.processor.tokenizer
             lengths = [

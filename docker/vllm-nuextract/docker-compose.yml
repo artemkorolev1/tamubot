@@ -1,7 +1,15 @@
-# Sidecar: vLLM serving a quantized NuExtract3 with MTP speculative decoding.
-# Launch from the HOST (Windows/PowerShell), NOT from inside tamubot-dev-1.
-# The dev container reaches it at http://host.docker.internal:8000/v1 (or the
-# host IP); set NUEXTRACT_SERVER_URL accordingly.
+# Sidecar: vLLM serving NuExtract3 with on-the-fly bitsandbytes 4-bit (Route A).
+# Launch from the HOST (Windows/PowerShell), NOT from inside tamubot-dev-1:
+#   cd docker/vllm-nuextract && docker compose up
+# The dev container reaches it at http://host.docker.internal:8000/v1
+# (set NUEXTRACT_SERVER_URL accordingly).
+#
+# Route B (offline W4A16 via llm-compressor) is unavailable on this stack:
+# llm-compressor pins transformers 4.x, but NuExtract3 (model_type qwen3_5) needs
+# transformers >=5.x to load. vLLM quantizes with bitsandbytes at load time instead.
+#
+# To enable MTP speculative decoding once basic serving is confirmed, append to command:
+#   --speculative-config '{"method": "qwen3_next_mtp", "num_speculative_tokens": 2}'
 services:
   nuextract-vllm:
     image: vllm/vllm-openai:latest
@@ -9,20 +17,20 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ../../models/NuExtract3-W4A16:/models/NuExtract3-W4A16:ro
+      - ../../.docker-cache/huggingface:/hfcache
     environment:
-      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+      - HF_HOME=/hfcache
+      - HF_HUB_OFFLINE=1
     command: >
-      --model /models/NuExtract3-W4A16
+      --model numind/NuExtract3
       --served-model-name numind/NuExtract3
       --trust-remote-code
+      --quantization bitsandbytes
       --limit-mm-per-prompt '{"image": 6, "video": 0}'
       --chat-template-content-format openai
-      --generation-config vllm
       --max-model-len 16384
-      --max-num-seqs 8
-      --gpu-memory-utilization 0.92
-      --speculative-config '{"method": "qwen3_next_mtp", "num_speculative_tokens": 2}'
+      --max-num-seqs 2
+      --gpu-memory-utilization 0.80
     deploy:
       resources:
         reservations:
