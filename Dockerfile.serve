@@ -1,0 +1,25 @@
+# Slim CPU-only serving image for the Streamlit RAG app.
+# Excludes all GPU/ingestion deps (torch, dagster, docling, scrapy, playwright, Java).
+FROM python:3.14-slim
+
+WORKDIR /workspace
+ENV PIP_USER=0 \
+    PYTHONPATH=/workspace:/workspace/src \
+    PYTHONUNBUFFERED=1
+
+# build-essential covers any sdist that lacks a cp314 wheel; kept minimal.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Serving deps only (no editable extras — extras pull heavy packages).
+COPY requirements-serve.txt pyproject.toml ./
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements-serve.txt
+
+# Source + editable install for the `tamubot` package.
+COPY src/ src/
+RUN pip install --no-cache-dir -e .
+
+EXPOSE 8501
+CMD ["sh", "-c", "streamlit run src/tamubot/app/streamlit.py --server.port ${PORT:-8501} --server.address 0.0.0.0 --server.headless true"]
