@@ -245,3 +245,21 @@ V4_MAX_HISTORY_TURNS: int = int(os.getenv("V4_MAX_HISTORY_TURNS", "6"))
 MEM0_ENABLED: bool = os.getenv("MEM0_ENABLED", "false").lower() == "true"
 MEM0_API_KEY: str = os.getenv("MEM0_API_KEY", "")
 SESSION_CACHE_ENABLED: bool = os.getenv("SESSION_CACHE_ENABLED", "false").lower() == "true"
+
+# ---------------------------------------------------------------------------
+# Public-deployment guards (Railway)
+# ---------------------------------------------------------------------------
+# Master switch. False locally / in tests so no Lakera key or Atlas counter is
+# needed in dev. Set GUARD_ENABLED=true in the Railway service env.
+GUARD_ENABLED: bool = os.getenv("GUARD_ENABLED", "false").lower() == "true"
+
+# Cost guard — per-browser-session turn cap + global daily turn budget.
+SESSION_TURN_CAP: int = int(os.getenv("SESSION_TURN_CAP", "20"))
+DAILY_TURN_BUDGET: int = int(os.getenv("DAILY_TURN_BUDGET", "500"))
+# Collection holding one document per UTC date: {"_id": "YYYY-MM-DD", "turns": int}
+USAGE_COLLECTION: str = os.getenv("USAGE_COLLECTION", "usage")
+
+# Safety guard — Lakera Guard prompt-injection / jailbreak detection.
+LAKERA_GUARD_API_KEY = os.getenv("LAKERA_GUARD_API_KEY")
+LAKERA_BASE_URL = os.getenv("LAKERA_BASE_URL", "https://api.lakera.ai")
+LAKERA_TIMEOUT_SECONDS: float = float(os.getenv("LAKERA_TIMEOUT_SECONDS", "5.0"))
