@@ -39,6 +39,11 @@ def _get_db():
     return _client[config.MONGODB_DB]
 
 
+def get_db():
+    """Public accessor for the shared MongoDB database handle (lazy singleton)."""
+    return _get_db()
+
+
 def _projection() -> dict:
     return {
         "$project": {
@@ -72,6 +77,10 @@ def _atlas_filter(course_id: str | None, term: str | None) -> dict | None:
     chunk_tag = os.getenv("CHUNK_TAG_FILTER")
     if chunk_tag:
         f["chunk_tag"] = chunk_tag
+    # v6: default-exclude boilerplate. `$ne: True` also matches docs missing
+    # the field (pre-v6 / pre-backfill chunks), so this is back-compat-safe.
+    if not config.INCLUDE_BOILERPLATE:
+        f["is_boilerplate"] = {"$ne": True}
     return f if f else None
 
 
@@ -100,6 +109,9 @@ def _build_text_stage(query: str, k: int, course_id: str | None) -> list[dict]:
         text_filters.append({"equals": {"path": "chunk_tag", "value": chunk_tag}})
     if text_filters:
         compound["filter"] = text_filters
+    # v6: default-exclude boilerplate via mustNot. Docs missing the field are kept.
+    if not config.INCLUDE_BOILERPLATE:
+        compound["mustNot"] = [{"equals": {"path": "is_boilerplate", "value": True}}]
     return [
         {"$search": {"index": TEXT_INDEX, "compound": compound}},
         {"$limit": k},
