@@ -16,6 +16,10 @@ Reset catalog crawl: delete `tamu_data/scraper/logs/progress_log.txt`.
 - **Boilerplate registry** (`boilerplate_stripper.py`): font-annotated headers → `BOILERPLATE_REGISTRY`; body-size → `BODY_BOILERPLATE_HEADERS`. Only add long, unambiguous phrases to body list.
 - **`_BP_KEYWORDS`** in `process_syllabi_v3.py`: flags non-stripped headers as new candidates → `new_bp_candidates` column. Expand when new patterns emerge.
 
+## NuExtract backend
+
+Structured extraction has two backends, selected by `NUEXTRACT_BACKEND` (default `in_process`). Set `NUEXTRACT_BACKEND=http` + `NUEXTRACT_SERVER_URL` in `.env` to route extraction to the vLLM sidecar (`docker/vllm-nuextract/`, launched host-side); the in-process transformers+fla path stays the default and fallback. `get_extractor()` in `clients/nuextract_client.py` is the single entry point.
+
 ## Dagster UIs
 
 Two pipelines, two UIs (separate processes — different ports):
