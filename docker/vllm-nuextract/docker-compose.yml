@@ -1,0 +1,32 @@
+# Sidecar: vLLM serving a quantized NuExtract3 with MTP speculative decoding.
+# Launch from the HOST (Windows/PowerShell), NOT from inside tamubot-dev-1.
+# The dev container reaches it at http://host.docker.internal:8000/v1 (or the
+# host IP); set NUEXTRACT_SERVER_URL accordingly.
+services:
+  nuextract-vllm:
+    image: vllm/vllm-openai:latest
+    runtime: nvidia
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../models/NuExtract3-W4A16:/models/NuExtract3-W4A16:ro
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+    command: >
+      --model /models/NuExtract3-W4A16
+      --served-model-name numind/NuExtract3
+      --trust-remote-code
+      --limit-mm-per-prompt '{"image": 6, "video": 0}'
+      --chat-template-content-format openai
+      --generation-config vllm
+      --max-model-len 16384
+      --max-num-seqs 8
+      --gpu-memory-utilization 0.92
+      --speculative-config '{"method": "qwen3_next_mtp", "num_speculative_tokens": 2}'
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
