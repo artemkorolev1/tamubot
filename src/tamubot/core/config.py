@@ -134,6 +134,39 @@ RETRIEVAL_BACKEND = os.getenv("RETRIEVAL_BACKEND", "mongodb")
 # a retrieved chunk (invisible to Ragas precision/recall).
 SUMMARY_AS_PRIMER: bool = os.getenv("SUMMARY_AS_PRIMER", "true").lower() == "true"
 
+# --- v6 pipeline feature flags ---
+# Master switch for v6 ingestion pipeline (additive + vector-tagged boilerplate).
+USE_V6_PIPELINE: bool = os.getenv("USE_V6_PIPELINE", "false").lower() == "true"
+# When True, retrieval includes chunks tagged is_boilerplate=True (TAMU-policy
+# queries). When False (default), boilerplate is excluded at query time.
+# Back-compat: pre-v6 chunks without the field are always kept (handled by $ne: True).
+INCLUDE_BOILERPLATE: bool = os.getenv("INCLUDE_BOILERPLATE", "false").lower() == "true"
+# Cosine-sim threshold for the v6 tag stage; calibrated in Step 3 (target precision >=0.98).
+V6_TAG_THRESHOLD: float = float(os.getenv("V6_TAG_THRESHOLD", "0.92"))
+
+# --- v6b pipeline feature flags (RAG-Anything-based parallel track) ---
+# Master switch. False by default; turn on to materialize pipeline_v6b assets.
+USE_V6B_PIPELINE: bool = os.getenv("USE_V6B_PIPELINE", "false").lower() == "true"
+# Threshold for "table-heavy" routing decision (Phase 2). table_density = (tables_detected_count
+# * 2 + total_table_cells / 100) / page_count; route to MinerU when >= threshold.
+V6B_TABLE_DENSITY_THRESHOLD: float = float(os.getenv("V6B_TABLE_DENSITY_THRESHOLD", "3.0"))
+# Hard cap on vision-LLM calls per silver_modal materialization. Default 10 matches the
+# project rule against unannounced API spend; bump per-run via env var when scaling.
+V6B_MODAL_CALL_BUDGET: int = int(os.getenv("V6B_MODAL_CALL_BUDGET", "10"))
+# When False (default in Phase 1), silver_modal asset is a no-op: blocks pass through
+# unmodified. Flip to True once budget is approved per pilot run.
+V6B_MODAL_ENABLED: bool = os.getenv("V6B_MODAL_ENABLED", "false").lower() == "true"
+# When False (default), silver_ingest is a dry-run: chunks are embedded and serialized to
+# disk but never written to Atlas. Flip to True to actually upsert chunks_v4.
+V6B_INGEST_ENABLED: bool = os.getenv("V6B_INGEST_ENABLED", "false").lower() == "true"
+
+# --- NuExtract structured-extraction backend ---
+# "in_process" (transformers+fla on the local GPU, default) or "http" (vLLM
+# sidecar, OpenAI-compatible). The in-process path stays the default + fallback.
+NUEXTRACT_BACKEND = os.getenv("NUEXTRACT_BACKEND", "in_process").strip().lower()
+NUEXTRACT_SERVER_URL = os.getenv("NUEXTRACT_SERVER_URL", "http://localhost:8000/v1")
+NUEXTRACT_MODEL = os.getenv("NUEXTRACT_MODEL", "numind/NuExtract3")
+
 # --- Observability ---
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 APP_MODE = os.getenv("APP_MODE", "test")

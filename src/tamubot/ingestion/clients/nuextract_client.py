@@ -63,6 +63,37 @@ def parse_extract(raw: str) -> SyllabusExtract:
     return SyllabusExtract.model_validate(data)
 
 
+def plan_batches(
+    lengths: list[int],
+    *,
+    max_batch_tokens: int,
+    max_batch_size: int = 8,
+) -> list[list[int]]:
+    """Group item indices into length-bucketed batches for padded generation.
+
+    Sorts indices by length, then greedily packs each batch so that
+    `len(batch) * max_length_in_batch <= max_batch_tokens` (the padded-batch token
+    count, which is what drives activation/KV memory) and `len(batch) <= max_batch_size`.
+    A single item larger than the budget gets its own batch — a document can't be
+    split. Returns lists of indices into `lengths`.
+    """
+    order = sorted(range(len(lengths)), key=lambda i: lengths[i])
+    batches: list[list[int]] = []
+    current: list[int] = []
+    current_max = 0
+    for i in order:
+        new_max = max(current_max, lengths[i])
+        if current and ((len(current) + 1) * new_max > max_batch_tokens or len(current) + 1 > max_batch_size):
+            batches.append(current)
+            current, current_max = [], 0
+            new_max = lengths[i]
+        current.append(i)
+        current_max = new_max
+    if current:
+        batches.append(current)
+    return batches
+
+
 class NuExtractExtractor:
     """Holds a loaded NuExtract3 model + processor. Load once, reuse per call.
 
@@ -118,3 +149,42 @@ class NuExtractExtractor:
 
     def extract_image(self, image: "Image") -> SyllabusExtract:
         return parse_extract(self._generate([{"type": "image", "image": image}]))
+
+    def extract_text_batch(self, markdowns: list[str], *, max_new_tokens: int = 1024) -> list[SyllabusExtract]:
+        """Batched text extraction via one left-padded forward pass. Greedy decoding
+        makes each sequence's output identical to a single-doc call (parity verified),
+        so this is a throughput optimization, not a behavior change. Returns one
+        SyllabusExtract per input, in input order."""
+        import torch
+
+        # Decoder generation requires left padding so generated tokens align across
+        # the batch and the prompt slice below is uniform.
+        self.processor.tokenizer.padding_side = "left"
+        convs = [[{"role": "user", "content": [{"type": "text", "text": md}]}] for md in markdowns]
+        inputs = self.processor.apply_chat_template(
+            convs,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+            padding=True,
+            template=json.dumps(SYLLABUS_TEMPLATE, indent=4),
+            enable_thinking=False,
+        ).to(self.model.device)
+        with torch.inference_mode():
+            gen = self.model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+        gen = gen[:, inputs.input_ids.shape[1] :]
+        texts = self.processor.batch_decode(gen, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+        return [parse_extract(t.strip()) for t in texts]
+
+
+def get_extractor(*, quantize: bool = True):
+    """Return the configured NuExtract extractor. backend="http" returns an HTTP
+    client to the vLLM sidecar (no GPU/model load); otherwise the in-process model."""
+    from tamubot.core import config
+
+    if config.NUEXTRACT_BACKEND == "http":
+        from tamubot.ingestion.clients.nuextract_http_client import NuExtractHTTPClient
+
+        return NuExtractHTTPClient(config.NUEXTRACT_SERVER_URL, model=config.NUEXTRACT_MODEL)
+    return NuExtractExtractor.from_pretrained(quantize=quantize)

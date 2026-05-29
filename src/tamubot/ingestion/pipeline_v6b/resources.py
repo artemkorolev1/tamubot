@@ -29,9 +29,7 @@ class NuExtractResource(ConfigurableResource):
 
     def get_extractor(self):
         if self._extractor is None:
-            from tamubot.ingestion.clients.nuextract_client import NuExtractExtractor
+            from tamubot.ingestion.clients.nuextract_client import get_extractor
 
-            object.__setattr__(
-                self, "_extractor", NuExtractExtractor.from_pretrained(quantize=self.quantize)
-            )
+            object.__setattr__(self, "_extractor", get_extractor(quantize=self.quantize))
         return self._extractor
