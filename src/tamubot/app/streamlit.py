@@ -262,6 +262,20 @@ if prompt and not _is_scp_rerun:
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Pre-pipeline guards (public deployment): injection safety + cost budget.
+    from tamubot.app import guard
+
+    if guard.is_enabled():
+        from tamubot.rag.tools.mongo import get_db
+
+        _decision = guard.evaluate(prompt, st.session_state, get_db())
+        if not _decision.allowed:
+            logger.info("guard blocked turn: reason=%s", _decision.reason)
+            with st.chat_message("assistant"):
+                st.markdown(_decision.message)
+            st.session_state.messages.append({"role": "assistant", "content": _decision.message})
+            st.stop()
+
 if prompt:
     with st.chat_message("assistant"):
         if USE_MONGODB:
