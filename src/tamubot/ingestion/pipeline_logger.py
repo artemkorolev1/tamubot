@@ -144,7 +144,7 @@ class StepLogger:
                 time.sleep(1.0)
 
     def _read_jsonl(self) -> list[dict]:
-        rows = []
+        rows: list = []
         if not self._jsonl.exists():
             return rows
         with self._jsonl.open("r", encoding="utf-8") as f:

@@ -282,7 +282,7 @@ def sample_chunks_from_mongo(
 
     from tamubot.core import config
 
-    client = MongoClient(config.MONGODB_URI)
+    client: MongoClient = MongoClient(config.MONGODB_URI)
     db = client[config.MONGODB_DB]
     chunks_col = db["chunks"]
 
@@ -307,7 +307,7 @@ def sample_chunks_from_mongo(
             }
         },
     ]
-    sampled_chunks = list(chunks_col.aggregate(pipeline))
+    sampled_chunks = list(chunks_col.aggregate(pipeline))  # type: ignore[arg-type]
     client.close()
     print(f"  Total sampled: {len(sampled_chunks)} chunks")
     return sampled_chunks
@@ -431,7 +431,7 @@ def synthesize_stratum(
         print(f"  [WARN] No chunks available for stratum '{stratum}'")
         return []
 
-    results = []
+    results: list = []
     attempts = 0
     max_attempts = n_questions * 4
 
@@ -598,7 +598,7 @@ def generate_golden_set(
 
     # ── Step 3: out_of_scope ───────────────────────────────────────────
     n_oos = stratum_counts["out_of_scope"]
-    oos_items = [
+    oos_items: list = [
         {
             "question": q,
             "expected_function": "out_of_scope",

@@ -32,7 +32,7 @@ class FaithfulnessBlock(EvalBlock):
             dataset=EvaluationDataset(samples=[sample]),
             metrics=[Faithfulness(llm=get_critic_llm())],
         )
-        scores = result.to_pandas().iloc[0].to_dict()
+        scores = result.to_pandas().iloc[0].to_dict()  # type: ignore[union-attr]
         return {k: float(v) for k, v in scores.items() if isinstance(v, (int, float))}
 
 
@@ -52,7 +52,7 @@ class AnswerRelevancyBlock(EvalBlock):
             dataset=EvaluationDataset(samples=[sample]),
             metrics=[AnswerRelevancy(llm=get_critic_llm(), embeddings=get_critic_embeddings())],
         )
-        scores = result.to_pandas().iloc[0].to_dict()
+        scores = result.to_pandas().iloc[0].to_dict()  # type: ignore[union-attr]
         return {k: float(v) for k, v in scores.items() if isinstance(v, (int, float))}
 
 
@@ -77,7 +77,7 @@ class ContextPrecisionBlock(EvalBlock):
             dataset=EvaluationDataset(samples=[sample]),
             metrics=[ContextPrecision(llm=get_critic_llm())],
         )
-        scores = result.to_pandas().iloc[0].to_dict()
+        scores = result.to_pandas().iloc[0].to_dict()  # type: ignore[union-attr]
         return {k: round(float(v), 4) for k, v in scores.items() if isinstance(v, (int, float))}
 
 
@@ -97,7 +97,7 @@ class ContextRecallBlock(EvalBlock):
             dataset=EvaluationDataset(samples=[sample]),
             metrics=[ContextRecall(llm=get_critic_llm())],
         )
-        scores = result.to_pandas().iloc[0].to_dict()
+        scores = result.to_pandas().iloc[0].to_dict()  # type: ignore[union-attr]
         return {k: round(float(v), 4) for k, v in scores.items() if isinstance(v, (int, float))}
 
 

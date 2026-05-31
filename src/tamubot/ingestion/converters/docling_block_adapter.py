@@ -22,9 +22,9 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
+from tamubot.vendor.raganything.parser import Parser, register_parser
 
 from tamubot.ingestion.converters.docling_converter import convert, create_converter
-from tamubot.vendor.raganything.parser import Parser, register_parser
 
 log = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def _recover_urls_by_page(pdf_path: Path) -> Dict[int, List[tuple]]:
         log.warning("URL recovery: pymupdf failed to open %s: %s", pdf_path, exc)
         return {}
     try:
-        for pno, page in enumerate(doc, 1):
+        for pno, page in enumerate(doc, 1):  # type: ignore[var-annotated,arg-type]
             entries: List[tuple] = []
             for lk in page.get_links():
                 uri = lk.get("uri")
@@ -208,7 +208,7 @@ def _render_table_png(
     try:
         import pymupdf
 
-        l, t, r, b = bbox
+        x0, t, r, b = bbox
         doc = pymupdf.open(str(pdf_path))
         try:
             # PyMuPDF pages are 0-indexed; Docling's page_no is 1-indexed
@@ -218,7 +218,7 @@ def _render_table_png(
             page = doc[pno]
             height = page.rect.height
             rect = pymupdf.Rect(
-                max(0.0, l - pad),
+                max(0.0, x0 - pad),
                 max(0.0, height - t - pad),
                 min(page.rect.width, r + pad),
                 min(height, height - b + pad),

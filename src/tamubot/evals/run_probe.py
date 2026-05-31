@@ -117,9 +117,9 @@ def run_probe(
     answer = ""
     reranked: list[dict] = []
     router_result = None
-    trace_id = None
+    trace_id = None  # safety-net default before context-manager binds it
 
-    with trace_context(obs, query=query) as (trace, trace_id):
+    with trace_context(obs, query=query) as (trace, trace_id):  # noqa: F811
         if memory:
             effective_thread = thread_id or session_id or f"probe_{ts}"
             thread_config = {"configurable": {"thread_id": effective_thread}}

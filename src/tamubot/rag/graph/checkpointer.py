@@ -28,7 +28,7 @@ def make_checkpointer(backend: Optional[str] = None):
         try:
             from langgraph.checkpoint.sqlite import SqliteSaver
             db_path = str(Path(__file__).parent / "sessions.db")
-            return SqliteSaver(db_path)
+            return SqliteSaver(db_path)  # type: ignore[arg-type]
         except ImportError:
             # langgraph-checkpoint-sqlite not installed; fall back to memory
             from langgraph.checkpoint.memory import MemorySaver

@@ -31,6 +31,17 @@ pythonpath = [".", "src"]
 python_version = "3.14"
 ignore_missing_imports = true
 
+# Vendored third-party code — not ours to type-check (mirrors the ruff E501 ignore).
+# `src/__init__.py` exists, so mypy names modules `src.tamubot.*`; cover both forms.
+[[tool.mypy.overrides]]
+module = [
+    "tamubot.vendor.*",
+    "tamubot.ingestion._vendor.*",
+    "src.tamubot.vendor.*",
+    "src.tamubot.ingestion._vendor.*",
+]
+ignore_errors = true
+
 [tool.ruff]
 line-length = 120
 
@@ -44,3 +55,15 @@ select = ["E", "F", "I"]
 "src/tamubot/ingestion/legacy/standardize_syllabi.py" = ["E501"]
 "src/tamubot/ingestion/test_gemini_parse.py" = ["E501"]
 "src/tamubot/tools/*.py" = ["E501"]
+# Vendored third-party code — keep upstream formatting verbatim.
+"src/tamubot/vendor/**/*.py" = ["E501"]
+"src/tamubot/ingestion/_vendor/**/*.py" = ["E501"]
+# Long embedded prompt / schema strings that must not be reflowed.
+"src/tamubot/ingestion/filters/metadata_enrichment.py" = ["E501"]
+"src/tamubot/ingestion/validators/llm_validator.py" = ["E501"]
+"src/tamubot/ingestion/boilerplate_stripper.py" = ["E501"]
+"src/tamubot/ingestion/pipeline_v6/assets/bronze_vlm.py" = ["E501"]
+"src/tamubot/rag/prompts.py" = ["E501"]
+# streamlit.py reloads tamubot.rag.* before importing — imports intentionally
+# follow the reload loop (E402).
+"src/tamubot/app/streamlit.py" = ["E402"]

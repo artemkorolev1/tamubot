@@ -47,7 +47,7 @@ def sample_corpus_chunks(n_total: int, corpus_crns: list[str], department: str) 
 
     from tamubot.core import config
 
-    client = MongoClient(config.MONGODB_URI)
+    client: MongoClient = MongoClient(config.MONGODB_URI)
     db = client[config.MONGODB_DB]
     chunks_col = db["chunks"]
 
@@ -73,7 +73,7 @@ def sample_corpus_chunks(n_total: int, corpus_crns: list[str], department: str) 
             }
         },
     ]
-    sampled = list(chunks_col.aggregate(pipeline))
+    sampled = list(chunks_col.aggregate(pipeline))  # type: ignore[arg-type]
     client.close()
     print(f"  Total: {len(sampled)} chunks from {len(corpus_crns)} corpus CRNs")
     return sampled

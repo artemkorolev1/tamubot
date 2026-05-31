@@ -142,7 +142,7 @@ def convert(
             if t:
                 text_to_page.setdefault(
                     t.lower(),
-                    item.prov[0].page_no if item.prov else None,
+                    item.prov[0].page_no if item.prov else None,  # type: ignore[attr-defined]
                 )
         if isinstance(item, (SectionHeaderItem, TitleItem)):
             t = (text_attr or "").strip()

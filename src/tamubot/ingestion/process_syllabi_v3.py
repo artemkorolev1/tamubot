@@ -680,9 +680,9 @@ def _reduction_notes(reduction_pct: object, body_font_size_pt: object,
     over this auto-computed value in generate_combined_log.
     """
     try:
-        pct = float(reduction_pct)
-        bfs = float(body_font_size_pt) if body_font_size_pt != "" else None
-        rem = int(tokens_remaining) if tokens_remaining != "" else None
+        pct = float(reduction_pct)  # type: ignore[arg-type]
+        bfs = float(body_font_size_pt) if body_font_size_pt != "" else None  # type: ignore[arg-type]
+        rem = int(tokens_remaining) if tokens_remaining != "" else None  # type: ignore[call-overload]
     except (TypeError, ValueError):
         return ""
     if pct < 5 and bfs is not None and bfs < 11.0:

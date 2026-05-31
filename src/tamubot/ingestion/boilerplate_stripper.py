@@ -767,7 +767,7 @@ if __name__ == "__main__":
     import argparse
     import sys
 
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 
     parser = argparse.ArgumentParser(description="Batch boilerplate strip — dry-run validation across all PDFs")
     parser.add_argument(

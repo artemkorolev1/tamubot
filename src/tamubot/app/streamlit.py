@@ -523,7 +523,7 @@ if prompt:
                     try:
                         vertexai.init(project=config.PROJECT_ID, location=config.GENERATION_REGION)
                         response = rag_chain.invoke(
-                            {"context": "\n\n".join([d.page_content for d in source_docs]), "question": prompt}
+                            {"context": "\n\n".join([d.page_content for d in source_docs]), "question": prompt}  # type: ignore[attr-defined]
                         )
                         answer = response.content
                     except Exception as e:
@@ -538,9 +538,9 @@ if prompt:
             if source_docs:
                 with st.expander("View Source Documents", expanded=False):
                     for i, doc in enumerate(source_docs):
-                        st.write(f"**Source {i + 1}:** {doc.metadata.get('source', 'Unknown')}")
-                        st.write(f"*Score: {doc.metadata.get('score', 'N/A')}*")
-                        st.info(doc.page_content)
+                        st.write(f"**Source {i + 1}:** {doc.metadata.get('source', 'Unknown')}")  # type: ignore[attr-defined]
+                        st.write(f"*Score: {doc.metadata.get('score', 'N/A')}*")  # type: ignore[attr-defined]
+                        st.info(doc.page_content)  # type: ignore[attr-defined]
                         st.write("---")
 
             st.session_state.messages.append({"role": "assistant", "content": answer})

@@ -28,7 +28,7 @@ from tamubot.ingestion.process_syllabi import (
 
 def find_error_jsons(department: str | None = None) -> list[Path]:
     """Return all JSON files in OUTPUT_DIR that have a top-level 'error' key."""
-    error_files = []
+    error_files: list = []
     if not OUTPUT_DIR.exists():
         return error_files
     for json_path in sorted(OUTPUT_DIR.glob("*.json")):

@@ -689,10 +689,10 @@ def write_markdown_report(
 
     # RAGAS (only cases where scores were computed)
     ragas_cases = [r for r in results if r.ragas_faithfulness is not None]
-    avg_faithfulness = sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases) if ragas_cases else None
+    avg_faithfulness = sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases) if ragas_cases else None  # type: ignore[misc]
     ragas_rel_cases = [r for r in results if r.ragas_answer_relevancy is not None]
     avg_relevancy = (
-        sum(r.ragas_answer_relevancy for r in ragas_rel_cases) / len(ragas_rel_cases) if ragas_rel_cases else None
+        sum(r.ragas_answer_relevancy for r in ragas_rel_cases) / len(ragas_rel_cases) if ragas_rel_cases else None  # type: ignore[misc]
     )
 
     avg_total_ms = sum(r.latency_total_ms for r in results) / total if total else 0

@@ -75,13 +75,13 @@ def _accumulate_stream(stream) -> ChatCompletion:
     message = ChatCompletionMessage(
         role="assistant",
         content="".join(content_parts) if content_parts else None,
-        tool_calls=tool_calls,
+        tool_calls=tool_calls,  # type: ignore[arg-type]
     )
 
     choice = Choice(
         index=0,
         message=message,
-        finish_reason=finish_reason or "stop",
+        finish_reason=finish_reason or "stop",  # type: ignore[arg-type]
     )
 
     return ChatCompletion(

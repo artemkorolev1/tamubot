@@ -372,12 +372,12 @@ def run_eval(
         reference = item.get("reference_answer", "") or ""
 
         obs = chunking_config(experiment=experiment, run_name=run_name, ragas=ragas_enabled)
-        trace_id: Optional[str] = None
+        trace_id: Optional[str] = None  # safety-net default before context-manager binds it
         span_id: Optional[str] = None
 
         # Trace wraps the pipeline call; RAGAS runs AFTER the with-block so
         # RAGAS observations don't nest under the benchmark span.
-        with trace_context(obs, query=question) as (trace, trace_id):
+        with trace_context(obs, query=question) as (trace, trace_id):  # noqa: F811
             span_id = trace.id if trace is not None else None
             row = _run_one_query(
                 question,

@@ -242,10 +242,10 @@ def run_one(item: dict, do_ragas: bool, question_id: int = 0, experiment_name: s
     answer = ""
     rr = RouterResult(rewritten_query=query)
     timing_ms: dict = {}
-    trace_id: Optional[str] = None
+    trace_id: Optional[str] = None  # safety-net default before context-manager binds it
 
     raw_state: dict = {}
-    with trace_context(obs, query=query) as (lf_trace, trace_id):
+    with trace_context(obs, query=query) as (lf_trace, trace_id):  # noqa: F811
         # Full pipeline: router → retrieval → generation (single graph invocation)
         try:
             (
@@ -412,13 +412,13 @@ def write_excel(
     citation_cases = [r for r in rows if r.router_function != "out_of_scope"]
     citation_pass = sum(1 for r in citation_cases if r.citation_pass)
     ragas_cases = [r for r in rows if r.ragas_faithfulness is not None]
-    avg_faith = sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases) if ragas_cases else None
+    avg_faith = sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases) if ragas_cases else None  # type: ignore[misc]
 
     # ── Tab 1: Summary ───────────────────────────────────────────────────
     ws_sum = wb.active
     ws_sum.title = "Summary"
 
-    avg_relevancy = sum(r.ragas_relevancy for r in ragas_cases) / len(ragas_cases) if ragas_cases else None
+    avg_relevancy = sum(r.ragas_relevancy for r in ragas_cases) / len(ragas_cases) if ragas_cases else None  # type: ignore[misc]
     avg_chunks = _avg(rows, "chunks_retrieved")
 
     extra_metric_means: list[tuple[str, str]] = []
@@ -431,7 +431,7 @@ def write_excel(
         extra_metric_means.append(
             (
                 f"Mean {m}",
-                f"{sum(vals) / len(vals):.3f} (n={len(vals)})" if vals else "not run",
+                f"{sum(vals) / len(vals):.3f} (n={len(vals)})" if vals else "not run",  # type: ignore[arg-type]
             )
         )
 
@@ -937,7 +937,7 @@ def write_markdown(
     citation_cases = [r for r in rows if r.router_function != "out_of_scope"]
     citation_pass = sum(1 for r in citation_cases if r.citation_pass)
     ragas_cases = [r for r in rows if r.ragas_faithfulness is not None]
-    avg_faith = sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases) if ragas_cases else None
+    avg_faith = sum(r.ragas_faithfulness for r in ragas_cases) / len(ragas_cases) if ragas_cases else None  # type: ignore[misc]
 
     def _fmt_ms(attr: str) -> str:
         v = _avg(rows, attr)
@@ -956,7 +956,7 @@ def write_markdown(
         "|--------|-------|",
     ]
 
-    avg_relevancy = sum(r.ragas_relevancy for r in ragas_cases) / len(ragas_cases) if ragas_cases else None
+    avg_relevancy = sum(r.ragas_relevancy for r in ragas_cases) / len(ragas_cases) if ragas_cases else None  # type: ignore[misc]
 
     if n:
         lines += [

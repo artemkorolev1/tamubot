@@ -1311,7 +1311,7 @@ def mask_used_nodes(kg, seed_df, mask_whole_crn: bool = False) -> int:
         for ctx in rc:
             node = _find_chunk_for_context(ctx, kg)
             if node is not None:
-                used_chunks.add(node.id)
+                used_chunks.add(node.id)  # type: ignore[attr-defined]
                 crn = _chunk_crn(node)
                 if crn:
                     used_crns.add(crn)

@@ -25,7 +25,7 @@ def _upsert_atlas(chunks: list[dict], chunk_tag: str) -> int:
 
     uri = os.getenv("MONGO_URI") or config.MONGO_URI
     db_name = os.getenv("MONGO_DB") or config.MONGO_DB
-    client = MongoClient(uri)
+    client: MongoClient = MongoClient(uri)
     db = client[db_name]
 
     ops = []

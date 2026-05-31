@@ -104,7 +104,7 @@ def run_pipeline(
     followup = result.get("retrieved_chunks", [])
     chunks = deduplicate_chunks(anchor + followup) if anchor else followup
 
-    base = (
+    base: tuple = (
         chunks,
         _build_router_result(result),
         result.get("data_gaps", []),
