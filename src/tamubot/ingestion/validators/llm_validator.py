@@ -17,34 +17,40 @@ CATEGORIES = [
 ]
 
 SYSTEM_PROMPT = """You are a quality checker for processed university syllabus documents.
-The document below was converted from PDF to markdown, then had institutional boilerplate
-sections stripped. Audit it for problems in 4 categories. Return ONLY valid JSON.
+You will receive THREE inputs in the user message:
+  <bronze>  — the unmodified Docling-to-markdown conversion of the source PDF (the reference)
+  <silver>  — the cleaned version after boilerplate stripping and other filters (what we will ship)
+  <metadata> — structured course_metadata + course_summary extracted from <silver>
+
+Your job: judge whether <silver> and <metadata> are FAITHFUL representations of <bronze>,
+and whether <silver> is structurally well-formed. Use <bronze> as the ground truth for what
+content existed in the source — do not invent content not in <bronze>. Return ONLY valid JSON.
 
 {
   "content_preservation": [
-    "Specific description of course content that appears to be missing or was incorrectly removed"
+    "Specific course content present in <bronze> but missing/altered in <silver> (excluding boilerplate that was correctly stripped)"
   ],
   "strip_completeness": [
-    "Exact header or section that is institutional boilerplate but was NOT stripped"
+    "Exact header or section in <silver> that is institutional boilerplate and should have been stripped"
   ],
   "structural_coherence": [
-    "Specific structural problem: broken table, orphaned header, wrong heading level, etc."
+    "Specific structural problem in <silver>: broken table, orphaned header, wrong heading level, list-vs-header confusion, etc."
   ],
   "metadata_accuracy": [
-    "Specific metadata field that is missing, incorrect, or malformed (e.g. instructor name, credit hours, CRN)"
+    "Specific metadata field in <metadata> that is missing, incorrect, or malformed compared to what <bronze> states (e.g. instructor name, credit hours, CRN, meeting times)"
   ]
 }
 
 Rules:
 - Each array entry must be a specific, actionable finding — not a vague observation.
-- For content_preservation: name the exact content that was lost (e.g. "Grading breakdown table is missing").
-- For strip_completeness: quote the exact header text still present (e.g. "Section 'Americans with Disabilities Act' is boilerplate and should be removed").
-- For structural_coherence: describe exactly what is wrong (e.g. "Table in Course Schedule has empty header row '|    |'").
-- For metadata_accuracy: name the field and what is wrong (e.g. "Instructor email is missing").
+- For content_preservation: name the exact content that was in <bronze> but lost from <silver> (e.g. "Grading breakdown table from <bronze> page 3 is missing in <silver>"). Do NOT flag content that was correctly stripped as boilerplate. Do NOT flag content that's still present in <silver>.
+- For strip_completeness: quote the exact header text still present in <silver> (e.g. "Section 'Americans with Disabilities Act' is boilerplate and should be removed").
+- For structural_coherence: describe what is wrong in <silver> (e.g. "Course Schedule table in <silver> has empty header row '|    |'"). These issues may originate in <bronze> (Docling artifacts) — flag them anyway since <silver> is what ships.
+- For metadata_accuracy: name the field and what is wrong, citing <bronze> as evidence (e.g. "instructor.name is null in <metadata> but <bronze> shows 'Jane Smith' under Instructor Details"). Do NOT flag fields not present in our schema (course_metadata only tracks: course_id, section, term, crn, instructor{name,email,office,office_hours,phone}, teaching_assistants, meeting_times, location, format, credit_hours, syllabus_url). Phone number, textbook details, test dates, etc. are out of schema — skip them.
 - Empty arrays are fine — only report real problems.
-- Boilerplate = university-wide institutional text (ADA, Title IX, attendance policy, etc.). Course-specific sections like grading policy, schedule, late work policy are NOT boilerplate — even if they reference university rules (e.g. "Student Rule 7").
+- Boilerplate = university-wide institutional text (ADA, Title IX, FERPA, attendance policy, dept-name banners like "College of Arts and Sciences" / "Statistics", etc.). Course-specific sections (grading policy, schedule, late work policy) are NOT boilerplate even if they cite university rules.
 - A section that contains course-specific policy details (grading breakdown, late penalties, makeup exam terms) is NOT boilerplate regardless of whether it also cites a university rule.
-- Do NOT flag missing sections that were correctly stripped as boilerplate."""
+- Do NOT flag missing sections in <silver> that were correctly stripped as boilerplate."""
 
 PROPOSAL_PROMPT = """You are reviewing a processed university syllabus markdown document for quality.
 Based on the issues found, propose specific fixes. Return ONLY valid JSON.
@@ -79,11 +85,18 @@ class ValidationResult:
         return {k: len(v) for k, v in self.findings.items()}
 
 
-def _build_user_prompt(markdown: str, metadata: dict | None) -> str:
-    parts = [f"<document>\n{markdown}\n</document>"]
+def _build_user_prompt(
+    silver: str,
+    metadata: dict | None,
+    bronze: str | None = None,
+) -> str:
+    parts: list[str] = []
+    if bronze is not None:
+        parts.append(f"<bronze>\n{bronze}\n</bronze>")
+    parts.append(f"<silver>\n{silver}\n</silver>")
     if metadata:
-        parts.append(f"\n<metadata>\n{json.dumps(metadata, indent=2)}\n</metadata>")
-    return "\n".join(parts)
+        parts.append(f"<metadata>\n{json.dumps(metadata, indent=2)}\n</metadata>")
+    return "\n\n".join(parts)
 
 
 def _call_llm(system_prompt: str, user_prompt: str) -> dict:
@@ -137,10 +150,12 @@ def validate_file(
     output_dir: Path | None = None,
     propose_fixes: bool = True,
     version_label: str | None = None,
+    bronze_path: Path | None = None,
 ) -> ValidationResult:
     stem = markdown_path.stem
     markdown = markdown_path.read_text(encoding="utf-8")
-    prompt = _build_user_prompt(markdown, metadata)
+    bronze = bronze_path.read_text(encoding="utf-8") if bronze_path and bronze_path.exists() else None
+    prompt = _build_user_prompt(markdown, metadata, bronze=bronze)
 
     t0 = time.perf_counter()
     result_dict = None

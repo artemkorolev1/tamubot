@@ -16,14 +16,31 @@ import glob
 import json
 from pathlib import Path
 
+import torch
 from datasets import Dataset
 from llmcompressor import oneshot
 from llmcompressor.modifiers.quantization import GPTQModifier
-from transformers import AutoProcessor
-
-from tamubot.ingestion.clients.nuextract_client import SYLLABUS_TEMPLATE
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
 MODEL_ID = "numind/NuExtract3"
+
+# Inlined from tamubot.ingestion.clients.nuextract_client.SYLLABUS_TEMPLATE — duplicated
+# deliberately so this quantization tool (run in a minimal llm-compressor container)
+# does NOT import the RAG app's dependency tree (langgraph/langchain/etc.). Keep in sync.
+SYLLABUS_TEMPLATE = {
+    "course_code": "verbatim-string",
+    "course_title": "verbatim-string",
+    "instructor_name": "verbatim-string",
+    "instructor_email": "verbatim-string",
+    "credit_hours": "integer",
+    "meeting_schedule": [{"day": "verbatim-string", "time": "verbatim-string", "location": "verbatim-string"}],
+    "assessment_weights": [{"component": "verbatim-string", "weight_pct": "number"}],
+    "letter_grade_cutoffs": [{"grade": "verbatim-string", "min_percent": "number"}],
+    "prerequisites": ["verbatim-string"],
+    "learning_outcomes": ["verbatim-string"],
+    "attendance_policy": "verbatim-string",
+    "academic_integrity_policy": "verbatim-string",
+}
 
 # DATA_ROOT is data/syllabi; bronze markdown lives at <DATA_ROOT>/<DEPT>/v6b/bronze/*.md.
 DEFAULT_BRONZE_GLOB = "data/syllabi/**/v6b/bronze/*.md"
@@ -38,6 +55,18 @@ def main() -> None:
 
     processor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
     tmpl = json.dumps(SYLLABUS_TEMPLATE, indent=4)
+
+    # Load the VLM explicitly (llm-compressor's default loader is AutoModelForCausalLM,
+    # which rejects this image-text model). CPU load + bf16; GPTQ's sequential pipeline
+    # onloads one layer at a time to the GPU, so the full model never sits on the 8GB card.
+    # This is also the load gate: if trust_remote_code modeling fails under the installed
+    # transformers, it surfaces here clearly before any calibration work.
+    print(f"[load] loading {MODEL_ID} on CPU (bf16)...", flush=True)
+    model = AutoModelForImageTextToText.from_pretrained(
+        MODEL_ID, trust_remote_code=True, dtype=torch.bfloat16
+    )
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"[load] model loaded: {n_params / 1e9:.2f}B params", flush=True)
 
     files = sorted(glob.glob(args.bronze_glob, recursive=True))[: args.calib]
     assert files, f"no calibration md found at {args.bronze_glob}"
@@ -64,14 +93,17 @@ def main() -> None:
     )
 
     oneshot(
-        model=MODEL_ID,
+        model=model,
         dataset=ds,
         recipe=recipe,
         output_dir=args.out,
-        max_seq_length=8192,
+        max_seq_length=4096,
         num_calibration_samples=len(texts),
         trust_remote_code_model=True,
     )
+    # Persist the processor/tokenizer + custom modeling code alongside the weights so
+    # vLLM can load the checkpoint with --trust-remote-code.
+    processor.save_pretrained(args.out)
     print(f"[done] quantized checkpoint at {args.out}")
 
 

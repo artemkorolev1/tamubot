@@ -31,8 +31,10 @@ BOILERPLATE_REGISTRY: dict[str, list[str]] = {
     # Document / department masthead lines (pure structural noise)
     "DEPT_HEADER": [
         "college of engineering",
+        "college of arts and sciences",  # Simple Syllabus banner above STAT/other A&S depts
         "computer science and engineering",
         "industrial and systems engineering",
+        "statistics",  # H2 dept-name banner (STAT corpus); validator-flagged across files
         "college of engineering industrial and systems engineering",
         "college of engineering computer science and engineering",
         "texas a&m at galveston",
@@ -81,6 +83,18 @@ BOILERPLATE_REGISTRY: dict[str, list[str]] = {
         "incomplete grade policy",  # TAMU I-grade policy (CSCE 605)
         "professionalism and respect",  # Generic respect/conduct boilerplate (CSCE 605)
     ],
+    # WRAPPER: TAMU-template section *containers* whose header is boilerplate but
+    # which often nest course-specific H3 subsections (e.g. "## College and
+    # Department Policies > ### Homework Policy"). Strip the header line only;
+    # children are kept so nested course content survives.
+    "WRAPPER": [
+        "college and department policies",  # often wraps Homework Policy, Exam Policy, etc.
+        "additional departmental, college, and university policies",
+        "additional university policies for galveston campus",
+        "additional university policies for the galveston campus",
+        "campus-specific policies",
+        "optional syllabus statements",
+    ],
     # IT helpdesk / tool support blocks (zero course-specific content)
     "TECH_SUPPORT": [
         "technology support",
@@ -104,6 +118,8 @@ BOILERPLATE_REGISTRY: dict[str, list[str]] = {
         "late days table",  # Template table repeated verbatim
         "course material and copyright",  # Variant of "course copyright" (ISEN 689)
         "plagiarism policy",  # Standalone plagiarism policy section (HP files)
+        "plagiarism",  # Bare "Plagiarism" header (STAT corpus, no "Policy" suffix)
+        "copyright notice",  # Bare "Copyright notice" header (STAT corpus)
     ],
 }
 

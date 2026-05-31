@@ -128,3 +128,18 @@ docs/OUTAGE_REMEDIATION_PLAN.md
 
 # Stale agent guidance file
 GEMINI.md
+
+# Node tooling
+# package.json / package-lock.json ARE tracked (load-bearing for sandcastle).
+# node_modules/ is regeneratable via `npm install`.
+node_modules/
+
+# Local experiment / test artifacts (regeneratable)
+.dagster_v6b_test/
+.compare_baseline/
+exa-results/
+# Note: .sandcastle/ itself IS tracked (orchestrator config-as-code).
+# Its own .sandcastle/.gitignore excludes secrets (.env), logs/, and worktrees/.
+
+# Throwaway / experimental scripts (underscore-prefixed, ad-hoc)
+scripts/_*

@@ -1,7 +1,9 @@
 services:
   dev:
     build: .
-    command: streamlit run src/tamubot/app/streamlit.py --server.port 8501 --server.headless true
+    # Launch Dagster UI (port 3000) in the background, then Streamlit (8501) as
+    # the foreground/main process so both come up on every up/recreate/rebuild.
+    command: 'bash -c "dagster dev -f src/tamubot/ingestion/pipeline_v6b/definitions.py --host 0.0.0.0 --port 3000 & exec streamlit run src/tamubot/app/streamlit.py --server.port 8501 --server.headless true"'
     volumes:
       - .:/workspace
       - C:/Users/iredl/.claude:/home/claude/.claude
@@ -34,10 +36,24 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    depends_on: [api-proxy]
+    depends_on:
+      api-proxy:
+        condition: service_started
+      claude-perms:
+        condition: service_completed_successfully
     restart: unless-stopped
     stdin_open: true
     tty: true
+
+  # Heals Claude history dir permissions (root-created session dirs are
+  # unreadable by the non-root 'claude' user) on every 'compose up'.
+  claude-perms:
+    image: busybox
+    user: root
+    volumes:
+      - C:/Users/iredl/.claude:/claude
+    command: ["sh", "-c", "mkdir -p /claude/projects/-workspace && find /claude/projects/-workspace -exec chmod a+rwx {} \\; ; echo claude-perms-done"]
+    restart: "no"
 
   api-proxy:
     build: ./tools/api-proxy

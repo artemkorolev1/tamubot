@@ -22,9 +22,9 @@ from docling_core.types.doc.document import (
     TextItem,
     TitleItem,
 )
-from tamubot.vendor.raganything.parser import Parser, register_parser
 
 from tamubot.ingestion.converters.docling_converter import convert, create_converter
+from tamubot.vendor.raganything.parser import Parser, register_parser
 
 log = logging.getLogger(__name__)
 

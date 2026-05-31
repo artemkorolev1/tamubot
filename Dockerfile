@@ -3,9 +3,9 @@ WORKDIR /workspace
 
 ENV PIP_USER=0
 
-# System deps + Bun
+# System deps + Bun + JRE (v6c pipeline runs opendataloader-pdf's Java CLI)
 RUN apt-get update && apt-get install -y \
-    git curl build-essential nodejs npm unzip \
+    git curl build-essential nodejs npm unzip default-jre-headless \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 

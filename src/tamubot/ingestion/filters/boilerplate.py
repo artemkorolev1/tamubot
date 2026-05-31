@@ -122,7 +122,7 @@ class BoilerplateFilter:
         result = FilterResult()
         pattern = config.get("file_pattern", "*.md")
         md_files = sorted(input_dir.glob(pattern))
-        if (limit := config.get("limit")):
+        if limit := config.get("limit"):
             md_files = md_files[:limit]
         result.input_count = len(md_files)
 
@@ -186,9 +186,12 @@ class BoilerplateFilter:
                         }
                     )
                     cat_totals[bp_type] = cat_totals.get(bp_type, 0) + 1
-                    # DEPT_HEADER: only strip the header line, keep children
-                    # Other categories: strip the entire section including children
-                    if bp_type != "DEPT_HEADER":
+                    # DEPT_HEADER and WRAPPER: only strip the header line, keep
+                    # children (these are containers that nest course-specific
+                    # H3 subsections, e.g. "## College and Department Policies"
+                    # → "### Homework Policy"). Other categories: cascade-strip
+                    # the entire section including children (nested TAMU policy).
+                    if bp_type not in ("DEPT_HEADER", "WRAPPER"):
                         skip_until_level = level
                 else:
                     if header:

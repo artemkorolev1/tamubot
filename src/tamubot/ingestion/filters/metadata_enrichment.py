@@ -31,81 +31,48 @@ RAW_ROOT = Path("tamu_data/raw")
 MAX_RETRIES = 2
 MODEL = config.TAMU_MODEL
 
-METADATA_PROMPT = """\
-You are a university syllabus parser. Extract ONLY the following metadata fields from the text below.
+COMBINED_PROMPT = """\
+You are a university syllabus parser. From the syllabus text below, do TWO things in a single response:
+(1) extract structured metadata, and
+(2) generate a COURSE_SUMMARY keyword index.
 
-Return ONLY valid JSON with this exact structure (omit fields you cannot find):
+Return ONLY valid JSON with this exact structure (no markdown fences, no commentary):
 {
-  "instructor": {
-    "name": "...",
-    "email": "...",
-    "office": "...",
-    "office_hours": "..."
+  "metadata": {
+    "instructor": { "name": "...", "email": "...", "office": "...", "office_hours": "..." },
+    "teaching_assistants": [{"name": "...", "email": "..."}],
+    "meeting_times": "...",
+    "location": "...",
+    "credit_hours": "..."
   },
-  "teaching_assistants": [{"name": "...", "email": "..."}],
-  "meeting_times": "...",
-  "location": "...",
-  "credit_hours": "..."
+  "summary": "<COURSE_SUMMARY string, formatted per the SUMMARY FORMAT below, with \\\\n line breaks>"
 }
 
-Rules:
+METADATA RULES:
 - Extract only what is explicitly stated. Do not infer or hallucinate.
-- Return null for fields not found.
-- Output must be valid JSON only — no markdown fences, no explanation.
-"""
+- Use null for fields not found, or omit them.
 
-SUMMARY_PROMPT = """\
-You are a university syllabus parser. Generate a COURSE_SUMMARY — a RAG-optimized \
-keyword index for the syllabus below.
-
-Use this strict format:
-
+SUMMARY FORMAT (value of the "summary" field — a single JSON string with \\\\n separators):
   {course_id} [/ <crosslist>] | <Full Course Title> | {term}
   Instructor: <Full Name> | <email>
   Meets: <days and times> | <location>
-  Grading: <component [weight%], component [weight%], ...> — list every graded \
-component with its percentage weight exactly as stated in the syllabus. Use the \
-format "Component [XX%]". Include the grade scale if provided (e.g., A: 90-100).
-  Topics: <ALL named concepts, techniques, algorithms, models, and skills from the \
-ENTIRE syllabus — course description, learning outcomes, AND weekly schedule — merged \
-into one comma-separated list. Rare/specialized terms first, broader ones last. \
-No duplicates.>
-  Tools: <ALL software, platforms, applications, environments, and services that \
-students USE or interact with for coursework — include LMS platforms (Canvas, \
-Blackboard), submission tools (Turnitin), modeling/diagramming tools (Visio, Lucidchart), \
-project management tools (MS Project, Jira), programming environments, simulation \
-software, cloud platforms, and any other named technology. Omit only: personal \
-communication channels (email, phone), test-taking hardware (webcam, Chromebooks), \
-and university support resources (library tech bar, OAL lab). If a tool is mentioned \
-in the syllabus text, include it.>
+  Grading: <component [weight%], component [weight%], ...> — list every graded component with its percentage weight exactly as stated. Include the grade scale if provided (e.g., A: 90-100).
+  Topics: <ALL named concepts, techniques, algorithms, models, and skills from the ENTIRE syllabus — course description, learning outcomes, AND weekly schedule — merged into one comma-separated list. Rare/specialized terms first, broader ones last. No duplicates.>
+  Tools: <ALL software, platforms, applications, environments, and services that students USE or interact with for coursework — include LMS platforms (Canvas, Blackboard), submission tools (Turnitin), modeling/diagramming tools (Visio, Lucidchart), project management tools (MS Project, Jira), programming environments, simulation software, cloud platforms, and any other named technology. Omit only: personal communication channels (email, phone), test-taking hardware (webcam, Chromebooks), and university support resources (library tech bar, OAL lab). If a tool is mentioned, include it.>
   Prerequisites: <exact course codes and standing; omit if none stated>
 
-Rules:
-- GROUNDING: Use ONLY terms and phrases that appear explicitly in the source text. \
-Do NOT add domain knowledge or infer anything not written. If "Python" is not in \
-the text, it is not in the summary.
-- TOPICS IS EVERYTHING: Topics is the single comprehensive concept list — merge what \
-would otherwise be topics, methods, skills, and niche into Topics. Do not create \
-separate fields for these.
-- NO DUPLICATION: No term appears twice anywhere in the summary. Tools must not \
-repeat terms already in Topics.
-- RARE TERMS FIRST: List specialized/rare terms before generic ones in Topics. \
-Rare terms provide stronger keyword signal for search.
-- BE THOROUGH: Extract ALL named algorithms, models, techniques, tools, and skills \
-from the entire syllabus — do not truncate.
-- EXCLUDE from Topics: academic integrity terms (plagiarism, complicity, fabrication, \
-cheating), grading process terms (late penalties, regrading, test cases, grade appeals, \
-incomplete grades), and software environment setup steps (installing libraries, \
-configuring environments, executing compilers, running programs). These are course \
-policies, not knowledge areas.
-- Retain ALL proper nouns, theorem names, algorithm names, drug names, and tool \
-names verbatim.
-- NEVER write narrative: "students will learn", "designed to", "upon completion", \
-"this course", "you will", "gain experience", or any similar framing.
+SUMMARY RULES (apply when generating the "summary" string):
+- GROUNDING: Use ONLY terms and phrases that appear explicitly in the source text. Do NOT add domain knowledge. If "Python" is not in the text, it is not in the summary.
+- TOPICS IS EVERYTHING: Topics is the single comprehensive concept list — merge methods, skills, and niche terms into Topics.
+- NO DUPLICATION: No term appears twice anywhere in the summary. Tools must not repeat Topics terms.
+- RARE TERMS FIRST: List specialized terms before generic ones in Topics.
+- BE THOROUGH: Extract ALL named algorithms, models, techniques, tools, and skills — do not truncate.
+- EXCLUDE from Topics: academic integrity terms (plagiarism, complicity, fabrication, cheating), grading process terms (late penalties, regrading, test cases, grade appeals, incomplete grades), and software environment setup steps (installing libraries, configuring environments).
+- Retain ALL proper nouns, theorem names, algorithm names, drug names, and tool names verbatim.
+- NEVER use narrative framing: no "students will learn", "designed to", "upon completion", "this course", "you will".
 - Use declarative noun phrases only.
-- If a field has no data in the source text, omit that line entirely.
-- Target 300–450 tokens total.
-- Output the summary text only — no JSON, no markdown fences.
+- Omit any line whose data is not present in the source text.
+- Target 300–450 tokens of summary content.
 """
 
 # ── JSON / LLM helpers ────────────────────────────────────────────────────────
@@ -445,54 +412,69 @@ def parse_filename(stem: str) -> dict[str, str]:
 # ── LLM extraction ───────────────────────────────────────────────────────────
 
 
-def extract_metadata_llm(markdown: str, client: Any) -> tuple[dict, str]:
-    """Extract instructor/TA/schedule metadata via LLM."""
-    raw, error = _llm_call(client, METADATA_PROMPT, markdown)
-    if error:
-        return {}, error
-    try:
-        raw = _strip_fences(raw)
-        try:
-            meta = json.loads(raw)
-        except json.JSONDecodeError:
-            meta = json.loads(_sanitize_json(raw))
-        return _clean_replacement_chars(meta), ""
-    except Exception as e:
-        return {}, str(e)
-
-
-def generate_course_summary(
+def extract_metadata_and_summary(
     markdown: str,
     course_id: str,
     term: str,
     client: Any,
-) -> tuple[str, str]:
-    """Generate a COURSE_SUMMARY keyword index via LLM.
+) -> tuple[dict, str, str, str]:
+    """Single LLM call: returns (metadata_dict, summary_str, metadata_error, summary_error).
 
-    Retries once if the result has fewer than 5 topics or is truncated.
-    Applies post-processing: dedup, strip generic terms, fix header.
+    Combines what used to be extract_metadata_llm + generate_course_summary into
+    one TAMU API call (returns JSON with both fields), halving enrich cost per file.
+    Up to 2 retries on degenerate output (empty summary, no instructor name, or
+    low topic count) since the TAMU gateway returns empty shapes ~20% of the
+    time even at temperature=0.0. Avg expected calls per file: ~1.5.
     """
-    prompt = SUMMARY_PROMPT.replace("{course_id}", course_id).replace("{term}", term)
-    raw, error = _llm_call(client, prompt, markdown)
-    if error:
-        return "", error
-    raw = _strip_fences(raw)
-    summary = dedup_course_summary(raw)
+    prompt = COMBINED_PROMPT.replace("{course_id}", course_id).replace("{term}", term)
+    MAX_ATTEMPTS = 3
 
-    # Retry once if quality is poor
-    if _count_topics(summary) < 5 or _is_truncated(summary):
-        print("    WARN: summary quality low, retrying...")
-        raw2, error2 = _llm_call(client, prompt, markdown)
-        if not error2:
-            raw2 = _strip_fences(raw2)
-            candidate = dedup_course_summary(raw2)
-            if _count_topics(candidate) > _count_topics(summary):
-                summary = candidate
+    def _attempt() -> tuple[dict, str, str]:
+        raw, error = _llm_call(client, prompt, markdown, max_tokens=8192)
+        if error:
+            return {}, "", error
+        raw = _strip_fences(raw)
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            try:
+                parsed = json.loads(_sanitize_json(raw))
+            except Exception as e:
+                return {}, "", f"json_parse_error: {e}"
+        meta = _clean_replacement_chars(parsed.get("metadata") or {})
+        summary = parsed.get("summary") or ""
+        return meta, summary, ""
+
+    def _is_degenerate(meta: dict, summary: str) -> bool:
+        # Real gateway failure mode: returns the JSON shape with nulls and empty summary.
+        if not summary or len(summary) < 100:
+            return True
+        if _count_topics(summary) < 5 or _is_truncated(summary):
+            return True
+        # Combined call sometimes drops metadata too — if instructor.name is null and
+        # no meeting_times/location either, it's the same degenerate shape.
+        instr = meta.get("instructor") or {}
+        if not instr.get("name") and not meta.get("meeting_times") and not meta.get("location"):
+            return True
+        return False
+
+    meta: dict = {}
+    summary = ""
+    last_error = ""
+    for attempt in range(MAX_ATTEMPTS):
+        meta, summary, error = _attempt()
+        last_error = error
+        summary = dedup_course_summary(summary)
+        if not error and not _is_degenerate(meta, summary):
+            break
+        if attempt + 1 < MAX_ATTEMPTS:
+            print(f"    WARN: enrich attempt {attempt + 1} degenerate (err={error or 'empty/null shape'}), retrying...")
 
     summary = _strip_generic_topics(summary)
     summary = _fix_summary_header(summary, course_id)
     summary = _clean_summary_locations(summary)
-    return summary, ""
+    err = last_error if not summary else ""
+    return meta, summary, err, err
 
 
 # ── Scraped metadata ─────────────────────────────────────────────────────────
@@ -601,11 +583,9 @@ def enrich_file(
     term = filename_meta.get("term", "")
     crn = filename_meta.get("crn", "")
 
-    # Step 2: LLM metadata extraction
-    llm_meta, llm_meta_error = extract_metadata_llm(markdown, client)
-
-    # Step 3: LLM course summary
-    summary, llm_summary_error = generate_course_summary(
+    # Steps 2 + 3: Single LLM call returns both structured metadata and the
+    # COURSE_SUMMARY keyword index (was two separate calls pre-2026-05-25).
+    llm_meta, summary, llm_meta_error, llm_summary_error = extract_metadata_and_summary(
         markdown,
         course_id,
         term,

@@ -36,10 +36,20 @@ class ChunkDocV4(BaseModel):
     page: Optional[int] = None
     source: Optional[str] = None  # "simple_syllabus" or "howdy_portal"
 
+    # V6 boilerplate tagging (additive — default False so pre-v6 chunks behave as content;
+    # docs missing the field are matched by `$ne: True` at query time).
+    is_boilerplate: bool = False
+    boilerplate_cluster: Optional[str] = None
+    cluster_confidence: Optional[float] = None
+
     # Chunking-strategy tag (e.g. "semantic", "600t_100o_fixed") + size/overlap for fixed runs
     chunk_tag: Optional[str] = None
     chunk_size: Optional[int] = None
     chunk_overlap: Optional[int] = None
+
+    # v6b block-native chunks set this to the sha256 of (stem, page, bbox). None for
+    # semantic chunks; sparse-unique-indexed in Atlas alongside (crn, chunk_index, chunk_tag).
+    block_id: Optional[str] = None
 
     # Anchor for embedding (built from header_path)
     anchor: str = ""
