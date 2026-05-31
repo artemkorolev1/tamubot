@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "typecheck": "echo ok",
+    "test": "echo ok",
+    "sandcastle": "node --env-file=.sandcastle/.env --import tsx .sandcastle/main.mts"
+  },
+  "devDependencies": {
+    "@ai-hero/sandcastle": "^0.7.0"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}
