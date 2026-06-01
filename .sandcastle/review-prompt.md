@@ -16,11 +16,11 @@ You are on branch `{{BRANCH}}`. Inspect what the implementer changed:
 
 <full-diff>
 
-!`git diff $(git merge-base HEAD @{u} 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1)..HEAD`
+!`git diff HEAD~1..HEAD`
 
 </full-diff>
 
-If the diff command above produced nothing useful, fall back to `git show HEAD --stat` and `git show HEAD` to see the latest commit on this branch.
+The implementer always produces a single commit on this branch, so `HEAD~1..HEAD` is the exact scope of their change. If for some reason the branch has multiple commits or no parent, fall back to `git show HEAD --stat` and `git show HEAD` to inspect the latest commit.
 
 # REVIEW
 

@@ -19,6 +19,9 @@
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
+import { execSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 // Required env (NOT auto-loaded from .sandcastle/.env — invoke with
 // `node --env-file=.sandcastle/.env --import tsx .sandcastle/main.mts`
@@ -30,6 +33,21 @@ if (!ghToken) throw new Error("GH_TOKEN is required (GitHub PAT with repo Issues
 if (process.env.ANTHROPIC_API_KEY) {
   throw new Error("ANTHROPIC_API_KEY is set — it would override Max-subscription auth. Unset it before running.");
 }
+
+// Pre-flight: refuse to run on a dirty working tree. The orchestrator's
+// per-issue worktrees branch off HEAD; uncommitted changes on the host
+// would either be silently invisible to the agents (best case) or get
+// captured into a commit by something else mid-run (the cross-stream
+// interference we hit in the first smoke). Override with
+// SANDCASTLE_ALLOW_DIRTY=1 when you knowingly want to proceed.
+const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim();
+if (dirty && process.env.SANDCASTLE_ALLOW_DIRTY !== "1") {
+  throw new Error(
+    `Working tree is dirty — commit, stash, or set SANDCASTLE_ALLOW_DIRTY=1.\n\n${dirty}\n`,
+  );
+}
+const launchBranch = execSync("git branch --show-current", { encoding: "utf8" }).trim();
+console.log(`Launch branch: ${launchBranch}`);
 
 // Shared agent + sandbox: tokens forwarded into every container exec.
 const agent = sandcastle.claudeCode("claude-opus-4-7");
@@ -56,6 +74,35 @@ const planSchema = z.object({
 // Raise this if your backlog is large; lower it for a quick smoke-test run.
 const MAX_ITERATIONS = 10;
 
+// Hard cap on total wall-clock runtime. Sandcastle bills against the Max
+// subscription quota — without a stop, a thrashing implementer could chew
+// through a 5-hour window. Override with SANDCASTLE_MAX_RUNTIME_MS=...
+const MAX_RUNTIME_MS = Number(process.env.SANDCASTLE_MAX_RUNTIME_MS ?? 90 * 60 * 1000);
+
+// Implementer iteration cap. The scaffold defaulted to 100, which is wildly
+// generous; most well-scoped issues converge in <10 turns. A misbehaving
+// agent that loops forever costs real budget — keep this tight unless an
+// issue truly needs it.
+const IMPLEMENTER_MAX_ITERATIONS = Number(process.env.SANDCASTLE_IMPLEMENTER_MAX_ITERATIONS ?? 30);
+
+// Per-run artifact summary directory.
+const runStartedAt = new Date().toISOString().replace(/[:.]/g, "-");
+const runsDir = join(".sandcastle", "logs", "runs");
+mkdirSync(runsDir, { recursive: true });
+const summaryPath = join(runsDir, `${runStartedAt}.md`);
+const iterationSummaries: string[] = [
+  `# Sandcastle run — ${runStartedAt}`,
+  ``,
+  `- Launch branch: \`${launchBranch}\``,
+  `- Max iterations: ${MAX_ITERATIONS}`,
+  `- Implementer max iterations: ${IMPLEMENTER_MAX_ITERATIONS}`,
+  `- Hard runtime cap: ${(MAX_RUNTIME_MS / 60_000).toFixed(0)} min`,
+  ``,
+];
+const runStartTime = Date.now();
+const writeSummary = () => writeFileSync(summaryPath, iterationSummaries.join("\n") + "\n");
+writeSummary();
+
 // Lean setup: no npm install — the default agent prompts call `npm run
 // typecheck` / `npm run test`, which package.json maps to `echo ok` no-ops
 // for this smoke configuration. No host node_modules need to reach the
@@ -69,7 +116,16 @@ const hooks = {
 // ---------------------------------------------------------------------------
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
+  if (Date.now() - runStartTime > MAX_RUNTIME_MS) {
+    const note = `\nRuntime cap of ${(MAX_RUNTIME_MS / 60_000).toFixed(0)} min exceeded — stopping before iteration ${iteration}.\n`;
+    console.log(note);
+    iterationSummaries.push(note);
+    writeSummary();
+    break;
+  }
   console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
+  const iterStart = Date.now();
+  const iterLog: string[] = [`## Iteration ${iteration}`, ``];
 
   // -------------------------------------------------------------------------
   // Phase 1: Plan
@@ -100,15 +156,21 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   if (issues.length === 0) {
     // No unblocked work — either everything is done or everything is blocked.
     console.log("No unblocked issues to work on. Exiting.");
+    iterLog.push(`Planner found 0 unblocked issues — loop exited.`, ``);
+    iterationSummaries.push(...iterLog);
+    writeSummary();
     break;
   }
 
   console.log(
     `Planning complete. ${issues.length} issue(s) to work in parallel:`,
   );
+  iterLog.push(`### Planner`, ``, `Selected ${issues.length} issue(s):`, ``);
   for (const issue of issues) {
     console.log(`  ${issue.id}: ${issue.title} → ${issue.branch}`);
+    iterLog.push(`- #${issue.id} "${issue.title}" → \`${issue.branch}\``);
   }
+  iterLog.push(``);
 
   // -------------------------------------------------------------------------
   // Phase 2: Execute
@@ -127,8 +189,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
         sandbox,
         branchStrategy: { type: "branch", branch: issue.branch },
         name: "implementer",
-        // Give each agent plenty of room to implement and iterate on tests.
-        maxIterations: 100,
+        maxIterations: IMPLEMENTER_MAX_ITERATIONS,
         agent,
         promptFile: "./.sandcastle/implement-prompt.md",
         // Prompt arguments substitute {{TASK_ID}}, {{ISSUE_TITLE}},
@@ -175,6 +236,17 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   console.log(
     `\nExecution complete. ${completedBranches.length} branch(es) with commits:`,
   );
+  iterLog.push(`### Implementers`, ``);
+  for (const [i, outcome] of settled.entries()) {
+    const issue = issues[i]!;
+    if (outcome.status === "rejected") {
+      iterLog.push(`- #${issue.id} (${issue.branch}) — **failed**: \`${String(outcome.reason).slice(0, 200)}\``);
+    } else {
+      const nCommits = outcome.value.commits.length;
+      iterLog.push(`- #${issue.id} (${issue.branch}) — ${nCommits} commit(s)`);
+    }
+  }
+  iterLog.push(``);
   for (const branch of completedBranches) {
     console.log(`  ${branch}`);
   }
@@ -182,6 +254,9 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   if (completedBranches.length === 0) {
     // All agents ran but none made commits — nothing to merge this cycle.
     console.log("No commits produced. Nothing to merge.");
+    iterLog.push(`No commits produced this iteration; skipping review + merge.`, ``);
+    iterationSummaries.push(...iterLog);
+    writeSummary();
     continue;
   }
 
@@ -213,13 +288,19 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     ),
   );
 
+  iterLog.push(`### Reviewers`, ``);
   for (const [i, outcome] of reviewSettled.entries()) {
+    const issue = completedIssues[i]!;
     if (outcome.status === "rejected") {
       console.error(
-        `  ✗ review of ${completedIssues[i]!.id} (${completedIssues[i]!.branch}) failed: ${outcome.reason}`,
+        `  ✗ review of ${issue.id} (${issue.branch}) failed: ${outcome.reason}`,
       );
+      iterLog.push(`- #${issue.id} — **failed**: \`${String(outcome.reason).slice(0, 200)}\``);
+    } else {
+      iterLog.push(`- #${issue.id} — completed (see issue comment for verdict)`);
     }
   }
+  iterLog.push(``);
   console.log(`\nReview complete for ${completedBranches.length} branch(es).`);
 
   // -------------------------------------------------------------------------
@@ -246,6 +327,23 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   });
 
   console.log("\nBranches merged.");
+  iterLog.push(
+    `### Merger`,
+    ``,
+    `Merged ${completedBranches.length} branch(es) into \`${launchBranch}\`.`,
+    ``,
+    `_Iteration duration: ${((Date.now() - iterStart) / 1000).toFixed(1)}s_`,
+    ``,
+  );
+  iterationSummaries.push(...iterLog);
+  writeSummary();
 }
 
+iterationSummaries.push(
+  `---`,
+  ``,
+  `Run finished at ${new Date().toISOString()} (total ${((Date.now() - runStartTime) / 1000).toFixed(1)}s).`,
+);
+writeSummary();
 console.log("\nAll done.");
+console.log(`Run summary: ${summaryPath}`);

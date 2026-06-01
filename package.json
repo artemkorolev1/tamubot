@@ -1,7 +1,5 @@
 {
   "scripts": {
-    "typecheck": "echo ok",
-    "test": "echo ok",
     "sandcastle": "node --env-file=.sandcastle/.env --import tsx .sandcastle/main.mts"
   },
   "devDependencies": {

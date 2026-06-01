@@ -35,7 +35,11 @@ If applicable, use RGR to complete the task.
 
 # FEEDBACK LOOPS
 
-Before committing, run `npm run typecheck` and `npm run test` to ensure the tests pass.
+Before committing, verify your change with the project's `make` targets:
+
+1. `make lint` (ruff) — **must pass**
+2. `make typecheck` (mypy with `ignore_missing_imports`) — **must pass**
+3. `make test` (pytest) — run it; some tests import heavy/GPU deps (torch, transformers, bitsandbytes, flash-linear-attention, opendataloader-pdf, dagster, docling-slim) that are intentionally absent from this sandbox. If `make test` reports `ModuleNotFoundError` for one of those, note it in the commit message under "Blockers or notes for next iteration" and proceed on the strength of lint + typecheck. If a test for code you actually changed fails, fix it first.
 
 # COMMIT
 

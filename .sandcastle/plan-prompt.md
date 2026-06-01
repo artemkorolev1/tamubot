@@ -1,14 +1,14 @@
 # ISSUES
 
-Here are the open issues in the repo:
+Here are the open issues in the repo that are explicitly labeled `ready-for-agent`:
 
 <issues-json>
 
-!`gh issue list --state open --limit 100 --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'`
+!`gh issue list --state open --label ready-for-agent --limit 100 --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'`
 
 </issues-json>
 
-The list above has already been filtered to issues ready for work.
+Issues without the `ready-for-agent` label are intentionally excluded — humans have not cleared them for autonomous work yet.
 
 # TASK
 
