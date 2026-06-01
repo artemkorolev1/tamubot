@@ -75,5 +75,10 @@ def boilerplate_reference_path() -> Path:
     return DATA_ROOT / "_meta" / "boilerplate_reference.parquet"
 
 
+def chunk_signature_index_path() -> Path:
+    """v6b cross-syllabus dedup signature index (MinHash per non-boilerplate chunk)."""
+    return DATA_ROOT / "_meta" / "chunk_signature_index.parquet"
+
+
 def report_path(dept: str) -> Path:
     return v6b_root(dept) / "pilot_bakeoff.xlsx"
