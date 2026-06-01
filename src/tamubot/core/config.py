@@ -141,6 +141,7 @@ USE_V6_PIPELINE: bool = os.getenv("USE_V6_PIPELINE", "false").lower() == "true"
 # queries). When False (default), boilerplate is excluded at query time.
 # Back-compat: pre-v6 chunks without the field are always kept (handled by $ne: True).
 INCLUDE_BOILERPLATE: bool = os.getenv("INCLUDE_BOILERPLATE", "false").lower() == "true"
+INCLUDE_DUPLICATE: bool = os.getenv("INCLUDE_DUPLICATE", "false").lower() == "true"
 # Cosine-sim threshold for the v6 tag stage; calibrated in Step 3 (target precision >=0.98).
 V6_TAG_THRESHOLD: float = float(os.getenv("V6_TAG_THRESHOLD", "0.92"))
 

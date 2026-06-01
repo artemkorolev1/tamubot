@@ -81,6 +81,9 @@ def _atlas_filter(course_id: str | None, term: str | None) -> dict | None:
     # the field (pre-v6 / pre-backfill chunks), so this is back-compat-safe.
     if not config.INCLUDE_BOILERPLATE:
         f["is_boilerplate"] = {"$ne": True}
+    # v6b Phase 2: default-exclude duplicates. Same back-compat pattern.
+    if not config.INCLUDE_DUPLICATE:
+        f["is_duplicate"] = {"$ne": True}
     return f if f else None
 
 
@@ -110,8 +113,14 @@ def _build_text_stage(query: str, k: int, course_id: str | None) -> list[dict]:
     if text_filters:
         compound["filter"] = text_filters
     # v6: default-exclude boilerplate via mustNot. Docs missing the field are kept.
+    mustNot: list[dict] = []
     if not config.INCLUDE_BOILERPLATE:
-        compound["mustNot"] = [{"equals": {"path": "is_boilerplate", "value": True}}]
+        mustNot.append({"equals": {"path": "is_boilerplate", "value": True}})
+    # v6b Phase 2: default-exclude duplicates.
+    if not config.INCLUDE_DUPLICATE:
+        mustNot.append({"equals": {"path": "is_duplicate", "value": True}})
+    if mustNot:
+        compound["mustNot"] = mustNot
     return [
         {"$search": {"index": TEXT_INDEX, "compound": compound}},
         {"$limit": k},

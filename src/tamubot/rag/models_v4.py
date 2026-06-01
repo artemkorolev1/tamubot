@@ -42,6 +42,10 @@ class ChunkDocV4(BaseModel):
     boilerplate_cluster: Optional[str] = None
     cluster_confidence: Optional[float] = None
 
+    # v6b Phase 2 dedup (additive — same back-compat pattern as is_boilerplate)
+    is_duplicate: bool = False
+    duplicate_of_chunk_id: Optional[str] = None
+
     # Chunking-strategy tag (e.g. "semantic", "600t_100o_fixed") + size/overlap for fixed runs
     chunk_tag: Optional[str] = None
     chunk_size: Optional[int] = None
