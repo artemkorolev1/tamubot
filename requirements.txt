@@ -29,6 +29,7 @@ trafilatura
 pymupdf
 docling-slim[standard]
 scikit-learn  # required by vendored hierarchical postprocessor (DBSCAN clustering)
+datasketch>=1.6.5  # MinHash-LSH for v6b boilerplate / dedup tagging
 pydantic>=2.0
 dagster>=1.13
 dagster-webserver>=1.13  # provides `dagster dev` UI (ports 3000/3001)
