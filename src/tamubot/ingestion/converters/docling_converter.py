@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Union
 
 from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling_core.transforms.serializer.markdown import (
     MarkdownDocSerializer,
@@ -82,8 +82,10 @@ class _CustomTextSerializer(MarkdownTextSerializer):
         return f"{'#' * num_hashes} {text}"
 
 
-def create_converter() -> DocumentConverter:
-    """Create a Docling DocumentConverter (expensive — call once, reuse)."""
+def _build_pipeline_options() -> PdfPipelineOptions:
+    """PDF pipeline options for v6b. Table structure on, ACCURATE TableFormer,
+    cell-matching off (uses model-predicted cells — fixes merged grading-table
+    columns)."""
     pipeline_options = PdfPipelineOptions(
         do_ocr=False,
         do_table_structure=True,  # was False — see plan v6b-table-content
@@ -93,8 +95,15 @@ def create_converter() -> DocumentConverter:
         do_formula_enrichment=False,
         do_chart_extraction=False,
     )
+    pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE
+    pipeline_options.table_structure_options.do_cell_matching = False
+    return pipeline_options
+
+
+def create_converter() -> DocumentConverter:
+    """Create a Docling DocumentConverter (expensive — call once, reuse)."""
     return DocumentConverter(
-        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)},
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=_build_pipeline_options())},
     )
 
 
