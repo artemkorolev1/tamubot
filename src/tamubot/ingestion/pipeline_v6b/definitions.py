@@ -11,6 +11,7 @@ resolves under v5/raw/) so v6b never copies PDFs.
 from dagster import Definitions, in_process_executor
 
 from tamubot.ingestion.pipeline_v6b.assets.bronze_blocks import bronze_blocks
+from tamubot.ingestion.pipeline_v6b.assets.corpus_report import v6b_corpus_report
 from tamubot.ingestion.pipeline_v6b.assets.silver_atlas_upsert import silver_atlas_upsert
 from tamubot.ingestion.pipeline_v6b.assets.silver_chunk_semantic import silver_chunk_semantic
 from tamubot.ingestion.pipeline_v6b.assets.silver_embed import silver_embed
@@ -61,6 +62,7 @@ defs = Definitions(
         silver_embed,
         silver_atlas_upsert,
         silver_structured,
+        v6b_corpus_report,
     ],
     asset_checks=[
         v6b_bronze_blocks_nonempty,
