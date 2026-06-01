@@ -95,8 +95,8 @@ def _build_pipeline_options() -> PdfPipelineOptions:
         do_formula_enrichment=False,
         do_chart_extraction=False,
     )
-    pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE
-    pipeline_options.table_structure_options.do_cell_matching = False
+    pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE  # type: ignore[attr-defined]
+    pipeline_options.table_structure_options.do_cell_matching = False  # type: ignore[attr-defined]
     return pipeline_options
 
 
