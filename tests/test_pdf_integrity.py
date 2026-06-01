@@ -18,3 +18,17 @@ def test_healthy_pdf_passes():
     out = check_pdf_integrity(page_count=5, markdown_chars=4000, min_chars_per_page=50)
     assert out.passed is True
     assert out.metadata["chars_per_page"] == 800.0
+
+
+def test_check_reads_markdown_and_pdf(tmp_path, monkeypatch):
+    from tamubot.ingestion.pipeline_v6b.checks import bronze_blocks_checks as c
+
+    md = tmp_path / "stem.md"
+    md.write_text("x" * 4000, encoding="utf-8")
+    monkeypatch.setattr(c.paths, "bronze_md_path", lambda stem: md)
+    monkeypatch.setattr(c.paths, "raw_path", lambda stem: tmp_path / "stem.pdf")
+    monkeypatch.setattr(c, "count_pdf_pages", lambda p: 5)
+
+    out = c._evaluate_source_integrity("stem")  # pure inner helper
+    assert out.passed is True
+    assert out.metadata["chars_per_page"] == 800.0

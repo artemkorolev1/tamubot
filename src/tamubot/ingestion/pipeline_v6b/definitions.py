@@ -52,6 +52,7 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_tag_checks import (
     v6b_silver_tag_chunk_count_preserved,
 )
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource, NuExtractResource
+from tamubot.ingestion.pipeline_v6b.sensors import v6b_check_failure_alert
 
 defs = Definitions(
     assets=[
@@ -87,6 +88,7 @@ defs = Definitions(
         v6b_silver_atlas_index_size_vs_baseline,
         v6b_silver_atlas_golden_recall_at_5,
     ],
+    sensors=[v6b_check_failure_alert],
     resources={
         "docling": DoclingConverterResource(),
         "nuextract": NuExtractResource(),

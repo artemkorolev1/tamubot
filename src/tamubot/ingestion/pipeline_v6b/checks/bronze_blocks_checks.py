@@ -16,7 +16,9 @@ from tamubot.ingestion.validation.baseline_diff import (
     read_metadata_history,
 )
 from tamubot.ingestion.validation.header_hierarchy import check_header_hierarchy_valid
+from tamubot.ingestion.validation.pdf_integrity import check_pdf_integrity, count_pdf_pages
 from tamubot.ingestion.validation.text_quality import check_no_replacement_chars
+from tamubot.ingestion.validation.types import CheckOutcome
 
 
 @asset_check(asset="v6b_bronze_blocks", blocking=True)
@@ -95,6 +97,27 @@ def v6b_bronze_blocks_block_count_vs_baseline(
         last_n=5,
     )
     outcome = compute_baseline_delta(current=len(blocks), history=history, max_drift_pct=0.20)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        metadata=outcome.metadata,
+    )
+
+
+def _evaluate_source_integrity(stem: str) -> CheckOutcome:
+    md_path = paths.bronze_md_path(stem)
+    markdown_chars = len(md_path.read_text(encoding="utf-8")) if md_path.exists() else 0
+    page_count = count_pdf_pages(paths.raw_path(stem))
+    return check_pdf_integrity(page_count=page_count, markdown_chars=markdown_chars)
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False)
+def v6b_bronze_blocks_source_integrity(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """WARN if the source PDF has no pages or near-zero extractable text
+    (scanned/corrupt syllabus — would index as empty)."""
+    outcome = _evaluate_source_integrity(context.partition_key)
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,

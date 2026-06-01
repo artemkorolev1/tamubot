@@ -19,6 +19,7 @@ from tamubot.ingestion.pipeline_v5.util import code_version_of, dept_from_stem, 
 from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource
+from tamubot.ingestion.validation.pdf_integrity import count_pdf_pages
 
 
 def _deadletter_path(stem: str):
@@ -72,6 +73,8 @@ def _compute_bronze_blocks(
     for b in blocks:
         type_counts[b["type"]] = type_counts.get(b["type"], 0) + 1
 
+    page_count = count_pdf_pages(pdf)
+
     return MaterializeResult(
         metadata={
             "stem": stem,
@@ -79,6 +82,7 @@ def _compute_bronze_blocks(
             "blocks_path": MetadataValue.path(str(blocks_out)),
             "block_count": len(blocks),
             "block_types": MetadataValue.json(type_counts),
+            "page_count": page_count,
             "sha256": hash_file(blocks_out),
             "preview": MetadataValue.json(blocks[:5]),
         }
