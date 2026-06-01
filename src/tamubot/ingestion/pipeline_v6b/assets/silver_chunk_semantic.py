@@ -83,6 +83,8 @@ def _compute_silver_chunk_semantic(context: AssetExecutionContext) -> Materializ
                 "is_boilerplate": False,
                 "boilerplate_cluster": None,
                 "cluster_confidence": None,
+                "is_duplicate": False,
+                "duplicate_of_chunk_id": None,
                 "chunk_tag": CHUNK_TAG,
                 "chunk_size": None,
                 "chunk_overlap": None,
