@@ -12,6 +12,12 @@ from dagster import Definitions, in_process_executor
 
 from tamubot.ingestion.pipeline_v6b.assets.bronze_blocks import bronze_blocks
 from tamubot.ingestion.pipeline_v6b.assets.corpus_report import v6b_corpus_report
+from tamubot.ingestion.pipeline_v6b.assets.meta_boilerplate_reference import (
+    v6b_meta_boilerplate_reference,
+)
+from tamubot.ingestion.pipeline_v6b.assets.meta_chunk_signature_index import (
+    v6b_meta_chunk_signature_index,
+)
 from tamubot.ingestion.pipeline_v6b.assets.silver_atlas_upsert import silver_atlas_upsert
 from tamubot.ingestion.pipeline_v6b.assets.silver_chunk_semantic import silver_chunk_semantic
 from tamubot.ingestion.pipeline_v6b.assets.silver_embed import silver_embed
@@ -50,7 +56,9 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
     v6b_silver_modal_result_schema_valid,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_tag_checks import (
+    v6b_silver_tag_boilerplate_rate_in_band,
     v6b_silver_tag_chunk_count_preserved,
+    v6b_silver_tag_duplicate_rate_in_band,
 )
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource, NuExtractResource
 from tamubot.ingestion.pipeline_v6b.sensors import v6b_check_failure_alert
@@ -65,6 +73,8 @@ defs = Definitions(
         silver_atlas_upsert,
         silver_structured,
         v6b_corpus_report,
+        v6b_meta_boilerplate_reference,
+        v6b_meta_chunk_signature_index,
     ],
     asset_checks=[
         v6b_bronze_blocks_nonempty,
@@ -79,6 +89,8 @@ defs = Definitions(
         v6b_silver_chunk_no_oversized,
         v6b_silver_chunk_schema_valid,
         v6b_silver_tag_chunk_count_preserved,
+        v6b_silver_tag_boilerplate_rate_in_band,
+        v6b_silver_tag_duplicate_rate_in_band,
         v6b_silver_embed_count_matches_chunks,
         v6b_silver_embed_model_field_present,
         v6b_silver_atlas_vector_count_matches_chunks,
