@@ -8,7 +8,7 @@ asset. The bronze_blocks asset reads through `paths.raw_path(stem)` (which
 resolves under v5/raw/) so v6b never copies PDFs.
 """
 
-from dagster import Definitions, in_process_executor
+from dagster import AssetSelection, Definitions, define_asset_job, in_process_executor
 
 from tamubot.ingestion.pipeline_v6b.assets.bronze_blocks import bronze_blocks
 from tamubot.ingestion.pipeline_v6b.assets.corpus_report import v6b_corpus_report
@@ -17,6 +17,9 @@ from tamubot.ingestion.pipeline_v6b.assets.meta_boilerplate_reference import (
 )
 from tamubot.ingestion.pipeline_v6b.assets.meta_chunk_signature_index import (
     v6b_meta_chunk_signature_index,
+)
+from tamubot.ingestion.pipeline_v6b.assets.preprocessing_judge_report import (
+    v6b_preprocessing_judge_report,
 )
 from tamubot.ingestion.pipeline_v6b.assets.silver_atlas_upsert import silver_atlas_upsert
 from tamubot.ingestion.pipeline_v6b.assets.silver_chunk_semantic import silver_chunk_semantic
@@ -63,6 +66,20 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_tag_checks import (
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource, NuExtractResource
 from tamubot.ingestion.pipeline_v6b.sensors import v6b_check_failure_alert
 
+v6b_pilot_job = define_asset_job(
+    "v6b_pilot_job",
+    selection=AssetSelection.assets(
+        "v6b_bronze_blocks",
+        "v6b_silver_modal",
+        "v6b_silver_chunk_semantic",
+        "v6b_silver_tag_semantic",
+        "v6b_silver_embed",
+        "v6b_silver_atlas_upsert",
+        "v6b_silver_structured",
+    ),
+    description="Per-syllabus partitioned pipeline. Backfill this to materialize all 7 stages in one launch.",
+)
+
 defs = Definitions(
     assets=[
         bronze_blocks,
@@ -75,6 +92,7 @@ defs = Definitions(
         v6b_corpus_report,
         v6b_meta_boilerplate_reference,
         v6b_meta_chunk_signature_index,
+        v6b_preprocessing_judge_report,
     ],
     asset_checks=[
         v6b_bronze_blocks_nonempty,
@@ -102,6 +120,7 @@ defs = Definitions(
         v6b_silver_atlas_index_size_vs_baseline,
         v6b_silver_atlas_golden_recall_at_5,
     ],
+    jobs=[v6b_pilot_job],
     sensors=[v6b_check_failure_alert],
     resources={
         "docling": DoclingConverterResource(),
