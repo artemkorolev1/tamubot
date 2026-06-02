@@ -28,9 +28,10 @@ services:
       --quantization bitsandbytes
       --limit-mm-per-prompt '{"image": 6, "video": 0}'
       --chat-template-content-format openai
-      --max-model-len 16384
+      --max-model-len 8192
       --max-num-seqs 2
-      --gpu-memory-utilization 0.80
+      --enforce-eager
+      --gpu-memory-utilization 0.78
     deploy:
       resources:
         reservations:

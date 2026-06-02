@@ -74,8 +74,8 @@ def _scan_atlas_stems_by_dept() -> dict[str, set[str]]:
 
     from tamubot.core import config
 
-    uri = os.getenv("MONGO_URI") or config.MONGO_URI
-    db_name = os.getenv("MONGO_DB") or config.MONGO_DB
+    uri = os.getenv("MONGODB_URI") or config.MONGODB_URI
+    db_name = os.getenv("MONGODB_DB") or config.MONGODB_DB
     client: MongoClient = MongoClient(uri)
     db = client[db_name]
 
