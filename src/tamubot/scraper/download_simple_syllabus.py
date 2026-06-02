@@ -12,6 +12,7 @@ Output structure:
 
 import json
 import os
+import random
 import re
 import time
 from urllib.parse import quote
@@ -22,9 +23,29 @@ from playwright.sync_api import sync_playwright
 
 DEPARTMENTS = {"CSCE", "ISEN", "STAT", "ECEN"}
 GRADUATE_ONLY = True  # course number >= 600
-TARGET_TERMS = {"Summer 2025", "Fall 2025", "Spring 2026", "Summer 2026", "Fall 2026"}
+TARGET_TERMS = {"Spring 2026", "Summer 2026", "Fall 2026"}
 PAGE_SIZE = 50
-DELAY = 1.0  # seconds between requests
+# Pacing is env-tunable so a broad crawl can slow down to stay under CloudFront's WAF
+# rate limits on the API path (which returns 403 HTML error pages when tripped).
+DELAY = float(os.getenv("SIMPLE_SYLLABUS_DELAY", "1.0"))  # seconds between requests
+MAX_RETRIES = int(os.getenv("SIMPLE_SYLLABUS_MAX_RETRIES", "5"))
+
+# Optional cellular-data budget for running over a metered phone hotspot: stop once estimated
+# network use reaches this many MB (0 = unlimited). The view page render costs more than the
+# saved PDF, so we approximate network ≈ output_bytes × NET_FACTOR. Deliberately conservative
+# (overestimates → stops early rather than overshooting the data cap). Resumable: re-running
+# skips already-downloaded files, so a stop is safe.
+MAX_MB = float(os.getenv("SIMPLE_SYLLABUS_MAX_MB", "0"))
+NET_FACTOR = float(os.getenv("SIMPLE_SYLLABUS_NET_FACTOR", "2.5"))
+
+# SIMPLE_SYLLABUS_DEPTS overrides the department set with a comma-separated list
+# (e.g. "CSCE,ECEN,ACCT"). Used for the broad "all departments" golden-set crawl, where the
+# list is derived from the Howdy Portal scrape: the Simple Syllabus API requires a non-empty
+# `search=` value (an empty search returns an HTML error page, not JSON), so it must be queried
+# one department at a time. The default set is otherwise left intact for normal runs.
+_DEPTS_ENV = os.getenv("SIMPLE_SYLLABUS_DEPTS", "").strip()
+if _DEPTS_ENV:
+    DEPARTMENTS = {d.strip().upper() for d in _DEPTS_ENV.split(",") if d.strip()}
 
 BASE = "https://tamu.simplesyllabus.com"
 API = f"{BASE}/api2/doc-library-search"
@@ -86,6 +107,42 @@ def output_dir_for(subject: str, term: str) -> str:
     return os.path.join(RAW_ROOT, subject, subgroup, term_to_folder(term))
 
 
+def fetch_json(page, url: str) -> dict:
+    """Fetch a JSON API page via the browser context, retrying through transient
+    CloudFront/WAF blocks (HTTP 403 + HTML error page) with exponential backoff.
+
+    Between retries we re-seed the session by reloading the library page, which refreshes
+    cookies. Raises RuntimeError if still blocked after MAX_RETRIES.
+    """
+    status, body = None, ""
+    for attempt in range(1, MAX_RETRIES + 1):
+        res = page.evaluate(
+            """async (u) => {
+                try {
+                    const r = await fetch(u, {headers: {Accept: 'application/json'}});
+                    return {status: r.status, body: await r.text()};
+                } catch (e) {
+                    return {status: -1, body: String(e)};
+                }
+            }""",
+            url,
+        )
+        status, body = res.get("status"), res.get("body", "")
+        if status == 200:
+            try:
+                return json.loads(body)
+            except json.JSONDecodeError:
+                pass  # 200 but not JSON — treat as transient and retry
+        wait = min(60, 5 * 2 ** (attempt - 1)) + random.uniform(0, 3)
+        print(f"    [retry {attempt}/{MAX_RETRIES}] status={status}; backing off {wait:.0f}s…")
+        time.sleep(wait)
+        try:
+            page.goto(f"{BASE}/en-US/syllabus-library", wait_until="networkidle", timeout=45000)
+        except Exception:
+            pass
+    raise RuntimeError(f"Blocked after {MAX_RETRIES} retries (last status={status}): {url}")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 
@@ -111,10 +168,7 @@ def main():
 
             while True:
                 url = f"{API}?{PARAMS.format(dept=dept, ps=PAGE_SIZE, pg=pg)}"
-                data = page.evaluate(f'''async () => {{
-                    const r = await fetch("{url}", {{headers:{{Accept:"application/json"}}}});
-                    return await r.json();
-                }}''')
+                data = fetch_json(page, url)
 
                 items = data.get("items", [])
                 if total is None:
@@ -161,6 +215,7 @@ def main():
         # ── Phase 2: print each syllabus view page to PDF ───────────────────
         # Group metadata by output directory
         meta_by_dir: dict[str, dict] = {}
+        est_bytes = 0.0  # running estimate of cellular data used (for the optional budget)
 
         for i, c in enumerate(candidates, 1):
             subject = c["subject"]
@@ -194,10 +249,19 @@ def main():
             try:
                 page.goto(view_url, wait_until="networkidle", timeout=30000)
                 page.pdf(path=out_path, format="Letter", print_background=True)
-                size_kb = os.path.getsize(out_path) // 1024
-                print(f"OK ({size_kb}KB)")
+                size = os.path.getsize(out_path)
+                est_bytes += size * NET_FACTOR
+                est_mb = est_bytes / 1_000_000
+                print(f"OK ({size // 1024}KB)  [~{est_mb:.0f} MB est. data used]")
             except Exception as e:
                 print(f"ERROR: {e}")
+
+            if MAX_MB and est_bytes / 1_000_000 >= MAX_MB:
+                print(
+                    f"\n⛔ Data budget reached (~{est_bytes / 1_000_000:.0f} MB ≥ {MAX_MB:.0f} MB cap). "
+                    f"Stopping. Re-run later to resume — already-downloaded files are skipped."
+                )
+                break
 
             time.sleep(DELAY)
 
@@ -211,6 +275,7 @@ def main():
         print(f"Metadata: {meta_path} ({len(meta)} entries)")
 
     print(f"\nDone. Output root: {RAW_ROOT}")
+    print(f"Estimated cellular data used this run: ~{est_bytes / 1_000_000:.0f} MB")
 
 
 if __name__ == "__main__":

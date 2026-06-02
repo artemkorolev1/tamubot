@@ -1,26 +1,39 @@
-// Parallel Planner — three-phase orchestration loop
+// Parallel Planner — human-gated, per-stage orchestration.
 //
-// This template drives a multi-phase workflow:
-//   Phase 1 (Plan):    An opus agent analyzes open issues, builds a dependency
-//                      graph, and outputs a <plan> JSON listing unblocked issues
-//                      with their target branch names.
-//   Phase 2 (Execute): N sonnet agents run in parallel via Promise.allSettled,
-//                      each working a single issue on its own branch.
-//   Phase 3 (Merge):   A sonnet agent merges all branches that produced commits.
+// A single invocation runs ONE round:
+//   Phase 1 (Plan):    An opus agent reads `ready-for-agent` issues, builds a
+//                      dependency graph, and emits a <plan> of unblocked issues.
+//   Phase 2 (Execute): N sonnet agents in parallel (Promise.allSettled), each
+//                      working one issue on its own `sandcastle/issue-{id}` branch.
+//   Phase 3 (Review):  One sonnet agent per completed branch posts a verdict
+//                      comment on the issue.
+//   STOP — nothing is merged. A merge plan is printed; YOU decide what merges.
+//   Phase 4 (Merge):   Run separately, after you approve, via the `merge` mode.
 //
-// The outer loop repeats up to MAX_ITERATIONS times so that newly unblocked
-// issues are picked up after each round of merges.
+// Models and skills are per-role (see the configuration block below): Opus for
+// planning/merging, Sonnet for the parallel implementers/reviewers; each role
+// gets its own curated skill mount so a coding agent isn't handed unrelated
+// domain skills.
+//
+// Two human gates: you approve the PLAN, then you approve the MERGE.
 //
 // Usage:
-//   npx tsx .sandcastle/main.mts
-// Or add to package.json:
-//   "scripts": { "sandcastle": "npx tsx .sandcastle/main.mts" }
+//   npm run sandcastle                         # GATE 1: plan only — show the plan, then stop
+//   npm run sandcastle -- execute              # run the approved plan (execute → review), stop at merge gate
+//   npm run sandcastle -- merge <branch...>    # GATE 2: human-approved merge of the listed branches
+//   npm run sandcastle -- merge                # dry-run: list mergeable branches, merge nothing
+//   npm run sandcastle -- auto                 # no plan gate: plan + execute + review in one shot
+//   npm run sandcastle -- implement <id> [title]   # re-run a single implementer
+//   npm run sandcastle -- review <id>              # re-run a single reviewer
+//
+// (The bare script is `node --env-file=.sandcastle/.env --import tsx .sandcastle/main.mts`.)
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
 import { execSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 // Required env (NOT auto-loaded from .sandcastle/.env — invoke with
@@ -34,12 +47,10 @@ if (process.env.ANTHROPIC_API_KEY) {
   throw new Error("ANTHROPIC_API_KEY is set — it would override Max-subscription auth. Unset it before running.");
 }
 
-// Pre-flight: refuse to run on a dirty working tree. The orchestrator's
-// per-issue worktrees branch off HEAD; uncommitted changes on the host
-// would either be silently invisible to the agents (best case) or get
-// captured into a commit by something else mid-run (the cross-stream
-// interference we hit in the first smoke). Override with
-// SANDCASTLE_ALLOW_DIRTY=1 when you knowingly want to proceed.
+// Pre-flight: refuse to run on a dirty working tree. Per-issue worktrees branch
+// off HEAD; uncommitted host changes would either be invisible to the agents or
+// get captured mid-run. The merge mode also needs a clean tree to merge into.
+// Override with SANDCASTLE_ALLOW_DIRTY=1 when you knowingly want to proceed.
 const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim();
 if (dirty && process.env.SANDCASTLE_ALLOW_DIRTY !== "1") {
   throw new Error(
@@ -47,303 +58,465 @@ if (dirty && process.env.SANDCASTLE_ALLOW_DIRTY !== "1") {
   );
 }
 const launchBranch = execSync("git branch --show-current", { encoding: "utf8" }).trim();
-console.log(`Launch branch: ${launchBranch}`);
 
-// Shared agent + sandbox: tokens forwarded into every container exec.
-const agent = sandcastle.claudeCode("claude-opus-4-7");
-const sandbox = docker({
-  imageName: "tamubot-sandcastle:local",
-  env: { CLAUDE_CODE_OAUTH_TOKEN: oauthToken, GH_TOKEN: ghToken },
-});
+// ---------------------------------------------------------------------------
+// Configuration — models
+// ---------------------------------------------------------------------------
+// Planning and merging are the high-stakes reasoning phases (dependency graphs;
+// conflict resolution + keeping the integrated tree green), so they run on Opus.
+// Implementers and reviewers are well-scoped and far more numerous, so they run
+// on Sonnet. Override any of these with the SANDCASTLE_*_MODEL env vars.
+const PLANNER_MODEL = process.env.SANDCASTLE_PLANNER_MODEL ?? "claude-opus-4-8";
+const IMPLEMENTER_MODEL = process.env.SANDCASTLE_IMPLEMENTER_MODEL ?? "claude-sonnet-4-6";
+const REVIEWER_MODEL = process.env.SANDCASTLE_REVIEWER_MODEL ?? "claude-sonnet-4-6";
+const MERGER_MODEL = process.env.SANDCASTLE_MERGER_MODEL ?? "claude-opus-4-8";
+
+const plannerAgent = sandcastle.claudeCode(PLANNER_MODEL);
+const implementerAgent = sandcastle.claudeCode(IMPLEMENTER_MODEL);
+const reviewerAgent = sandcastle.claudeCode(REVIEWER_MODEL);
+const mergerAgent = sandcastle.claudeCode(MERGER_MODEL);
+
+// ---------------------------------------------------------------------------
+// Configuration — per-stage skills  ◀── EDIT HERE to change what each role can do
+// ---------------------------------------------------------------------------
+// Each list names directories under the HOST's ~/.claude/skills. The matching
+// skill is bind-mounted (read-write) into that role's sandbox at
+// /home/agent/.claude/skills/<name>, so only the listed skills are visible to
+// that stage. Edits an agent makes to a skill write back to the host and persist
+// into the next run. A name that doesn't resolve to a host dir is skipped with a
+// warning (so you can leave aspirational entries in the list).
+const PLANNER_SKILLS = ["task-budget", "to-prd", "grill-with-docs"];
+const IMPLEMENTER_SKILLS = [
+  "tdd",
+  "diagnose",
+  "probe-rag",
+  "run-eval",
+  "langfuse",
+  "server-ops",
+  "task-budget",
+];
+const REVIEWER_SKILLS = ["improve-codebase-architecture", "diagnose"];
+const MERGER_SKILLS = ["task-budget"];
+
+// Implementer iteration cap. Most well-scoped issues converge in <10 turns; a
+// misbehaving agent that loops forever costs real budget — keep this tight.
+const IMPLEMENTER_MAX_ITERATIONS = Number(process.env.SANDCASTLE_IMPLEMENTER_MAX_ITERATIONS ?? 30);
+
+// ---------------------------------------------------------------------------
+// Per-role sandboxes (curated skill mounts)
+// ---------------------------------------------------------------------------
+type Mount = { hostPath: string; sandboxPath: string; readonly?: boolean };
+
+const HOST_SKILLS_DIR = join(homedir(), ".claude", "skills");
+
+function skillMounts(skillNames: readonly string[]): Mount[] {
+  const mounts: Mount[] = [];
+  for (const name of skillNames) {
+    const hostPath = join(HOST_SKILLS_DIR, name);
+    if (existsSync(hostPath)) {
+      mounts.push({ hostPath, sandboxPath: `~/.claude/skills/${name}` });
+    } else {
+      console.warn(`  ⚠ skill "${name}" not found at ${hostPath} — skipping mount`);
+    }
+  }
+  return mounts;
+}
+
+function sandboxWithSkills(skillNames: readonly string[]) {
+  return docker({
+    imageName: "tamubot-sandcastle:local",
+    env: { CLAUDE_CODE_OAUTH_TOKEN: oauthToken!, GH_TOKEN: ghToken! },
+    mounts: skillMounts(skillNames),
+  });
+}
+
+const plannerSandbox = sandboxWithSkills(PLANNER_SKILLS);
+const implementerSandbox = sandboxWithSkills(IMPLEMENTER_SKILLS);
+const reviewerSandbox = sandboxWithSkills(REVIEWER_SKILLS);
+const mergerSandbox = sandboxWithSkills(MERGER_SKILLS);
+
+const hooks = {
+  sandbox: { onSandboxReady: [{ command: "echo sandbox ready" }] },
+};
 
 // The planner emits its plan as JSON inside <plan> tags; Output.object extracts
-// and validates it against this schema. We use Zod here, but any Standard
-// Schema validator works just as well — Valibot, ArkType, etc. See
-// https://standardschema.dev.
+// and validates it against this schema.
 const planSchema = z.object({
   issues: z.array(
     z.object({ id: z.string(), title: z.string(), branch: z.string() }),
   ),
 });
 
+type Issue = { id: string; title: string; branch: string };
+
 // ---------------------------------------------------------------------------
-// Configuration
+// Logging / run artifacts
 // ---------------------------------------------------------------------------
-
-// Maximum number of plan→execute→merge cycles before stopping.
-// Raise this if your backlog is large; lower it for a quick smoke-test run.
-const MAX_ITERATIONS = 10;
-
-// Hard cap on total wall-clock runtime. Sandcastle bills against the Max
-// subscription quota — without a stop, a thrashing implementer could chew
-// through a 5-hour window. Override with SANDCASTLE_MAX_RUNTIME_MS=...
-const MAX_RUNTIME_MS = Number(process.env.SANDCASTLE_MAX_RUNTIME_MS ?? 90 * 60 * 1000);
-
-// Implementer iteration cap. The scaffold defaulted to 100, which is wildly
-// generous; most well-scoped issues converge in <10 turns. A misbehaving
-// agent that loops forever costs real budget — keep this tight unless an
-// issue truly needs it.
-const IMPLEMENTER_MAX_ITERATIONS = Number(process.env.SANDCASTLE_IMPLEMENTER_MAX_ITERATIONS ?? 30);
-
-// Per-run artifact summary directory.
 const runStartedAt = new Date().toISOString().replace(/[:.]/g, "-");
 const runsDir = join(".sandcastle", "logs", "runs");
-mkdirSync(runsDir, { recursive: true });
+const runLogDir = join(runsDir, runStartedAt);
+mkdirSync(runLogDir, { recursive: true });
 const summaryPath = join(runsDir, `${runStartedAt}.md`);
-const iterationSummaries: string[] = [
-  `# Sandcastle run — ${runStartedAt}`,
-  ``,
-  `- Launch branch: \`${launchBranch}\``,
-  `- Max iterations: ${MAX_ITERATIONS}`,
-  `- Implementer max iterations: ${IMPLEMENTER_MAX_ITERATIONS}`,
-  `- Hard runtime cap: ${(MAX_RUNTIME_MS / 60_000).toFixed(0)} min`,
-  ``,
-];
-const runStartTime = Date.now();
-const writeSummary = () => writeFileSync(summaryPath, iterationSummaries.join("\n") + "\n");
-writeSummary();
+const summary: string[] = [];
+const writeSummary = () => writeFileSync(summaryPath, summary.join("\n") + "\n");
 
-// Lean setup: no npm install — the default agent prompts call `npm run
-// typecheck` / `npm run test`, which package.json maps to `echo ok` no-ops
-// for this smoke configuration. No host node_modules need to reach the
-// sandbox.
-const hooks = {
-  sandbox: { onSandboxReady: [{ command: "echo sandbox ready" }] },
-};
+// Predictable, per-run log path so each agent's full transcript is easy to find
+// and correlate. Returned to run() as `logging`; the same path is recorded in
+// the summary for observability.
+function logFor(role: string, key?: string) {
+  const name = key ? `${role}-${key}` : role;
+  return { type: "file" as const, path: join(runLogDir, `${name}.log`) };
+}
 
 // ---------------------------------------------------------------------------
-// Main loop
+// Helpers
 // ---------------------------------------------------------------------------
+const branchFor = (id: string) => `sandcastle/issue-${id}`;
+const idFromBranch = (b: string) => b.match(/issue-(\d+)/)?.[1] ?? b;
 
-for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
-  if (Date.now() - runStartTime > MAX_RUNTIME_MS) {
-    const note = `\nRuntime cap of ${(MAX_RUNTIME_MS / 60_000).toFixed(0)} min exceeded — stopping before iteration ${iteration}.\n`;
-    console.log(note);
-    iterationSummaries.push(note);
-    writeSummary();
-    break;
+// Where `plan` saves the approved plan for a later `execute` to pick up.
+const PLAN_FILE = join(".sandcastle", "logs", "last-plan.json");
+
+function loadPlan(): { launchBranch: string; issues: Issue[] } {
+  if (!existsSync(PLAN_FILE)) {
+    throw new Error(`No saved plan at ${PLAN_FILE}. Run \`npm run sandcastle -- plan\` first.`);
   }
-  console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
-  const iterStart = Date.now();
-  const iterLog: string[] = [`## Iteration ${iteration}`, ``];
+  return JSON.parse(readFileSync(PLAN_FILE, "utf8"));
+}
 
-  // -------------------------------------------------------------------------
-  // Phase 1: Plan
-  //
-  // The planning agent (opus, for deeper reasoning) reads the open issue list,
-  // builds a dependency graph, and selects the issues that can be worked in
-  // parallel right now (i.e., no blocking dependencies on other open issues).
-  //
-  // It outputs a <plan> JSON block — Output.object parses and validates it.
-  // -------------------------------------------------------------------------
+function issueTitle(id: string): string {
+  try {
+    return execSync(`gh issue view ${id} --json title --jq .title`, { encoding: "utf8" }).trim();
+  } catch {
+    return `issue ${id}`;
+  }
+}
+
+function parseVerdict(text: string): string {
+  if (/\*\*Changes requested\*\*/i.test(text)) return "Changes requested";
+  if (/\*\*LGTM with notes\*\*/i.test(text)) return "LGTM with notes";
+  if (/\*\*LGTM\*\*/i.test(text)) return "LGTM";
+  return "unknown";
+}
+
+// The reviewer's verdict lives in the issue comment it posts (the `gh` tool-call
+// body), which sandcastle routes to the log file but NOT to RunResult.stdout —
+// so we read it back from the posted comment, the source of truth. Pick the last
+// comment authored by the reviewer agent.
+function fetchVerdict(id: string): string {
+  try {
+    const body = execSync(
+      `gh issue view ${id} --json comments ` +
+        `--jq '[.comments[] | select(.body | contains("Sandcastle reviewer agent"))] | last | .body // ""'`,
+      { encoding: "utf8" },
+    );
+    return parseVerdict(body);
+  } catch {
+    return "unknown";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stage runners (shared by the full round and the single-issue re-run modes)
+// ---------------------------------------------------------------------------
+function runImplementer(issue: Issue) {
+  return sandcastle.run({
+    hooks,
+    sandbox: implementerSandbox,
+    branchStrategy: { type: "branch", branch: issue.branch },
+    name: "implementer",
+    maxIterations: IMPLEMENTER_MAX_ITERATIONS,
+    agent: implementerAgent,
+    promptFile: "./.sandcastle/implement-prompt.md",
+    logging: logFor("implementer", issue.id),
+    promptArgs: { TASK_ID: issue.id, ISSUE_TITLE: issue.title, BRANCH: issue.branch },
+  });
+}
+
+function runReviewer(issue: Issue) {
+  return sandcastle.run({
+    hooks,
+    sandbox: reviewerSandbox,
+    branchStrategy: { type: "branch", branch: issue.branch },
+    name: "reviewer",
+    maxIterations: 20,
+    agent: reviewerAgent,
+    promptFile: "./.sandcastle/review-prompt.md",
+    logging: logFor("reviewer", issue.id),
+    promptArgs: { TASK_ID: issue.id, ISSUE_TITLE: issue.title, BRANCH: issue.branch },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Mode: round — plan → execute → review, then STOP with a merge plan.
+// ---------------------------------------------------------------------------
+// --- Gate 1: Plan only. Run the planner, save the plan, print it, STOP. ---
+async function runPlan(): Promise<Issue[]> {
+  console.log(`Launch branch: ${launchBranch}`);
+  console.log(
+    `Models — planner: ${PLANNER_MODEL}, implementer: ${IMPLEMENTER_MODEL}, ` +
+      `reviewer: ${REVIEWER_MODEL}, merger: ${MERGER_MODEL}`,
+  );
+  summary.push(
+    `# Sandcastle plan — ${runStartedAt}`,
+    ``,
+    `- Launch branch: \`${launchBranch}\``,
+    `- Models: planner \`${PLANNER_MODEL}\`, implementer \`${IMPLEMENTER_MODEL}\`, reviewer \`${REVIEWER_MODEL}\`, merger \`${MERGER_MODEL}\``,
+    `- Implementer max iterations: ${IMPLEMENTER_MAX_ITERATIONS}`,
+    `- Logs: \`${runLogDir}\``,
+    ``,
+  );
+  writeSummary();
+
+  console.log(`\n=== Phase 1: Plan ===\n`);
   const plan = await sandcastle.run({
     hooks,
-    sandbox,
+    sandbox: plannerSandbox,
     name: "planner",
-    // One iteration is enough: the planner just needs to read and reason,
-    // not write code. (Structured output requires maxIterations: 1.)
     maxIterations: 1,
-    agent,
+    agent: plannerAgent,
     promptFile: "./.sandcastle/plan-prompt.md",
-    // Extract and validate the <plan> JSON into a typed object. Throws
-    // StructuredOutputError if the tag is missing, the JSON is malformed, or
-    // validation fails — which aborts the loop.
+    logging: logFor("planner"),
     output: sandcastle.Output.object({ tag: "plan", schema: planSchema }),
   });
-
   const issues = plan.output.issues;
 
+  summary.push(`## Plan`, ``, `Planner log: \`${plan.logFilePath ?? logFor("planner").path}\``, ``);
   if (issues.length === 0) {
-    // No unblocked work — either everything is done or everything is blocked.
-    console.log("No unblocked issues to work on. Exiting.");
-    iterLog.push(`Planner found 0 unblocked issues — loop exited.`, ``);
-    iterationSummaries.push(...iterLog);
+    console.log("No unblocked issues to work on.");
+    summary.push(`Planner found 0 unblocked issues — nothing to do.`, ``);
     writeSummary();
-    break;
+    return issues;
   }
-
-  console.log(
-    `Planning complete. ${issues.length} issue(s) to work in parallel:`,
-  );
-  iterLog.push(`### Planner`, ``, `Selected ${issues.length} issue(s):`, ``);
+  console.log(`${issues.length} issue(s) selected:`);
+  summary.push(`Selected ${issues.length} issue(s):`, ``);
   for (const issue of issues) {
-    console.log(`  ${issue.id}: ${issue.title} → ${issue.branch}`);
-    iterLog.push(`- #${issue.id} "${issue.title}" → \`${issue.branch}\``);
+    console.log(`  #${issue.id}: ${issue.title} → ${issue.branch}`);
+    summary.push(`- #${issue.id} "${issue.title}" → \`${issue.branch}\``);
   }
-  iterLog.push(``);
+  summary.push(``);
 
-  // -------------------------------------------------------------------------
-  // Phase 2: Execute
-  //
-  // Spawn one sonnet agent per issue, all running concurrently.
-  // Each agent works on its own branch so there are no conflicts during
-  // execution — merging happens in Phase 3.
-  //
-  // Promise.allSettled means one failing agent doesn't cancel the others.
-  // -------------------------------------------------------------------------
-  const settled = await Promise.allSettled(
-    issues.map((issue) =>
-      sandcastle.run({
-        hooks,
-        // Each agent starts on its own branch via branchStrategy on run().
-        sandbox,
-        branchStrategy: { type: "branch", branch: issue.branch },
-        name: "implementer",
-        maxIterations: IMPLEMENTER_MAX_ITERATIONS,
-        agent,
-        promptFile: "./.sandcastle/implement-prompt.md",
-        // Prompt arguments substitute {{TASK_ID}}, {{ISSUE_TITLE}},
-        // and {{BRANCH}} placeholders in implement-prompt.md before the
-        // agent sees the prompt.
-        promptArgs: {
-          TASK_ID: issue.id,
-          ISSUE_TITLE: issue.title,
-          BRANCH: issue.branch,
-        },
-      }),
-    ),
-  );
+  // Persist so a later `execute` invocation can pick this plan up.
+  writeFileSync(PLAN_FILE, JSON.stringify({ savedAt: runStartedAt, launchBranch, issues }, null, 2));
+  summary.push(`Plan saved to \`${PLAN_FILE}\`.`, ``);
+  writeSummary();
 
-  // Log any agents that threw (network error, sandbox crash, etc.).
-  for (const [i, outcome] of settled.entries()) {
-    if (outcome.status === "rejected") {
-      console.error(
-        `  ✗ ${issues[i]!.id} (${issues[i]!.branch}) failed: ${outcome.reason}`,
-      );
-    }
+  return issues;
+}
+
+// --- Phases 2+3: Execute the approved plan, then review. Stops at merge gate. ---
+async function runExecuteReview(issues: Issue[]) {
+  if (issues.length === 0) {
+    console.log("Plan is empty — nothing to execute.");
+    return;
   }
+  if (summary.length === 0) {
+    // Standalone `execute` invocation — seed a report header.
+    summary.push(
+      `# Sandcastle execute — ${runStartedAt}`,
+      ``,
+      `- Launch branch: \`${launchBranch}\``,
+      `- Executing ${issues.length} planned issue(s): ${issues.map((i) => `#${i.id}`).join(", ")}`,
+      `- Logs: \`${runLogDir}\``,
+      ``,
+    );
+    writeSummary();
+  }
+  // --- Phase 2: Execute ---
+  console.log(`\n=== Phase 2: Execute (${issues.length} in parallel) ===\n`);
+  const settled = await Promise.allSettled(issues.map((issue) => runImplementer(issue)));
 
-  // Only pass branches that actually produced commits to the merge phase.
-  // An agent that ran successfully but made no commits has nothing to merge.
-  const completedIssues = settled
-    .map((outcome, i) => ({ outcome, issue: issues[i]! }))
-    .filter(
-      (
-        entry,
-      ): entry is {
-        outcome: PromiseFulfilledResult<
-          Awaited<ReturnType<typeof sandcastle.run>>
-        >;
-        issue: (typeof issues)[number];
-      } =>
-        entry.outcome.status === "fulfilled" &&
-        entry.outcome.value.commits.length > 0,
-    )
-    .map((entry) => entry.issue);
-
-  const completedBranches = completedIssues.map((i) => i.branch);
-
-  console.log(
-    `\nExecution complete. ${completedBranches.length} branch(es) with commits:`,
-  );
-  iterLog.push(`### Implementers`, ``);
+  summary.push(`## Implementers`, ``);
+  const completedIssues: Issue[] = [];
   for (const [i, outcome] of settled.entries()) {
     const issue = issues[i]!;
+    const logPath = logFor("implementer", issue.id).path;
     if (outcome.status === "rejected") {
-      iterLog.push(`- #${issue.id} (${issue.branch}) — **failed**: \`${String(outcome.reason).slice(0, 200)}\``);
+      console.error(`  ✗ ${issue.id} (${issue.branch}) failed: ${outcome.reason}`);
+      summary.push(`- #${issue.id} (${issue.branch}) — **failed**: \`${String(outcome.reason).slice(0, 200)}\` — log: \`${logPath}\``);
     } else {
-      const nCommits = outcome.value.commits.length;
-      iterLog.push(`- #${issue.id} (${issue.branch}) — ${nCommits} commit(s)`);
+      const n = outcome.value.commits.length;
+      summary.push(`- #${issue.id} (${issue.branch}) — ${n} commit(s) — log: \`${logPath}\``);
+      if (n > 0) completedIssues.push(issue);
     }
   }
-  iterLog.push(``);
-  for (const branch of completedBranches) {
-    console.log(`  ${branch}`);
-  }
+  summary.push(``);
+  writeSummary();
 
-  if (completedBranches.length === 0) {
-    // All agents ran but none made commits — nothing to merge this cycle.
-    console.log("No commits produced. Nothing to merge.");
-    iterLog.push(`No commits produced this iteration; skipping review + merge.`, ``);
-    iterationSummaries.push(...iterLog);
+  if (completedIssues.length === 0) {
+    console.log("No commits produced. Nothing to review or merge.");
+    summary.push(`No commits produced — no review or merge plan.`, ``);
     writeSummary();
-    continue;
+    return;
   }
 
-  // -------------------------------------------------------------------------
-  // Phase 3: Review
-  //
-  // One reviewer agent per completed branch, in parallel. Each reviewer
-  // checks out the implementer's branch, diffs against the launch branch,
-  // and posts a brief code-review comment on the source issue via gh.
-  // Review is advisory — findings appear as issue comments; the merge
-  // proceeds regardless. (Tighten later by filtering on review verdict.)
-  // -------------------------------------------------------------------------
-  const reviewSettled = await Promise.allSettled(
-    completedIssues.map((issue) =>
-      sandcastle.run({
-        hooks,
-        sandbox,
-        branchStrategy: { type: "branch", branch: issue.branch },
-        name: "reviewer",
-        maxIterations: 20,
-        agent,
-        promptFile: "./.sandcastle/review-prompt.md",
-        promptArgs: {
-          TASK_ID: issue.id,
-          ISSUE_TITLE: issue.title,
-          BRANCH: issue.branch,
-        },
-      }),
-    ),
-  );
+  // --- Phase 3: Review ---
+  console.log(`\n=== Phase 3: Review (${completedIssues.length}) ===\n`);
+  const reviewSettled = await Promise.allSettled(completedIssues.map((issue) => runReviewer(issue)));
 
-  iterLog.push(`### Reviewers`, ``);
+  const verdicts = new Map<string, string>();
+  summary.push(`## Reviewers`, ``);
   for (const [i, outcome] of reviewSettled.entries()) {
     const issue = completedIssues[i]!;
+    const logPath = logFor("reviewer", issue.id).path;
     if (outcome.status === "rejected") {
-      console.error(
-        `  ✗ review of ${issue.id} (${issue.branch}) failed: ${outcome.reason}`,
-      );
-      iterLog.push(`- #${issue.id} — **failed**: \`${String(outcome.reason).slice(0, 200)}\``);
+      console.error(`  ✗ review of ${issue.id} failed: ${outcome.reason}`);
+      verdicts.set(issue.id, "review failed");
+      summary.push(`- #${issue.id} — **review failed**: \`${String(outcome.reason).slice(0, 200)}\` — log: \`${logPath}\``);
     } else {
-      iterLog.push(`- #${issue.id} — completed (see issue comment for verdict)`);
+      const verdict = fetchVerdict(issue.id);
+      verdicts.set(issue.id, verdict);
+      summary.push(`- #${issue.id} — verdict: **${verdict}** — log: \`${logPath}\``);
     }
   }
-  iterLog.push(``);
-  console.log(`\nReview complete for ${completedBranches.length} branch(es).`);
+  summary.push(``);
 
-  // -------------------------------------------------------------------------
-  // Phase 4: Merge
-  //
-  // One agent merges all reviewed branches into the current branch,
-  // resolving any conflicts and running tests to confirm everything still
-  // works. The {{BRANCHES}} and {{ISSUES}} prompt arguments tell it which
-  // branches to merge and which issues to close.
-  // -------------------------------------------------------------------------
+  // --- STOP: print the merge plan; do NOT merge ---
+  const cmd = `npm run sandcastle -- merge ${completedIssues.map((i) => i.branch).join(" ")}`;
+  console.log(`\n=== Review complete — MERGE IS GATED ON YOU ===\n`);
+  console.log(`Branches ready for your decision:`);
+  for (const issue of completedIssues) {
+    console.log(`  ${issue.branch}  [${verdicts.get(issue.id)}]   inspect: git diff ${launchBranch}..${issue.branch}`);
+  }
+  console.log(`\nWhen you've approved, merge the ones you want:\n  ${cmd}\n`);
+
+  summary.push(
+    `## Merge plan (gated — not yet merged)`,
+    ``,
+    ...completedIssues.map(
+      (i) => `- \`${i.branch}\` — verdict **${verdicts.get(i.id)}** — inspect: \`git diff ${launchBranch}..${i.branch}\``,
+    ),
+    ``,
+    `Approve and merge with:`,
+    ``,
+    "```",
+    cmd,
+    "```",
+    ``,
+  );
+  writeSummary();
+  console.log(`Run summary: ${summaryPath}`);
+}
+
+// ---------------------------------------------------------------------------
+// Mode: merge — human-approved merge of explicitly listed branches.
+// ---------------------------------------------------------------------------
+async function runMerge(branches: string[]) {
+  if (branches.length === 0) {
+    // Dry run: list candidate branches ahead of the launch branch; merge nothing.
+    const raw = execSync('git for-each-ref --format="%(refname:short)" refs/heads/sandcastle', {
+      encoding: "utf8",
+    }).trim();
+    const candidates = raw ? raw.split("\n") : [];
+    console.log(`No branches given — nothing merged. Candidate branches:`);
+    if (candidates.length === 0) {
+      console.log(`  (none found under sandcastle/*)`);
+      return;
+    }
+    for (const b of candidates) {
+      let ahead = "?";
+      try {
+        ahead = execSync(`git rev-list --count ${launchBranch}..${b}`, { encoding: "utf8" }).trim();
+      } catch {
+        /* ignore */
+      }
+      console.log(`  ${b}  (+${ahead} commit(s) over ${launchBranch})`);
+    }
+    console.log(`\nMerge with:\n  npm run sandcastle -- merge ${candidates.join(" ")}`);
+    return;
+  }
+
+  const issues: Issue[] = branches.map((b) => {
+    const id = idFromBranch(b);
+    return { id, title: issueTitle(id), branch: b };
+  });
+
+  console.log(`Merging ${branches.length} branch(es) into ${launchBranch}:`);
+  for (const i of issues) console.log(`  ${i.branch} (#${i.id} ${i.title})`);
+
   await sandcastle.run({
     hooks,
-    sandbox,
+    sandbox: mergerSandbox,
     name: "merger",
     maxIterations: 1,
-    agent,
+    agent: mergerAgent,
     promptFile: "./.sandcastle/merge-prompt.md",
+    logging: logFor("merger"),
     promptArgs: {
-      // A markdown list of branch names, one per line.
-      BRANCHES: completedBranches.map((b) => `- ${b}`).join("\n"),
-      // A markdown list of issue IDs and titles, one per line.
-      ISSUES: completedIssues.map((i) => `- ${i.id}: ${i.title}`).join("\n"),
+      BRANCHES: branches.map((b) => `- ${b}`).join("\n"),
+      ISSUES: issues.map((i) => `- ${i.id}: ${i.title}`).join("\n"),
     },
   });
 
-  console.log("\nBranches merged.");
-  iterLog.push(
-    `### Merger`,
-    ``,
-    `Merged ${completedBranches.length} branch(es) into \`${launchBranch}\`.`,
-    ``,
-    `_Iteration duration: ${((Date.now() - iterStart) / 1000).toFixed(1)}s_`,
-    ``,
-  );
-  iterationSummaries.push(...iterLog);
-  writeSummary();
+  console.log(`\nMerge complete. Log: ${logFor("merger").path}`);
 }
 
-iterationSummaries.push(
-  `---`,
-  ``,
-  `Run finished at ${new Date().toISOString()} (total ${((Date.now() - runStartTime) / 1000).toFixed(1)}s).`,
-);
-writeSummary();
-console.log("\nAll done.");
-console.log(`Run summary: ${summaryPath}`);
+// ---------------------------------------------------------------------------
+// Modes: single-issue re-runs (surgical retries without the full pipeline).
+// ---------------------------------------------------------------------------
+async function reRunImplementer(id: string, title?: string) {
+  const issue: Issue = { id, title: title ?? issueTitle(id), branch: branchFor(id) };
+  console.log(`Re-running implementer for #${id} on ${issue.branch}`);
+  const r = await runImplementer(issue);
+  console.log(`Done. ${r.commits.length} commit(s). Log: ${logFor("implementer", id).path}`);
+}
+
+async function reRunReviewer(id: string, title?: string) {
+  const issue: Issue = { id, title: title ?? issueTitle(id), branch: branchFor(id) };
+  console.log(`Re-running reviewer for #${id} on ${issue.branch}`);
+  await runReviewer(issue);
+  console.log(`Done. Verdict: ${fetchVerdict(id)}. Log: ${logFor("reviewer", id).path}`);
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch
+// ---------------------------------------------------------------------------
+const [, , mode, ...rest] = process.argv;
+
+switch (mode) {
+  case undefined:
+  case "plan": {
+    // Gate 1: plan only. Show the plan and stop; nothing is executed.
+    const issues = await runPlan();
+    if (issues.length > 0) {
+      console.log(`\n=== Plan ready — EXECUTION IS GATED ON YOU ===`);
+      console.log(`Review the plan above, then run:\n  npm run sandcastle -- execute\n`);
+    }
+    break;
+  }
+  case "execute": {
+    // Gate 2 entry: run the approved plan (execute + review), stop at merge gate.
+    const { launchBranch: planned, issues } = loadPlan();
+    if (planned !== launchBranch) {
+      console.warn(
+        `⚠ Saved plan was made on "${planned}" but you are on "${launchBranch}". ` +
+          `Re-run \`plan\` if that's not intended.`,
+      );
+    }
+    await runExecuteReview(issues);
+    break;
+  }
+  case "auto": {
+    // No plan gate: plan, then immediately execute + review (still stops at merge).
+    const issues = await runPlan();
+    await runExecuteReview(issues);
+    break;
+  }
+  case "merge":
+    await runMerge(rest);
+    break;
+  case "implement":
+    if (!rest[0]) throw new Error("Usage: implement <issue-id> [title]");
+    await reRunImplementer(rest[0], rest.slice(1).join(" ") || undefined);
+    break;
+  case "review":
+    if (!rest[0]) throw new Error("Usage: review <issue-id> [title]");
+    await reRunReviewer(rest[0], rest.slice(1).join(" ") || undefined);
+    break;
+  default:
+    throw new Error(
+      `Unknown mode "${mode}". Use: (no arg)|plan | execute | auto | merge | implement | review`,
+    );
+}
+
+console.log("\nDone.");

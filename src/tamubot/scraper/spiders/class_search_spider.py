@@ -11,12 +11,11 @@ class ClassSearchSpider(scrapy.Spider):
     start_urls = ["https://howdyportal.tamu.edu/uPortal/p/public-class-search-ui.ctf1/max/render.uP"]
 
     # ── Config ──────────────────────────────────────────────────────────
+    # DEPARTMENTS = None means "no department filter" (scrape every subject).
+    # Pass `-a all_departments=1` to enable that mode for a one-off broad crawl.
     DEPARTMENTS = {"CSCE", "ISEN", "STAT", "ECEN"}
     GRADUATE_ONLY = True  # course number >= 600
     TARGET_TERMS = {
-        "202511",
-        "202521",
-        "202531",  # Spring / Summer / Fall 2025
         "202611",
         "202621",
         "202631",  # Spring / Summer / Fall 2026
@@ -28,6 +27,13 @@ class ClassSearchSpider(scrapy.Spider):
         "CONCURRENT_REQUESTS": 1,
         "DOWNLOAD_DELAY": 2,
     }
+
+    def __init__(self, all_departments=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # `-a all_departments=1` (or true/yes) drops the department filter entirely.
+        if str(all_departments).lower() in {"1", "true", "yes"}:
+            self.DEPARTMENTS = None
+            self.logger.info("all_departments mode: no department filter applied")
 
     # ── Helpers ─────────────────────────────────────────────────────────
 
@@ -78,7 +84,7 @@ class ClassSearchSpider(scrapy.Spider):
             subject = sec.get("SWV_CLASS_SEARCH_SUBJECT", "")
             course = sec.get("SWV_CLASS_SEARCH_COURSE", "")
 
-            if subject not in self.DEPARTMENTS:
+            if self.DEPARTMENTS is not None and subject not in self.DEPARTMENTS:
                 continue
             if self.GRADUATE_ONLY and int(course) < 600:
                 continue

@@ -57,23 +57,6 @@ The pipeline runs as a LangGraph state machine with conversation memory (mem0 Cl
 - **mypy** — Static type checking
 - **ruff** — Linting and formatting
 
-## Environment Variables
-
-Copy `.env.example` to `.env` and fill in your keys:
-
-| Variable | Required | Description |
-|---|---|---|
-| `MONGODB_URI` | Yes | MongoDB Atlas connection string |
-| `MONGODB_DB` | No | Database name (default: `tamubot`) |
-| `VOYAGE_API_KEY` | Yes | Voyage AI API key |
-| `GOOGLE_API_KEY` | Yes | Google AI API key (Gemini) |
-| `TAMU_API_KEY` | No | TAMU AI gateway key (routes all RAG LLM calls when set) |
-| `LANGFUSE_PUBLIC_KEY` | No | Langfuse public key |
-| `LANGFUSE_SECRET_KEY` | No | Langfuse secret key |
-| `LANGFUSE_BASE_URL` | No | Langfuse host (default: `https://cloud.langfuse.com`) |
-
-See `.env.example` for the full list including rate limits, proxy config, and legacy Vertex AI settings.
-
 ## Features
 
 - **Intelligent Query Routing** — 8-function derivation matrix handles metadata lookups, hybrid search, semantic discovery, multi-course comparisons, and out-of-scope rejection
@@ -88,117 +71,14 @@ See `.env.example` for the full list including rate limits, proxy config, and le
 - **Full Observability** — Every query traced end-to-end in Langfuse with automated RAGAS scoring
 - **Citation System** — All answers include `[Source N]` references to specific syllabus chunks
 
-## Deployment
-
-### Docker (recommended)
-
-```
-docker compose build
-```
-
-```
-docker compose up
-```
-
-Open [http://localhost:8501](http://localhost:8501).
-
-### Local Development
-
-```bash
-git clone https://github.com/artemkorolev1/tamubot
-cd tamubot
-pip install -r requirements.txt
-cp .env.example .env
-# Fill in your API keys in .env
-
-# One-time: create MongoDB Atlas indexes
-python -m tamubot.ingestion.setup_atlas
-
-# Ingest parsed syllabi into MongoDB
-python -m tamubot.ingestion.ingest
-
-# Start the app
-streamlit run src/tamubot/app/streamlit.py --server.headless true
-```
-
-## Project Structure
-
-```
-tamubot/
-├── Makefile                       # Dev targets (run, ingest, probe, bench, ...)
-├── Dockerfile                     # Python 3.14-slim container
-├── docker-compose.yml             # App + API proxy
-├── pyproject.toml                 # Project metadata + tool config
-├── requirements.txt               # Pinned runtime dependencies
-│
-├── src/tamubot/                   # Main package
-│   ├── app/                       # Streamlit chat UI
-│   │   ├── streamlit.py           # Entry point
-│   │   └── citations.py           # [Source N] rendering
-│   ├── core/                      # Shared config + env loading
-│   │   └── config.py
-│   ├── rag/                       # Query-time RAG pipeline
-│   │   ├── router.py              # Variable extraction + function derivation
-│   │   ├── generator.py           # Function-adaptive prompts + citations
-│   │   ├── prompts.py             # System prompt templates
-│   │   ├── graph/                 # LangGraph state machine
-│   │   ├── nodes/                 # Router, retrieval, generator nodes
-│   │   ├── edges/                 # Conditional routing logic
-│   │   ├── tools/                 # MongoDB, Voyage, mem0, LLM clients
-│   │   ├── state/                 # LangGraph state definitions
-│   │   └── observability/         # Langfuse tracing + RAGAS evaluation
-│   ├── ingestion/                 # ETL: scrape → parse → embed → store
-│   │   ├── process_syllabi.py     # Gemini PDF → structured JSON
-│   │   ├── ingest.py              # Validate + embed + MongoDB upsert
-│   │   ├── setup_atlas.py         # Create Atlas indexes
-│   │   ├── chunker_v4.py          # Token-aware chunker
-│   │   ├── converters/            # Docling, Gemini PDF backends
-│   │   ├── validators/            # Schema + content checks
-│   │   └── filters/               # Boilerplate stripping
-│   ├── evals/                     # Evaluation suite
-│   │   ├── run_probe.py           # Smoke + full end-to-end probes
-│   │   ├── run_benchmark.py       # Golden-set benchmarking
-│   │   ├── eval_chunking.py       # Chunking strategy comparison
-│   │   └── golden_set.py          # Golden set management
-│   ├── scraper/                   # Scrapy spiders + Playwright downloaders
-│   └── advisory/                  # Intent-aware advisory overlays
-│
-├── tamu_data/                     # Scraped data, parsed JSONs, logs (gitignored payloads)
-│   ├── processed/                 # Structured JSON outputs
-│   ├── raw/                       # PDFs + JSONL
-│   └── evals/                     # Golden sets + reports
-│
-├── tools/api-proxy/               # Rate-limiting reverse proxy
-├── scripts/                       # One-off maintenance + reporting scripts
-├── tests/                         # pytest suite
-└── docs/                          # Architecture diagram + public docs
-```
-
 ## Data Pipeline
 
-Scrape → parse → embed → store. Run once to populate MongoDB, or re-run to refresh data.
+Knowledge is prepared offline in four stages — **scrape → parse → embed → store** — so that query time only ever touches the indexes:
 
-```bash
-# 1. Scrape course catalog + class sections
-make scrape-catalog
-make scrape-classes
-
-# 2. Download graduate syllabi (Playwright)
-make scrape-simple-syllabus
-
-# 3. Parse PDFs with Gemini
-GOOGLE_API_KEY=... python -m tamubot.ingestion.process_syllabi
-
-# 4. Create Atlas indexes + ingest
-python -m tamubot.ingestion.setup_atlas
-python -m tamubot.ingestion.ingest
-
-# Single department only
-python -m tamubot.ingestion.ingest --department CSCE
-
-# Preview without writing to DB
-python -m tamubot.ingestion.ingest --dry-run
-```
+- **Scrape** — Scrapy spiders collect the course catalog and class sections; a Playwright downloader retrieves graduate syllabus PDFs from Simple Syllabus.
+- **Parse** — Docling and Gemini 2.5 Flash turn each PDF into structured JSON across the 13 syllabus categories.
+- **Chunk & embed** — A token-aware semantic chunker splits each syllabus along its section boundaries so a chunk is one coherent topic, and Voyage AI embeds the chunks.
+- **Store** — Validated records are upserted into MongoDB Atlas alongside the vector, full-text, and metadata indexes and the course/instructor/topic knowledge graph.
 
 ## Evaluation
 
@@ -208,23 +88,6 @@ TamuBot is evaluated against two purpose-built **RAGAS golden sets** generated f
 - A **course-discovery** set — open-ended "which course teaches X?" / "what should I take if I'm interested in Y?" questions
 
 Each pipeline configuration is scored on **Faithfulness**, **Answer Relevancy**, **Context Precision**, and **Context Recall**, and the runner also records **end-to-end latency** and **per-query LLM cost**. That lets configuration changes (chunking strategy, retriever weights, rerank depth, model swap) be compared on quality *and* cost/latency in the same report.
-
-```bash
-# Run pytest suite
-make test
-
-# End-to-end smoke test
-make probe
-
-# Full probe suite
-make probe-full
-
-# Golden-set benchmark (RAGAS metrics + cost + latency)
-make bench GOLDEN=path/to/golden.xlsx EXP=experiment-name
-
-# Chunking strategy evaluation
-make eval-chunking GOLDEN=path/to/golden.xlsx EXP=experiment-name
-```
 
 ## License
 
