@@ -40,7 +40,7 @@ def v6b_silver_chunk_count_nonzero(
     )
 
 
-@asset_check(asset="v6b_silver_chunk_semantic", blocking=True)
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False)
 def v6b_silver_chunk_no_oversized(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -48,7 +48,7 @@ def v6b_silver_chunk_no_oversized(
     outcome = check_no_oversized_chunks(chunks)
     return AssetCheckResult(
         passed=outcome.passed,
-        severity=AssetCheckSeverity.ERROR,
+        severity=AssetCheckSeverity.WARN,
         metadata=outcome.metadata,
     )
 

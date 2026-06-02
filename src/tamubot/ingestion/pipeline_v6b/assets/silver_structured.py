@@ -109,8 +109,9 @@ def _strip_json_fence(text: str) -> str:
 
 
 def parse_syllabus_json(raw: str) -> SyllabusExtract:
-    """Parse raw model output into a SyllabusExtract. Tolerates ``` fences and
-    surrounding prose. Raises ValueError if no JSON object is present."""
+    """Parse raw model output into a SyllabusExtract. Tolerates ``` fences,
+    surrounding prose, and minor structural slips (dropped braces, trailing
+    commas) via json-repair. Raises ValueError if no JSON object is present."""
     text = _strip_json_fence(raw.strip())
     try:
         data = json.loads(text)
@@ -118,7 +119,12 @@ def parse_syllabus_json(raw: str) -> SyllabusExtract:
         start, end = text.find("{"), text.rfind("}")
         if start == -1 or end <= start:
             raise ValueError(f"no JSON object in model output: {raw[:200]!r}") from None
-        data = json.loads(text[start : end + 1])
+        candidate = text[start : end + 1]
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError:
+            from json_repair import repair_json
+            data = json.loads(repair_json(candidate))
     return SyllabusExtract.model_validate(data)
 
 

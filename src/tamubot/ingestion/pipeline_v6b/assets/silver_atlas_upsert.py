@@ -23,8 +23,8 @@ from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 def _upsert_atlas(chunks: list[dict], chunk_tag: str) -> int:
     from pymongo import MongoClient, UpdateOne
 
-    uri = os.getenv("MONGO_URI") or config.MONGO_URI
-    db_name = os.getenv("MONGO_DB") or config.MONGO_DB
+    uri = os.getenv("MONGODB_URI") or config.MONGODB_URI
+    db_name = os.getenv("MONGODB_DB") or config.MONGODB_DB
     client: MongoClient = MongoClient(uri)
     db = client[db_name]
 

@@ -10,7 +10,9 @@ modal processors and chunkers without modifying v5 code.
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -281,6 +283,49 @@ def _extract_table_body(item) -> List[List[str]]:
     return [[rows[r].get(c, "") for c in range(max_col + 1)] for r in sorted(rows.keys())]
 
 
+def _norm_header(text: str) -> str:
+    """Normalize a header for matching: lowercase, collapse whitespace, drop
+    trailing punctuation (Docling sometimes keeps a trailing ':' on a header)."""
+    return re.sub(r"\s+", " ", (text or "").strip().lower()).rstrip(":;.- ").strip()
+
+
+def _recover_heading_levels(blocks: List[Dict[str, Any]], headers_path: Path) -> None:
+    """Assign real heading levels to block headings, in place.
+
+    The per-item parse tags every heading level 1. headers.json carries the
+    hierarchy-postprocessor's corrected levels. Both are in document order, so a
+    forward two-pointer alignment matches each heading block to its reference
+    entry. Headings absent from the reference (instructor pseudo-headers the
+    safety net demoted out of the hierarchy) are nested one level below the last
+    matched header, turning their parent into a real subtree for the chunker.
+    """
+    if not headers_path.exists():
+        return
+    try:
+        ref = json.loads(headers_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    ref_norm = [(_norm_header(h.get("text", "")), int(h.get("level", 1) or 1)) for h in ref]
+
+    j = 0
+    last_level = 1
+    for b in blocks:
+        if b.get("type") != "heading":
+            continue
+        bt = _norm_header(b.get("text", ""))
+        matched: Optional[int] = None
+        for k in range(j, len(ref_norm)):
+            if ref_norm[k][0] == bt:
+                matched = ref_norm[k][1]
+                j = k + 1
+                break
+        if matched is not None:
+            b["level"] = matched
+            last_level = matched
+        else:
+            b["level"] = min(6, last_level + 1)
+
+
 def docling_to_blocks(
     pdf_path: Union[str, Path],
     output_dir: Path,
@@ -422,6 +467,14 @@ def docling_to_blocks(
         log.info("v6b URL recovery: injected %d markdown links into %s blocks", injected, stem)
 
     convert(pdf_path, output_dir, converter=converter, apply_hierarchy=apply_hierarchy)
+
+    # Docling's per-item parse (above) tags every heading H1; the convert() call
+    # just wrote a headers.json whose levels come from the hierarchy postprocessor
+    # (TOC + numbering + font clustering) and safety net — the corrected view.
+    # Recover those levels into the blocks so the merged markdown (and thus the
+    # chunker's section tree and phase2 header_path) reflect real hierarchy.
+    if apply_hierarchy:
+        _recover_heading_levels(blocks, output_dir / f"{stem}.headers.json")
     return blocks
 
 

@@ -16,7 +16,13 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
-from tamubot.ingestion.clients.nuextract_client import SYLLABUS_TEMPLATE, parse_extract
+from tamubot.ingestion.clients.nuextract_client import (
+    IMAGE_TEMPLATE,
+    SYLLABUS_TEMPLATE,
+    TABLE_TEMPLATE,
+    parse_extract,
+    parse_json_object,
+)
 from tamubot.rag.models_v4 import SyllabusExtract
 
 if TYPE_CHECKING:
@@ -25,13 +31,20 @@ if TYPE_CHECKING:
 _TEMPLATE_JSON = json.dumps(SYLLABUS_TEMPLATE, indent=4)
 
 
-def build_chat_payload(content: list[dict], *, model: str, max_tokens: int = 1024) -> dict[str, Any]:
+def build_chat_payload(
+    content: list[dict],
+    *,
+    model: str,
+    max_tokens: int = 1024,
+    template: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    tmpl = json.dumps(template, indent=4) if template is not None else _TEMPLATE_JSON
     return {
         "model": model,
         "messages": [{"role": "user", "content": content}],
         "max_tokens": max_tokens,
         "temperature": 0.0,
-        "chat_template_kwargs": {"template": _TEMPLATE_JSON, "enable_thinking": False},
+        "chat_template_kwargs": {"template": tmpl, "enable_thinking": False},
     }
 
 
@@ -64,6 +77,27 @@ class NuExtractHTTPClient:
         r.raise_for_status()
         return parse_chat_response(r.json())
 
+    def _post_raw(self, content: list[dict], *, template: dict[str, Any], max_new_tokens: int = 1024) -> dict[str, Any]:
+        r = self._client.post(
+            f"{self.base_url}/chat/completions",
+            json=build_chat_payload(content, model=self.model, max_tokens=max_new_tokens, template=template),
+        )
+        r.raise_for_status()
+        return parse_json_object(r.json()["choices"][0]["message"]["content"])
+
+    @staticmethod
+    def _image_content(image: "Image") -> list[dict]:
+        buf = io.BytesIO()
+        image.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return [{"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}]
+
+    def transcribe_table(self, image: "Image") -> dict[str, Any]:
+        return self._post_raw(self._image_content(image), template=TABLE_TEMPLATE)
+
+    def describe_image(self, image: "Image") -> dict[str, Any]:
+        return self._post_raw(self._image_content(image), template=IMAGE_TEMPLATE)
+
     def extract_text(self, markdown: str) -> SyllabusExtract:
         return self._post([{"type": "text", "text": markdown}])
 
@@ -73,7 +107,4 @@ class NuExtractHTTPClient:
             return list(pool.map(self.extract_text, markdowns))
 
     def extract_image(self, image: "Image") -> SyllabusExtract:
-        buf = io.BytesIO()
-        image.save(buf, format="PNG")
-        b64 = base64.b64encode(buf.getvalue()).decode()
-        return self._post([{"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}])
+        return self._post(self._image_content(image))

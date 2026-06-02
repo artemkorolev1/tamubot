@@ -151,12 +151,14 @@ USE_V6B_PIPELINE: bool = os.getenv("USE_V6B_PIPELINE", "false").lower() == "true
 # Threshold for "table-heavy" routing decision (Phase 2). table_density = (tables_detected_count
 # * 2 + total_table_cells / 100) / page_count; route to MinerU when >= threshold.
 V6B_TABLE_DENSITY_THRESHOLD: float = float(os.getenv("V6B_TABLE_DENSITY_THRESHOLD", "3.0"))
-# Hard cap on vision-LLM calls per silver_modal materialization. Default 10 matches the
-# project rule against unannounced API spend; bump per-run via env var when scaling.
-V6B_MODAL_CALL_BUDGET: int = int(os.getenv("V6B_MODAL_CALL_BUDGET", "10"))
-# When False (default in Phase 1), silver_modal asset is a no-op: blocks pass through
-# unmodified. Flip to True once budget is approved per pilot run.
-V6B_MODAL_ENABLED: bool = os.getenv("V6B_MODAL_ENABLED", "false").lower() == "true"
+# Hard cap on vision calls per silver_modal materialization — a runaway guard, not a
+# spend guard (vision is the local NuExtract3 model). 50 comfortably covers a dense
+# syllabus's tables + images; bump per-run via env var if a doc ever exceeds it.
+V6B_MODAL_CALL_BUDGET: int = int(os.getenv("V6B_MODAL_CALL_BUDGET", "50"))
+# Default ON: silver_modal enriches tables (→GFM) and images (→visible text) via the
+# local NuExtract3 model (no external API, no budget concern). Set V6B_MODAL_ENABLED=false
+# only to force the no-op pass-through (blocks unmodified).
+V6B_MODAL_ENABLED: bool = os.getenv("V6B_MODAL_ENABLED", "true").lower() == "true"
 # When False (default), silver_ingest is a dry-run: chunks are embedded and serialized to
 # disk but never written to Atlas. Flip to True to actually upsert chunks_v4.
 V6B_INGEST_ENABLED: bool = os.getenv("V6B_INGEST_ENABLED", "false").lower() == "true"

@@ -6,6 +6,7 @@ openai>=1.0
 langchain
 
 # Observability & evaluation
+inspect_ai>=0.3.233  # preprocessing-judge harness (Inspect Task/Scorer + local log viewer); judge model = Gemini via google provider (GOOGLE_API_KEY). NB: pins click<8.3, conflicts only at pip-resolver level with huggingface-hub (runtime import OK).
 langfuse>=4.0.0
 opentelemetry-api
 langchain-google-genai
@@ -30,9 +31,11 @@ pymupdf
 docling-slim[standard]
 scikit-learn  # required by vendored hierarchical postprocessor (DBSCAN clustering)
 datasketch>=1.6.5  # MinHash-LSH for v6b boilerplate / dedup tagging
+json-repair>=0.30  # rescues malformed JSON-mode LLM output (dropped braces etc.)
 pydantic>=2.0
 dagster>=1.13
 dagster-webserver>=1.13  # provides `dagster dev` UI (ports 3000/3001)
+antlr4-python3-runtime>=4.13  # Python 3.14 compat for dagster's asset-selection parser
 tenacity>=9.0  # required by tamubot.vendor.raganything.resilience (v6b pipeline)
 opendataloader-pdf>=2.4.6  # v6c pipeline — Java-backed PDF parser (requires JRE 17+; see Dockerfile)
 

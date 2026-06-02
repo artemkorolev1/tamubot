@@ -485,10 +485,14 @@ def chunk_semantic(
                 _process_node(child, ancestors + [child.header])
             return
 
-        # Safety cap: if a leaf section is extremely large (>5000 tok),
-        # split with paragraph/line fallback to avoid unusable giant chunks
-        if tok > 5000 and not node.children:
-            for sub in _split_long_text(text, flag_threshold * 4):
+        # Oversized leaf section (no subsections to recurse into): split on
+        # paragraph/sentence boundaries so a flat, merge-glued block (e.g. a
+        # bold-styled "header" the bronze stage failed to promote, gluing
+        # several policies together) doesn't emit one giant chunk. Childless
+        # means there is no semantic substructure to preserve, so splitting
+        # here doesn't violate the section-unity contract.
+        if tok > flag_threshold and not node.children:
+            for sub in _split_long_text(text, flag_threshold):
                 _emit(sub.strip(), hp, node.header)
             return
 

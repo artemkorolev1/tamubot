@@ -41,6 +41,22 @@ SYLLABUS_TEMPLATE: dict[str, Any] = {
     "academic_integrity_policy": "verbatim-string",
 }
 
+# Modal templates: leaf type markers, same NuExtract grammar as SYLLABUS_TEMPLATE.
+# Drive table transcription and image description so the modal stage never needs
+# an external multimodal API — NuExtract3 (Qwen3.5-VL) handles both locally.
+TABLE_TEMPLATE: dict[str, Any] = {
+    "table_markdown": "verbatim-string",
+    "caption": "verbatim-string",
+}
+# NuExtract is an extractor, not a captioner: a generative "detailed_description"
+# field always returns null. A single verbatim text field does faithful OCR-style
+# extraction instead — textbook covers yield title/edition/authors; logos yield
+# their (boilerplate) text, which phase2 dedup absorbs. Extra fields induce
+# hallucination (observed: "7th"→"SIXTH"), so keep it to one field.
+IMAGE_TEMPLATE: dict[str, Any] = {
+    "visible_text": "verbatim-string",
+}
+
 _FENCE_RE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
 
 
@@ -49,18 +65,23 @@ def _strip_json_fence(text: str) -> str:
     return m.group(1) if m else text
 
 
-def parse_extract(raw: str) -> SyllabusExtract:
-    """Parse raw model output into a SyllabusExtract. Tolerates ```json fences
-    and surrounding prose. Raises ValueError if no JSON object is present."""
+def parse_json_object(raw: str) -> dict[str, Any]:
+    """Parse raw model output into a plain dict. Tolerates ```json fences and
+    surrounding prose. Raises ValueError if no JSON object is present."""
     text = _strip_json_fence(raw.strip())
     try:
-        data = json.loads(text)
+        return json.loads(text)
     except json.JSONDecodeError:
         start, end = text.find("{"), text.rfind("}")
         if start == -1 or end <= start:
             raise ValueError(f"no JSON object in model output: {raw[:200]!r}") from None
-        data = json.loads(text[start : end + 1])
-    return SyllabusExtract.model_validate(data)
+        return json.loads(text[start : end + 1])
+
+
+def parse_extract(raw: str) -> SyllabusExtract:
+    """Parse raw model output into a SyllabusExtract. Tolerates ```json fences
+    and surrounding prose. Raises ValueError if no JSON object is present."""
+    return SyllabusExtract.model_validate(parse_json_object(raw))
 
 
 def plan_batches(
@@ -127,7 +148,13 @@ class NuExtractExtractor:
     # 1024 caps a degenerate no-EOS run (which would otherwise decode to the old
     # 4096 cap at ~8 tok/s ≈ 8 min). Real syllabus extracts top out near 710 tok,
     # so this never truncates a healthy output.
-    def _generate(self, content: list[dict], *, max_new_tokens: int = 1024) -> str:
+    def _generate(
+        self,
+        content: list[dict],
+        *,
+        template: dict[str, Any] | None = None,
+        max_new_tokens: int = 1024,
+    ) -> str:
         import torch
 
         inputs = self.processor.apply_chat_template(
@@ -136,7 +163,7 @@ class NuExtractExtractor:
             tokenize=True,
             return_dict=True,
             return_tensors="pt",
-            template=json.dumps(SYLLABUS_TEMPLATE, indent=4),
+            template=json.dumps(template if template is not None else SYLLABUS_TEMPLATE, indent=4),
             enable_thinking=False,
         ).to(self.model.device)
         with torch.inference_mode():
@@ -149,6 +176,16 @@ class NuExtractExtractor:
 
     def extract_image(self, image: "Image") -> SyllabusExtract:
         return parse_extract(self._generate([{"type": "image", "image": image}]))
+
+    def transcribe_table(self, image: "Image") -> dict[str, Any]:
+        """Transcribe a rendered table image to GFM via the TABLE_TEMPLATE.
+        Returns {"table_markdown", "caption"}."""
+        return parse_json_object(self._generate([{"type": "image", "image": image}], template=TABLE_TEMPLATE))
+
+    def describe_image(self, image: "Image") -> dict[str, Any]:
+        """Extract any visible text from an image via the IMAGE_TEMPLATE (OCR-style,
+        verbatim — NuExtract does not generate prose). Returns {"visible_text"}."""
+        return parse_json_object(self._generate([{"type": "image", "image": image}], template=IMAGE_TEMPLATE))
 
     def extract_text_batch(self, markdowns: list[str], *, max_new_tokens: int = 1024) -> list[SyllabusExtract]:
         """Batched text extraction via one left-padded forward pass. Greedy decoding
