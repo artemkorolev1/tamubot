@@ -115,7 +115,16 @@ def _compute_silver_tag(context: AssetExecutionContext) -> MaterializeResult:
 
 silver_tag_semantic = asset(
     name="v6b_silver_tag_semantic",
-    deps=[AssetKey("v6b_silver_chunk_semantic")],
+    # Real upstreams: the per-partition chunk output (same stem) PLUS the two
+    # corpus-wide meta parquets this asset reads (boilerplate_reference_path,
+    # chunk_signature_index_path). Declaring the meta deps makes the two-phase
+    # dedup flow (chunk -> meta -> tag) visible in the graph. Non-loadable deps:
+    # the parquets are read via paths.* in _compute, so no I/O wiring changes.
+    deps=[
+        AssetKey("v6b_silver_chunk_semantic"),
+        AssetKey("v6b_meta_boilerplate_reference"),
+        AssetKey("v6b_meta_chunk_signature_index"),
+    ],
     partitions_def=stem_partitions,
     code_version=code_version_of(_compute_silver_tag),
     group_name="v6b_silver",

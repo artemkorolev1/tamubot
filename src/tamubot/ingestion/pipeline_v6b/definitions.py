@@ -18,6 +18,7 @@ from tamubot.ingestion.pipeline_v6b.assets.meta_boilerplate_reference import (
 from tamubot.ingestion.pipeline_v6b.assets.meta_chunk_signature_index import (
     v6b_meta_chunk_signature_index,
 )
+from tamubot.ingestion.pipeline_v6b.assets.pipeline_ledger import v6b_pipeline_ledger
 from tamubot.ingestion.pipeline_v6b.assets.preprocessing_judge_report import (
     v6b_preprocessing_judge_report,
 )
@@ -93,6 +94,7 @@ defs = Definitions(
         v6b_meta_boilerplate_reference,
         v6b_meta_chunk_signature_index,
         v6b_preprocessing_judge_report,
+        v6b_pipeline_ledger,
     ],
     asset_checks=[
         v6b_bronze_blocks_nonempty,
