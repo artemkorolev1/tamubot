@@ -3,18 +3,25 @@ table answering "which files ran through the pipeline, and how did each fare at
 each step?"
 
 Rows = files (syllabus stems, the dynamic partition keys). Columns = the seven
-pipeline stages. Each cell rolls up that file's status at that stage:
+pipeline stages, in execution order. Each cell rolls up that file's status at
+that stage:
 
-    ✓  materialized, all asset checks passed (or the stage has no checks)
-    ⚠  materialized, a WARN-severity check failed (non-blocking)
-    ✗  materialized, an ERROR-severity check failed (blocking)
-    ·  not materialized yet
+    ✓  passed      — materialized, its asset checks ran and all are green
+    ~  unverified  — materialized, but its checks haven't run yet (or are pending)
+    ⚠  warning     — materialized, a WARN (non-blocking) check failed
+    ✗  failed      — materialized, an ERROR (blocking) check failed
+    ·  not started — stage not materialized for this file
+
+And a per-file row status: passed (all 7 done & green) / in progress (some
+stages still not started) / warning / failed / not started.
 
 REPORT ONLY — reads the Dagster instance + event log, never asset outputs, so it
 takes NO `deps` and never mutates anything (same shape as v6b_corpus_report).
 
-The status-derivation logic lives in the pure `build_ledger()` helper (no Dagster
-imports) so it is unit-testable; `_compute` only does the instance I/O.
+The check keys per stage are derived from the live asset graph at runtime, so
+the table never drifts when checks are added/removed. The status-derivation
+logic lives in the pure `build_ledger()` helper (no Dagster imports) so it is
+unit-testable; `_compute` only does the instance I/O.
 """
 
 import json
@@ -33,8 +40,8 @@ from dagster._core.event_api import PartitionKeyFilter
 from tamubot.ingestion.pipeline_v5.util import DATA_ROOT
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 
-# (asset key, short column label) in pipeline order. struct is the parallel
-# branch off bronze (chunk/tag/embed/atlas is the main chain).
+# (asset key, short column label) in execution order. struct is the parallel
+# branch off bronze; the main chain is bronze->modal->chunk->tag->embed->atlas.
 STAGES: list[tuple[str, str]] = [
     ("v6b_bronze_blocks", "bronze"),
     ("v6b_silver_modal", "modal"),
@@ -45,61 +52,22 @@ STAGES: list[tuple[str, str]] = [
     ("v6b_silver_structured", "struct"),
 ]
 
-# Mirrors definitions.py `asset_checks=[...]`. The check name equals the
-# decorated function name (no explicit name= on @asset_check). Keep in sync when
-# checks are added/removed.
-STAGE_CHECKS: dict[str, list[str]] = {
-    "v6b_bronze_blocks": [
-        "v6b_bronze_blocks_nonempty",
-        "v6b_bronze_blocks_has_text",
-        "v6b_bronze_blocks_no_replacement_chars",
-        "v6b_bronze_blocks_header_hierarchy_valid",
-        "v6b_bronze_blocks_source_integrity",
-        "v6b_bronze_blocks_block_count_vs_baseline",
-    ],
-    "v6b_silver_modal": [
-        "v6b_silver_modal_budget_not_exceeded",
-        "v6b_silver_modal_result_schema_valid",
-    ],
-    "v6b_silver_chunk_semantic": [
-        "v6b_silver_chunk_count_nonzero",
-        "v6b_silver_chunk_low_no_header_rate",
-        "v6b_silver_chunk_no_oversized",
-        "v6b_silver_chunk_schema_valid",
-        "v6b_silver_chunk_total_vs_baseline",
-        "v6b_silver_chunk_flagged_rate_vs_baseline",
-    ],
-    "v6b_silver_tag_semantic": [
-        "v6b_silver_tag_chunk_count_preserved",
-        "v6b_silver_tag_boilerplate_rate_in_band",
-        "v6b_silver_tag_duplicate_rate_in_band",
-    ],
-    "v6b_silver_embed": [
-        "v6b_silver_embed_count_matches_chunks",
-        "v6b_silver_embed_model_field_present",
-        "v6b_silver_embed_voyage_calls_vs_baseline",
-    ],
-    "v6b_silver_atlas_upsert": [
-        "v6b_silver_atlas_vector_count_matches_chunks",
-        "v6b_silver_atlas_index_status_ready",
-        "v6b_silver_atlas_index_size_vs_baseline",
-        "v6b_silver_atlas_golden_recall_at_5",
-    ],
-    "v6b_silver_structured": [],
-}
-
-GLYPH_MISSING = "·"
-GLYPH_PASS = "✓"
-GLYPH_WARN = "⚠"
-GLYPH_FAIL = "✗"
+GLYPH_PASS = "✓"  # materialized, checks ran & all green
+GLYPH_UNVERIFIED = "~"  # materialized, checks defined but not run yet
+GLYPH_WARN = "⚠"  # materialized, a WARN (non-blocking) check failed
+GLYPH_FAIL = "✗"  # materialized, an ERROR (blocking) check failed
+GLYPH_MISSING = "·"  # not materialized
 
 # A check outcome is a plain dict so build_ledger stays Dagster-free:
 #   {"name": str, "status": "SUCCEEDED"|"FAILED"|"PLANNED", "severity": "ERROR"|"WARN"}
 
 
-def _cell(materialized: bool, outcomes: list[dict]) -> str:
-    """Roll up one (stem, stage) into a single glyph. Only failures matter for
-    severity; a non-materialized stage is always missing regardless of checks."""
+def _cell(materialized: bool, outcomes: list[dict], stage_has_checks: bool) -> str:
+    """Roll up one (stem, stage) into a single glyph.
+
+    Failures win over successes; a stage with checks defined but no recorded
+    success/failure is 'unverified' (~) rather than claiming a pass.
+    """
     if not materialized:
         return GLYPH_MISSING
     failed = [o for o in outcomes if o.get("status") == "FAILED"]
@@ -107,68 +75,68 @@ def _cell(materialized: bool, outcomes: list[dict]) -> str:
         return GLYPH_FAIL
     if failed:  # remaining failures are WARN-severity
         return GLYPH_WARN
-    return GLYPH_PASS
+    if any(o.get("status") == "SUCCEEDED" for o in outcomes):
+        return GLYPH_PASS
+    # Materialized, no failures, nothing recorded as succeeded:
+    return GLYPH_UNVERIFIED if stage_has_checks else GLYPH_PASS
+
+
+def _row_status(cells: dict[str, str]) -> str:
+    """Per-file rollup across stages. Failures/warnings win; otherwise distinguish
+    a fully-done file from one still working through the stages."""
+    glyphs = set(cells.values())
+    if glyphs == {GLYPH_MISSING}:
+        return "not_started"
+    if GLYPH_FAIL in glyphs:
+        return "failed"
+    if GLYPH_WARN in glyphs:
+        return "warning"
+    if GLYPH_MISSING in glyphs:  # some done, some not, no failures
+        return "in_progress"
+    return "passed"  # every stage done (✓ or ~), nothing failing
 
 
 def build_ledger(
     roster: list[str],
     materialized_by_stage: dict[str, set[str]],
     checks_by_stage: dict[str, dict[str, list[dict]]],
+    stage_has_checks: dict[str, bool],
 ) -> dict:
     """Pure builder: turn pre-fetched instance state into the ledger.
 
     - roster: every registered stem (dynamic partition keys).
     - materialized_by_stage: {stage_asset: {stem materialized, ...}}.
     - checks_by_stage: {stage_asset: {stem: [check-outcome dicts]}}.
+    - stage_has_checks: {stage_asset: bool} — whether the stage defines any checks.
 
     Returns {"rows", "summary", "markdown"}; absent stems/stages are treated as
     missing (never an error) so a registered-but-never-run stem renders cleanly.
     """
     rows: list[dict] = []
-    n_passed = n_warn = n_fail = n_not_started = 0
+    counts = {"passed": 0, "in_progress": 0, "warning": 0, "failed": 0, "not_started": 0}
 
     for stem in sorted(roster):
         cells: dict[str, str] = {}
         failed_checks: list[dict] = []
-        any_materialized = False
         for asset_name, _label in STAGES:
             mat = stem in materialized_by_stage.get(asset_name, set())
-            any_materialized = any_materialized or mat
             outcomes = checks_by_stage.get(asset_name, {}).get(stem, [])
-            cells[asset_name] = _cell(mat, outcomes)
+            cells[asset_name] = _cell(mat, outcomes, stage_has_checks.get(asset_name, False))
             for o in outcomes:
                 if o.get("status") == "FAILED":
                     failed_checks.append({"stage": asset_name, **o})
 
-        glyphs = set(cells.values())
-        if not any_materialized:
-            n_not_started += 1
-            row_status = "not_started"
-        elif GLYPH_FAIL in glyphs:
-            n_fail += 1
-            row_status = "fail"
-        elif GLYPH_WARN in glyphs:
-            n_warn += 1
-            row_status = "warn"
-        else:
-            n_passed += 1
-            row_status = "pass"
-
-        rows.append(
-            {
-                "stem": stem,
-                "status": row_status,
-                "cells": cells,
-                "failed_checks": failed_checks,
-            }
-        )
+        status = _row_status(cells)
+        counts[status] += 1
+        rows.append({"stem": stem, "status": status, "cells": cells, "failed_checks": failed_checks})
 
     summary = {
         "files": len(rows),
-        "fully_passed": n_passed,
-        "with_warnings": n_warn,
-        "with_failures": n_fail,
-        "not_started": n_not_started,
+        "passed": counts["passed"],
+        "in_progress": counts["in_progress"],
+        "with_warnings": counts["warning"],
+        "with_failures": counts["failed"],
+        "not_started": counts["not_started"],
     }
     return {"rows": rows, "summary": summary, "markdown": _render_markdown(rows, summary)}
 
@@ -178,31 +146,53 @@ def _render_markdown(rows: list[dict], summary: dict) -> str:
     header = "| File | " + " | ".join(labels) + " |"
     divider = "|------|" + "|".join([":--:"] * len(STAGES)) + "|"
     body = ["| " + r["stem"] + " | " + " | ".join(r["cells"][key] for key, _label in STAGES) + " |" for r in rows]
-    legend = (
+    summary_line = (
         f"**{summary['files']} files** — "
-        f"✓ {summary['fully_passed']} passed · "
-        f"⚠ {summary['with_warnings']} warnings · "
-        f"✗ {summary['with_failures']} failures · "
-        f"· {summary['not_started']} not started\n\n"
-        "Legend: ✓ passed · ⚠ WARN check failed · ✗ ERROR check failed · · not materialized"
+        f"{summary['passed']} passed · "
+        f"{summary['in_progress']} in progress · "
+        f"{summary['with_warnings']} with warnings · "
+        f"{summary['with_failures']} with failures · "
+        f"{summary['not_started']} not started"
     )
-    return legend + "\n\n" + "\n".join([header, divider, *body])
+    legend = (
+        "Legend: "
+        f"{GLYPH_PASS} passed (checks green) · "
+        f"{GLYPH_UNVERIFIED} done, checks not run · "
+        f"{GLYPH_WARN} warning (non-blocking check failed) · "
+        f"{GLYPH_FAIL} failed (blocking check failed) · "
+        f"{GLYPH_MISSING} not started"
+    )
+    return summary_line + "\n\n" + legend + "\n\n" + "\n".join([header, divider, *body])
 
 
-def _fetch_checks_by_stage(context: AssetExecutionContext, roster: list[str]) -> dict[str, dict[str, list[dict]]]:
+def _stage_check_keys() -> dict[str, list[AssetCheckKey]]:
+    """Derive each stage's asset-check keys from the live asset graph, so the
+    ledger never drifts when checks are added/removed. Deferred import avoids a
+    module-load cycle (definitions imports this asset)."""
+    from tamubot.ingestion.pipeline_v6b.definitions import defs
+
+    ag = defs.resolve_asset_graph()
+    return {stage: sorted(ag.get(AssetKey(stage)).check_keys, key=lambda k: k.name) for stage, _label in STAGES}
+
+
+def _fetch_checks_by_stage(
+    context: AssetExecutionContext,
+    roster: list[str],
+    stage_keys: dict[str, list[AssetCheckKey]],
+) -> dict[str, dict[str, list[dict]]]:
     """One event-log call per stem (all check keys batched) -> per (stage, stem)
     list of plain check-outcome dicts."""
     els = context.instance.event_log_storage
-    # AssetCheckKey -> stage asset name, so we can bucket results by stage.
     stage_of: dict[AssetCheckKey, str] = {}
     all_keys: list[AssetCheckKey] = []
-    for asset_name, check_names in STAGE_CHECKS.items():
-        for name in check_names:
-            key = AssetCheckKey(asset_key=AssetKey(asset_name), name=name)
-            stage_of[key] = asset_name
+    for stage, keys in stage_keys.items():
+        for key in keys:
+            stage_of[key] = stage
             all_keys.append(key)
 
-    result: dict[str, dict[str, list[dict]]] = {asset_name: {} for asset_name, _ in STAGES}
+    result: dict[str, dict[str, list[dict]]] = {stage: {} for stage, _ in STAGES}
+    if not all_keys:
+        return result
     for stem in roster:
         records = els.get_latest_asset_check_execution_by_key(all_keys, partition_filter=PartitionKeyFilter(key=stem))
         for key, record in records.items():
@@ -220,9 +210,11 @@ def _compute_pipeline_ledger(context: AssetExecutionContext) -> MaterializeResul
     materialized_by_stage = {
         asset_name: context.instance.get_materialized_partitions(AssetKey(asset_name)) for asset_name, _label in STAGES
     }
-    checks_by_stage = _fetch_checks_by_stage(context, roster)
+    stage_keys = _stage_check_keys()
+    stage_has_checks = {stage: len(keys) > 0 for stage, keys in stage_keys.items()}
+    checks_by_stage = _fetch_checks_by_stage(context, roster, stage_keys)
 
-    ledger = build_ledger(roster, materialized_by_stage, checks_by_stage)
+    ledger = build_ledger(roster, materialized_by_stage, checks_by_stage, stage_has_checks)
     summary = ledger["summary"]
 
     out_path = Path(DATA_ROOT) / "_meta" / "v6b_pipeline_ledger.json"
@@ -233,9 +225,10 @@ def _compute_pipeline_ledger(context: AssetExecutionContext) -> MaterializeResul
     )
 
     context.log.info(
-        "v6b_pipeline_ledger: %d files (%d passed, %d warn, %d fail, %d not started)",
+        "v6b_pipeline_ledger: %d files (%d passed, %d in progress, %d warn, %d fail, %d not started)",
         summary["files"],
-        summary["fully_passed"],
+        summary["passed"],
+        summary["in_progress"],
         summary["with_warnings"],
         summary["with_failures"],
         summary["not_started"],
@@ -245,7 +238,8 @@ def _compute_pipeline_ledger(context: AssetExecutionContext) -> MaterializeResul
         metadata={
             "ledger": MetadataValue.md(ledger["markdown"]),
             "files": summary["files"],
-            "fully_passed": summary["fully_passed"],
+            "passed": summary["passed"],
+            "in_progress": summary["in_progress"],
             "with_warnings": summary["with_warnings"],
             "with_failures": summary["with_failures"],
             "not_started": summary["not_started"],
@@ -259,7 +253,8 @@ v6b_pipeline_ledger = asset(
     group_name="v6b_ops",
     description=(
         "Report-only: one table of every file (syllabus stem) × pipeline stage, each cell "
-        "rolling up materialization + asset-check status (✓ pass / ⚠ warn / ✗ fail / · missing). "
-        "Reads the Dagster instance + event log; no deps, never mutates."
+        "rolling up materialization + asset-check status (✓ passed / ~ checks-not-run / "
+        "⚠ warning / ✗ failed / · not started). Reads the Dagster instance + event log; "
+        "no deps, never mutates."
     ),
 )(_compute_pipeline_ledger)
