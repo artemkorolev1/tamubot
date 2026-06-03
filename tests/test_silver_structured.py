@@ -37,6 +37,24 @@ def test_merge_extracts_takes_first_populated_per_field():
     assert merged.assessment_weights[0].component == "Final"
 
 
+def test_merge_extracts_unions_list_fields_across_pages():
+    # List fields must accumulate across pages (not truncate to page 1), with
+    # order-preserving dedupe of repeats seen on multiple pages.
+    p1 = SyllabusExtract(
+        course_code="STAT 608",
+        learning_outcomes=["LO1", "LO2"],
+        assessment_weights=[AssessmentWeight(component="HW", weight_pct=40)],
+    )
+    p2 = SyllabusExtract(
+        learning_outcomes=["LO2", "LO3"],  # LO2 repeats across the page boundary
+        assessment_weights=[AssessmentWeight(component="Final", weight_pct=60)],
+    )
+    merged = mod.merge_extracts([p1, p2])
+    assert merged.course_code == "STAT 608"  # scalar: first populated
+    assert merged.learning_outcomes == ["LO1", "LO2", "LO3"]  # unioned, deduped
+    assert [w.component for w in merged.assessment_weights] == ["HW", "Final"]
+
+
 # ── parse_syllabus_json ──────────────────────────────────────────────────────
 
 

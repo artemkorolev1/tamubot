@@ -411,6 +411,19 @@ def chunk_semantic(
         "flagged_oversized": 0,
     }
 
+    def _refresh_flags(chunk: dict) -> None:
+        """Recompute a chunk's flags after a merge grew it — otherwise OVERSIZED
+        (and HAS_TABLE) can go stale once tiny chunks are glued on."""
+        text = chunk["content"]
+        flags: list[str] = []
+        if chunk["token_count"] > flag_threshold:
+            flags.append("OVERSIZED")
+        if _has_table(text):
+            flags.append("HAS_TABLE")
+        if not chunk.get("header_path"):
+            flags.append("NO_HEADER")
+        chunk["flags"] = flags
+
     def _emit(text: str, hp: str, header: str) -> None:
         tok = _tokens_approx(text)
         if tok < min_chunk_tokens:
@@ -419,6 +432,7 @@ def chunk_semantic(
                 chunks[-1]["content"] += "\n\n" + text
                 chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
                 chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(text)
+                _refresh_flags(chunks[-1])
                 log["merged_tiny"] += 1
             else:
                 log["dropped_tiny"] += 1
@@ -464,6 +478,7 @@ def chunk_semantic(
                 chunks[-1]["content"] += "\n\n" + text
                 chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
                 chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(text)
+                _refresh_flags(chunks[-1])
                 log["merged_tiny"] += 1
             else:
                 log["dropped_tiny"] += 1
@@ -479,6 +494,8 @@ def chunk_semantic(
                 # Merge tiny parent body into previous chunk
                 chunks[-1]["content"] += "\n\n" + own_text
                 chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
+                chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(own_text)
+                _refresh_flags(chunks[-1])
                 log["merged_tiny"] += 1
             # Recurse into each child
             for child in node.children:
@@ -503,10 +520,14 @@ def chunk_semantic(
     if root.body.strip():
         tok = _tokens_approx(root.body.strip())
         if tok >= min_chunk_tokens:
-            flags: list[str] = []
+            flags = []
             if tok > flag_threshold:
                 flags.append("OVERSIZED")
                 log["flagged_oversized"] += 1
+            if _has_table(root.body):
+                flags.append("HAS_TABLE")
+            # Root body precedes any header → headerless, same as _emit's contract.
+            flags.append("NO_HEADER")
             chunks.append(
                 {
                     "chunk_index": 0,

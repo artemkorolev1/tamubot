@@ -117,6 +117,31 @@ def test_within_syllabus_dedup_flags_near_duplicates():
     )
 
 
+def test_within_syllabus_dedup_three_identical_keeps_one_canonical():
+    # Union-find over all pairs → one component, one canonical, deterministically.
+    chunks = [_chunk(0, _PROGRAMMING_POLICY), _chunk(1, _PROGRAMMING_POLICY), _chunk(2, _PROGRAMMING_POLICY)]
+    sigs = build_local_signatures(chunks)
+    flag_within_syllabus_dups(chunks, "TEST", sigs)
+    flags = [c["is_duplicate"] for c in chunks]
+    assert flags.count(True) == 2  # exactly one canonical survives
+    assert chunks[0]["is_duplicate"] is False  # equal length → lowest index wins
+    for i in (1, 2):
+        assert chunks[i]["duplicate_of_chunk_id"] == chunk_id_of("TEST", 0)
+
+
+def test_cross_syllabus_dedup_excludes_same_stem_twins():
+    # An intra-doc duplicate pair is owned by within-syllabus dedup; the cross
+    # pass must not re-flag the within-canonical against its own same-stem twin.
+    stem = "202531_TEST_101_500_11111"
+    chunks_self = [_chunk(0, _PROGRAMMING_POLICY), _chunk(1, _PROGRAMMING_POLICY)]
+    cross_lsh, cross_sigs, cross_metadata = _build_cross_index_from_chunks({stem: chunks_self})
+    # Simulate within-pass already collapsed the pair (chunk 1 is the duplicate).
+    chunks_self[1]["is_duplicate"] = True
+    sigs = build_local_signatures(chunks_self)
+    flag_cross_syllabus_dups(chunks_self, stem, sigs, cross_lsh, cross_sigs, cross_metadata)
+    assert chunks_self[0]["is_duplicate"] is False  # only match is a same-stem twin
+
+
 def test_within_syllabus_dedup_skips_short_distinct_chunks():
     chunks = [
         _chunk(0, "Short distinct chunk one with unique words like elephant."),

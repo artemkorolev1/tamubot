@@ -23,18 +23,27 @@ from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 def _upsert_atlas(chunks: list[dict], chunk_tag: str) -> int:
     from pymongo import MongoClient, UpdateOne
 
-    uri = os.getenv("MONGODB_URI") or config.MONGODB_URI
-    db_name = os.getenv("MONGODB_DB") or config.MONGODB_DB
-    client: MongoClient = MongoClient(uri)
-    db = client[db_name]
-
     ops = []
     for doc in chunks:
-        filt = {"crn": doc["crn"], "chunk_index": doc["chunk_index"], "chunk_tag": chunk_tag}
+        # Key on source_file (the stem), not crn: a Howdy (_HP) and a Simple
+        # Syllabus copy of the same CRN would otherwise collide on
+        # (crn, chunk_index) and overwrite each other. This also matches the
+        # identity the vector_count_matches_chunks check counts by.
+        filt = {
+            "source_file": doc["source_file"],
+            "chunk_index": doc["chunk_index"],
+            "chunk_tag": chunk_tag,
+        }
         ops.append(UpdateOne(filt, {"$set": doc}, upsert=True))
     if not ops:
         return 0
-    res = db["chunks_v4"].bulk_write(ops, ordered=False)
+
+    uri = os.getenv("MONGODB_URI") or config.MONGODB_URI
+    db_name = os.getenv("MONGODB_DB") or config.MONGODB_DB
+    # Context-managed so the client is closed per partition (no connection churn
+    # across a backfill).
+    with MongoClient(uri) as client:
+        res = client[db_name]["chunks_v4"].bulk_write(ops, ordered=False)
     return (res.modified_count or 0) + (res.upserted_count or 0)
 
 

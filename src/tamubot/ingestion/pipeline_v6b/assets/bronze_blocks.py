@@ -66,6 +66,13 @@ def _compute_bronze_blocks(
 
     blocks = _parse_or_deadletter(stem, pdf, bronze_dir, converter=docling.get_converter())
 
+    # Clear any stale dead-letter marker from a prior failed run, now that this
+    # stem parsed successfully — otherwise it lingers and misleads orphan/corpus
+    # reports.
+    deadletter = _deadletter_path(stem)
+    if deadletter.exists():
+        deadletter.unlink()
+
     blocks_out = paths.bronze_blocks_path(stem)
     blocks_out.write_text(json.dumps(blocks, indent=2, ensure_ascii=False), encoding="utf-8")
 

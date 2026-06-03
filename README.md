@@ -80,6 +80,19 @@ Knowledge is prepared offline in four stages — **scrape → parse → embed �
 - **Chunk & embed** — A token-aware semantic chunker splits each syllabus along its section boundaries so a chunk is one coherent topic, and Voyage AI embeds the chunks.
 - **Store** — Validated records are upserted into MongoDB Atlas alongside the vector, full-text, and metadata indexes and the course/instructor/topic knowledge graph.
 
+### Preprocessing quality (v6b)
+
+The ingestion track that prepares syllabus chunks is treated as its own quality
+surface. Each PDF flows through staged transforms — layout-aware parsing, optional
+vision enrichment of tables/figures, semantic chunking, and a tagging pass that
+detects shared university **boilerplate** (legal/admin text repeated across
+departments) and **near-duplicate** chunks (within and across syllabi) so the
+retriever isn't flooded with the same policy paragraph from every course. Every
+stage carries data-quality checks, and a separate model-graded **judge** scores
+the output on four dimensions — boilerplate, dedup, chunking, and fidelity —
+against a frozen error taxonomy, so changes to the algorithms can be compared
+without silently regressing content faithfulness.
+
 ## Evaluation
 
 TamuBot is evaluated against two purpose-built **RAGAS golden sets** generated from the knowledge graph:

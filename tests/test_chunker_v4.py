@@ -6,6 +6,7 @@ import pytest
 
 from tamubot.ingestion.chunker_v4 import (
     chunk_markdown,
+    chunk_semantic,
     chunk_with_log,
 )
 
@@ -161,3 +162,17 @@ class TestRealFileRegression:
                 f"Chunk {chunk['chunk_index']} still oversized: "
                 f"{chunk['token_count']} tok (header={chunk['header_path']})"
             )
+
+
+def test_chunk_semantic_root_body_flagged_no_header():
+    """Root body (text before the first header) is headerless, so it must carry
+    the NO_HEADER flag the blocking low_no_header_rate check counts (M5)."""
+    md = (
+        "This is introductory prose that appears before any heading at all. " * 8
+        + "\n\n## Real Section\n\n"
+        + "Section body content goes here with enough words to be kept. " * 8
+    )
+    chunks, _ = chunk_semantic(md, flag_threshold=600, min_chunk_tokens=15)
+    root = chunks[0]
+    assert root["header_path"] == ""
+    assert "NO_HEADER" in root["flags"]

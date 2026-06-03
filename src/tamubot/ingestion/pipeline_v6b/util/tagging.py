@@ -51,38 +51,59 @@ def flag_within_syllabus_dups(
     stem: str,
     local_sigs: dict[int, MinHash],
 ) -> None:
-    """Canonical = longest content, lowest chunk_index break."""
+    """Collapse near-duplicate chunks within one syllabus.
+
+    Builds dup *components* via union-find over all true-duplicate pairs (not
+    per-seed neighbourhoods), so transitive chains and query order don't change
+    the outcome. Canonical per component = longest content, lowest chunk_index
+    tie-break. Every non-canonical member points at that one canonical.
+    """
     if not local_sigs:
         return
     lsh = MinHashLSH(threshold=WITHIN_SYL_THRESHOLD, num_perm=NUM_PERM)
     for i, sig in local_sigs.items():
         lsh.insert(str(i), sig)
 
-    assigned: dict[int, int] = {}
-    visited: set[frozenset[int]] = set()
+    parent: dict[int, int] = {i: i for i in local_sigs}
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[max(ra, rb)] = min(ra, rb)
+
     for i, sig in local_sigs.items():
-        candidates = [int(c) for c in lsh.query(sig) if int(c) != i and int(c) in local_sigs]
-        true_dups = [c for c in candidates if sig.jaccard(local_sigs[c]) >= WITHIN_SYL_THRESHOLD]
-        if not true_dups:
-            continue
-        cluster = frozenset({i, *true_dups})
-        if cluster in visited:
-            continue
-        visited.add(cluster)
-        def canonical_key(idx: int) -> tuple[int, int]:
-            content_len = len(chunks[idx].get("content", "") or "")
-            ci = chunks[idx].get("chunk_index")
-            return (content_len, -(int(ci) if ci is not None else idx))
+        for c in lsh.query(sig):
+            j = int(c)
+            if j == i or j not in local_sigs:
+                continue
+            if sig.jaccard(local_sigs[j]) >= WITHIN_SYL_THRESHOLD:
+                union(i, j)
 
-        canonical = max(cluster, key=canonical_key)
-        for idx in cluster:
-            if idx != canonical and idx not in assigned:
-                assigned[idx] = canonical
+    components: dict[int, list[int]] = {}
+    for i in local_sigs:
+        components.setdefault(find(i), []).append(i)
 
-    for idx, canonical_idx in assigned.items():
-        canonical_chunk_index = chunks[canonical_idx].get("chunk_index", canonical_idx)
-        chunks[idx]["is_duplicate"] = True
-        chunks[idx]["duplicate_of_chunk_id"] = chunk_id_of(stem, canonical_chunk_index)
+    def canonical_key(idx: int) -> tuple[int, int]:
+        content_len = len(chunks[idx].get("content", "") or "")
+        ci = chunks[idx].get("chunk_index")
+        return (content_len, -(int(ci) if ci is not None else idx))
+
+    for members in components.values():
+        if len(members) < 2:
+            continue
+        canonical = max(members, key=canonical_key)
+        canonical_chunk_index = chunks[canonical].get("chunk_index", canonical)
+        for idx in members:
+            if idx == canonical:
+                continue
+            chunks[idx]["is_duplicate"] = True
+            chunks[idx]["duplicate_of_chunk_id"] = chunk_id_of(stem, canonical_chunk_index)
 
 
 def flag_cross_syllabus_dups(
@@ -93,13 +114,27 @@ def flag_cross_syllabus_dups(
     cross_sigs: dict[str, MinHash],
     cross_metadata: dict[str, dict],
 ) -> None:
-    """Canonical = lex-min (stem, chunk_index) across the dup cluster."""
+    """Canonical = lex-min (stem, chunk_index) across the dup cluster.
+
+    Same-stem candidates are excluded — intra-syllabus duplicates are owned by
+    flag_within_syllabus_dups, and letting the cross pass re-flag them (with a
+    different canonical rule) could mark a within-syllabus canonical as a dup,
+    leaving an intra-doc group with no surviving copy.
+    """
     for i, sig in local_sigs.items():
         if chunks[i].get("is_duplicate"):
             continue
         my_chunk_index = chunks[i].get("chunk_index", i)
         my_id = chunk_id_of(stem, my_chunk_index)
-        candidates = [str(cid) for cid in cross_lsh.query(sig) if str(cid) != my_id]
+        candidates: list[str] = []
+        for cid in cross_lsh.query(sig):
+            cid = str(cid)
+            if cid == my_id:
+                continue
+            meta = cross_metadata.get(cid)
+            if meta is not None and meta.get("stem") == stem:
+                continue  # same-stem twin → handled by within-syllabus dedup
+            candidates.append(cid)
         true_dups = [
             cid for cid in candidates
             if cid in cross_sigs and sig.jaccard(cross_sigs[cid]) >= CROSS_SYL_THRESHOLD

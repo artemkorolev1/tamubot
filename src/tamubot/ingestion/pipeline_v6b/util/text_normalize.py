@@ -43,10 +43,21 @@ def jaccard(a: set[str], b: set[str]) -> float:
 
 
 def minhash_of(text: str, num_perm: int = _NUM_PERM) -> MinHash:
-    """MinHash over the 5-gram set of normalize_text(text). Empty MinHash if no n-grams."""
+    """MinHash over the 5-gram set of normalize_text(text).
+
+    Short text (<5 tokens) has no 5-grams. Rather than return an all-default
+    ("empty") MinHash — which has Jaccard 1.0 with *every* other empty MinHash and
+    so makes all short strings collide as "identical" — fall back to the whole
+    normalized string as a single shingle. Distinct short strings then get
+    distinct signatures (Jaccard 0), while identical short strings still match
+    (Jaccard 1). Truly empty text still yields an empty MinHash (callers skip it).
+    """
     mh = MinHash(num_perm=num_perm)
     grams = ngrams(text, n=_NGRAM_N)
     if not grams:
+        norm = normalize_text(text)
+        if norm:
+            mh.update(norm.encode("utf-8"))
         return mh
     for g in set(grams):
         mh.update(g.encode("utf-8"))

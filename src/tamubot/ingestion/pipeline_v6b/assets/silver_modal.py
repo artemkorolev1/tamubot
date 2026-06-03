@@ -77,6 +77,31 @@ def _make_nuextract_image_func(extractor):
     return _call
 
 
+def _table_body_to_gfm(rows: list[list[str]]) -> str:
+    """Render a Docling-extracted table grid (`block["table_body"]`) as GitHub-
+    flavored markdown. Row 0 is treated as the header. Returns "" for an empty or
+    degenerate grid. This is the fallback that keeps table content alive when the
+    modal stage is disabled (no `modal_result.table_markdown`)."""
+    cleaned = [
+        [(c or "").strip().replace("|", "\\|").replace("\n", " ") for c in row]
+        for row in rows
+        if row
+    ]
+    if not cleaned:
+        return ""
+    width = max(len(r) for r in cleaned)
+    if width == 0:
+        return ""
+    norm = [r + [""] * (width - len(r)) for r in cleaned]
+    out = [
+        "| " + " | ".join(norm[0]) + " |",
+        "| " + " | ".join(["---"] * width) + " |",
+    ]
+    for r in norm[1:]:
+        out.append("| " + " | ".join(r) + " |")
+    return "\n".join(out)
+
+
 def _merge_to_markdown(blocks: list[dict]) -> str:
     """Reconstruct a markdown string from a block list.
 
@@ -107,6 +132,11 @@ def _merge_to_markdown(blocks: list[dict]) -> str:
             modal = b.get("modal_result") or {}
             table_md = (modal.get("table_markdown") or "").strip()
             caption = modal.get("caption") or b.get("table_caption") or ""
+            # Fall back to the Docling-extracted cell grid when modal didn't
+            # transcribe the table (e.g. V6B_MODAL_ENABLED=false) — otherwise the
+            # table's content is silently dropped from the chunker's markdown.
+            if not table_md:
+                table_md = _table_body_to_gfm(b.get("table_body") or [])
             if table_md:
                 if caption:
                     lines.append(f"<!-- table: {caption} -->")

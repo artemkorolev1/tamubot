@@ -62,7 +62,18 @@ def scan_corpus_signatures(data_root: Path) -> pd.DataFrame:
 
 
 def minhash_from_row(hashvalues: list[int], num_perm: int = NUM_PERM) -> MinHash:
-    """Reconstruct a MinHash from a row's hashvalues list."""
+    """Reconstruct a MinHash from a row's hashvalues list.
+
+    Guards against a parquet written under a different NUM_PERM: a length mismatch
+    would otherwise produce silently wrong Jaccard comparisons. Rebuild the index
+    if this fires.
+    """
+    if len(hashvalues) != num_perm:
+        raise ValueError(
+            f"hashvalues length {len(hashvalues)} != num_perm {num_perm}; the "
+            "signature index was built with a different NUM_PERM — rebuild "
+            "v6b_meta_chunk_signature_index."
+        )
     mh = MinHash(num_perm=num_perm)
     mh.hashvalues = np.array(hashvalues, dtype=np.uint64)
     return mh

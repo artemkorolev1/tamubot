@@ -24,7 +24,8 @@ from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 def _embed_chunks(chunks: list[dict]) -> int:
     """Embed every chunk in-place via Voyage; stamp embedding_model.
 
-    Returns number of voyage calls made (0 if all chunks already had embeddings).
+    Returns the number of chunks embedded this run (0 if all were already
+    embedded) — a real count, so `voyage_calls_vs_baseline` is meaningful.
     """
     needs = [c for c in chunks if c.get("embedding") is None]
     if not needs:
@@ -38,7 +39,7 @@ def _embed_chunks(chunks: list[dict]) -> int:
     embed_chunks(voyage, needs)
     for c in chunks:
         c["embedding_model"] = EMBEDDING_MODEL
-    return 1
+    return len(needs)
 
 
 def _compute_embed(context: AssetExecutionContext) -> MaterializeResult:

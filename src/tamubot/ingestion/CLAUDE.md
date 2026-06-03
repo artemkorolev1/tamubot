@@ -34,3 +34,34 @@ Each UI shows the asset graph, materialization history, and inline check status 
 Asset checks: see `pipeline_v6{b,c}/checks/` for L1/L2/L3 definitions. Reusable validators live in `tamubot/ingestion/validation/`.
 
 L3 `golden_recall_at_5` is opt-in: `RUN_GOLDEN_RECALL_CHECK=true V6B_INGEST_ENABLED=true dagster asset materialize ...`
+
+## v6b preprocessing
+
+Stages (per-stem, partitioned): `bronze_blocks` (Docling) → `silver_modal`
+(vision, **default no-op**) → `silver_chunk_semantic` → `silver_tag_semantic`
+(boilerplate + within/cross dedup) → `silver_embed` → `silver_atlas_upsert`.
+`silver_structured` is a parallel branch off bronze (Gemini extract, NuExtract
+vision fallback). Corpus-level meta indexes are **unpartitioned + manual**.
+Full review + open findings: `docs/v6b-preprocessing-review.md`.
+
+Gotchas:
+
+- **Two-phase dedup (ordering not in the DAG).** `meta_boilerplate_reference` and
+  `meta_chunk_signature_index` are built *from* `02_chunk`, but `silver_tag` deps
+  only on `02_chunk` — so a first run tags **0** boilerplate/dedup. Sequence:
+  run chunk → materialize both `v6b_meta_*` → **then** (re-)run `silver_tag`.
+- **`code_version_of` only hashes the asset's own function** (`pipeline_v5/util.py`).
+  Edits to `util/tagging.py` / `util/text_normalize.py` do **not** mark
+  `silver_tag` stale — Dagster shows it current while behavior changed. After a
+  util-only fix, **force** a re-materialize (`--select v6b_silver_tag_semantic …`).
+- **Tag parquet cache is content-keyed.** `silver_tag` caches the reference /
+  signature indexes by `(path, sha256)` — a same-path rebuild *is* picked up
+  mid-process. (Was a path-only key → silently served the stale/empty index.)
+
+Code → error-taxonomy ownership (`docs/preprocessing_error_taxonomy.md`):
+
+| Code | Owns |
+|---|---|
+| `util/tagging.py`, `util/boilerplate_clustering.py`, `util/signature_index.py` | `BP_*`, `DUP_*` |
+| `chunker_v4.py` | `CHUNK_*` |
+| `assets/silver_modal.py`, `assets/bronze_blocks.py`, `converters/docling_block_adapter.py` | `FID_*` |

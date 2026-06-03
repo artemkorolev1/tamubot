@@ -248,16 +248,46 @@ def _is_populated(value: object) -> bool:
     return True
 
 
+def _dedupe_key(item: object) -> str:
+    """Order-preserving dedupe key for a list item (str / pydantic model / dict)."""
+    dump = getattr(item, "model_dump_json", None)
+    if callable(dump):
+        return dump()
+    try:
+        return json.dumps(item, sort_keys=True, default=str)
+    except TypeError:
+        return str(item)
+
+
 def merge_extracts(extracts: list[SyllabusExtract]) -> SyllabusExtract:
-    """Field-wise merge across per-page vision results: keep the first populated
-    value seen for each field. Empty list → an empty SyllabusExtract."""
+    """Field-wise merge across per-page vision results.
+
+    Scalar fields keep the first populated value. **List** fields
+    (learning_outcomes, assessment_weights, meeting_schedule, …) are concatenated
+    across pages with order-preserving dedupe — otherwise a list that spans pages
+    would be truncated to page 1's entries (FID_CONTENT_DROPPED on multi-page
+    scans). Empty list → an empty SyllabusExtract."""
     merged = SyllabusExtract()
     for field_name in SyllabusExtract.model_fields:
-        for ex in extracts:
-            value = getattr(ex, field_name)
-            if _is_populated(value):
-                setattr(merged, field_name, value)
-                break
+        first = next(
+            (getattr(ex, field_name) for ex in extracts if _is_populated(getattr(ex, field_name))),
+            None,
+        )
+        if first is None:
+            continue
+        if isinstance(first, list):
+            combined: list = []
+            seen: set[str] = set()
+            for ex in extracts:
+                for item in getattr(ex, field_name) or []:
+                    key = item if isinstance(item, str) else _dedupe_key(item)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    combined.append(item)
+            setattr(merged, field_name, combined)
+        else:
+            setattr(merged, field_name, first)
     return merged
 
 

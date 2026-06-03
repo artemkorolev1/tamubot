@@ -61,11 +61,25 @@ def test_jaccard_handles_two_empty_sets():
     assert jaccard(set(), set()) == 0.0
 
 
-def test_minhash_of_short_text_returns_empty_minhash():
-    mh = minhash_of("only four words here")
-    empty = minhash_of("")
-    # An empty MinHash has Jaccard 1.0 with another empty MinHash (per datasketch semantics).
-    assert mh.jaccard(empty) == 1.0
+def test_minhash_of_distinct_short_texts_do_not_collide():
+    # Short (<5-token) texts must NOT collapse to the empty MinHash (which has
+    # Jaccard 1.0 with everything) — distinct short strings get distinct sigs.
+    a = minhash_of("office hours")
+    b = minhash_of("grading policy")
+    assert a.jaccard(b) < 0.5
+
+
+def test_minhash_of_identical_short_texts_still_match():
+    a = minhash_of("office hours")
+    b = minhash_of("Office   Hours!")  # identical after normalization
+    assert a.jaccard(b) == 1.0
+
+
+def test_minhash_of_truly_empty_text_is_empty_minhash():
+    # Punctuation/whitespace-only normalizes to "" → empty MinHash. Callers skip
+    # these (build_local_signatures / scan filter on normalize_text), so the
+    # empty-vs-empty 1.0 here never reaches a dedup decision.
+    assert minhash_of("").jaccard(minhash_of("  !!!  ")) == 1.0
 
 
 def test_minhash_jaccard_approximates_true_jaccard():

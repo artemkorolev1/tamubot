@@ -45,13 +45,16 @@ def _load_reference_index() -> tuple[ReferenceIndex, bool, str]:
     parquet = paths.boilerplate_reference_path()
     if not parquet.exists():
         return ReferenceIndex.empty(), False, ""
-    key = str(parquet)
+    # Key the cache on (path, content-hash) so a same-path parquet rebuild — the
+    # two-phase dedup workflow — invalidates a stale index instead of serving it.
+    sha = hash_file(parquet)
+    key = f"{parquet}@{sha}"
     if _REFERENCE_INDEX_CACHE is not None and _REFERENCE_INDEX_CACHED_PATH == key:
-        return _REFERENCE_INDEX_CACHE, True, hash_file(parquet)
+        return _REFERENCE_INDEX_CACHE, True, sha
     idx = ReferenceIndex(parquet)
     _REFERENCE_INDEX_CACHE = idx
     _REFERENCE_INDEX_CACHED_PATH = key
-    return idx, True, hash_file(parquet)
+    return idx, True, sha
 
 
 def _load_cross_syllabus_index() -> tuple[
@@ -61,14 +64,16 @@ def _load_cross_syllabus_index() -> tuple[
     parquet = paths.chunk_signature_index_path()
     if not parquet.exists():
         return None, {}, {}, False, ""
-    key = str(parquet)
+    # (path, content-hash) key — see _load_reference_index.
+    sha = hash_file(parquet)
+    key = f"{parquet}@{sha}"
     if _CROSS_SYL_CACHE is not None and _CROSS_SYL_CACHED_PATH == key:
         lsh, sigs, metadata = _CROSS_SYL_CACHE
-        return lsh, sigs, metadata, True, hash_file(parquet)
+        return lsh, sigs, metadata, True, sha
     lsh, sigs, metadata = load_cross_syllabus_index_from_parquet(parquet)
     _CROSS_SYL_CACHE = (lsh, sigs, metadata)
     _CROSS_SYL_CACHED_PATH = key
-    return lsh, sigs, metadata, True, hash_file(parquet)
+    return lsh, sigs, metadata, True, sha
 
 
 def _compute_silver_tag(context: AssetExecutionContext) -> MaterializeResult:
