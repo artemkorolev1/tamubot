@@ -9,7 +9,7 @@ Pure clustering logic lives in util/boilerplate_clustering.py.
 
 from pathlib import Path
 
-from dagster import AssetExecutionContext, MaterializeResult, asset
+from dagster import AssetExecutionContext, AssetKey, MaterializeResult, asset
 
 from tamubot.ingestion.pipeline_v5.util import DATA_ROOT
 from tamubot.ingestion.pipeline_v6b import paths
@@ -54,6 +54,11 @@ def _compute(context: AssetExecutionContext) -> MaterializeResult:
 
 v6b_meta_boilerplate_reference = asset(
     name="v6b_meta_boilerplate_reference",
+    # Corpus scan over all chunk partitions — declare the real upstream so the
+    # graph shows this asset between chunk_semantic and silver_tag (not as an
+    # orphan island). Non-loadable dep: scan_corpus_chunks reads the chunk
+    # outputs off disk, so no I/O-manager wiring is needed.
+    deps=[AssetKey("v6b_silver_chunk_semantic")],
     group_name="v6b_meta",
     description=(
         "Corpus-scanning: builds the shared boilerplate reference parquet "

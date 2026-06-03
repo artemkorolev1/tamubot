@@ -10,7 +10,7 @@ Pure scan/build logic lives in util/signature_index.py.
 
 from pathlib import Path
 
-from dagster import AssetExecutionContext, MaterializeResult, asset
+from dagster import AssetExecutionContext, AssetKey, MaterializeResult, asset
 
 from tamubot.ingestion.pipeline_v5.util import DATA_ROOT
 from tamubot.ingestion.pipeline_v6b import paths
@@ -48,6 +48,10 @@ def _compute(context: AssetExecutionContext) -> MaterializeResult:
 
 v6b_meta_chunk_signature_index = asset(
     name="v6b_meta_chunk_signature_index",
+    # Corpus scan over all chunk partitions — same rationale as
+    # v6b_meta_boilerplate_reference: declare the real upstream so lineage is
+    # correct. Non-loadable dep (scan_corpus_signatures reads off disk).
+    deps=[AssetKey("v6b_silver_chunk_semantic")],
     group_name="v6b_meta",
     description=(
         "Corpus-scanning: per-chunk MinHash signature index for cross-syllabus dedup. "
