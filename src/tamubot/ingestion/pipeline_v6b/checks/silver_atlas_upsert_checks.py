@@ -18,6 +18,7 @@ from pymongo import MongoClient
 
 from tamubot.core import config
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.baseline_diff import (
     compute_baseline_delta,
     read_metadata_history,
@@ -71,7 +72,7 @@ def _atlas_retrieve(question: str, k: int) -> list[str]:
     return [f"{d['crn']}::{d['chunk_index']}::{d['chunk_tag']}" for d in coll.aggregate(pipeline)]
 
 
-@asset_check(asset="v6b_silver_atlas_upsert", blocking=True)
+@asset_check(asset="v6b_silver_atlas_upsert", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_atlas_vector_count_matches_chunks(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -110,7 +111,7 @@ def v6b_silver_atlas_index_status_ready(
     )
 
 
-@asset_check(asset="v6b_silver_atlas_upsert", blocking=False)
+@asset_check(asset="v6b_silver_atlas_upsert", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_atlas_index_size_vs_baseline(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:

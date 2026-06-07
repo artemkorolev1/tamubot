@@ -18,6 +18,7 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 
 # Phase 2 calibration — see plan §2f.
 BP_RATE_MIN = 0.05
@@ -25,7 +26,7 @@ BP_RATE_MAX = 0.45
 DUP_RATE_MAX = 0.20
 
 
-@asset_check(asset="v6b_silver_tag_semantic", blocking=True)
+@asset_check(asset="v6b_silver_tag_semantic", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_tag_chunk_count_preserved(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -41,7 +42,7 @@ def v6b_silver_tag_chunk_count_preserved(
     )
 
 
-@asset_check(asset="v6b_silver_tag_semantic", blocking=False)
+@asset_check(asset="v6b_silver_tag_semantic", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_tag_boilerplate_rate_in_band(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -65,7 +66,7 @@ def v6b_silver_tag_boilerplate_rate_in_band(
     )
 
 
-@asset_check(asset="v6b_silver_tag_semantic", blocking=False)
+@asset_check(asset="v6b_silver_tag_semantic", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_tag_duplicate_rate_in_band(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:

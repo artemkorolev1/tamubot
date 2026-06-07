@@ -10,11 +10,12 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 
 _REQUIRED_MODAL_RESULT_KEYS = ("confidence",)
 
 
-@asset_check(asset="v6b_silver_modal", blocking=False)
+@asset_check(asset="v6b_silver_modal", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_modal_budget_not_exceeded(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -29,7 +30,7 @@ def v6b_silver_modal_budget_not_exceeded(
     )
 
 
-@asset_check(asset="v6b_silver_modal", blocking=True)
+@asset_check(asset="v6b_silver_modal", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_modal_result_schema_valid(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:

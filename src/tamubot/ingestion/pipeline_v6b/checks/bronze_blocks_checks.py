@@ -11,6 +11,7 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.baseline_diff import (
     compute_baseline_delta,
     read_metadata_history,
@@ -21,7 +22,7 @@ from tamubot.ingestion.validation.text_quality import check_no_replacement_chars
 from tamubot.ingestion.validation.types import CheckOutcome
 
 
-@asset_check(asset="v6b_bronze_blocks", blocking=True)
+@asset_check(asset="v6b_bronze_blocks", blocking=True, partitions_def=stem_partitions)
 def v6b_bronze_blocks_nonempty(context: AssetCheckExecutionContext) -> AssetCheckResult:
     stem = context.partition_key
     p = paths.bronze_blocks_path(stem)
@@ -39,7 +40,7 @@ def v6b_bronze_blocks_nonempty(context: AssetCheckExecutionContext) -> AssetChec
     )
 
 
-@asset_check(asset="v6b_bronze_blocks", blocking=False)
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
 def v6b_bronze_blocks_has_text(context: AssetCheckExecutionContext) -> AssetCheckResult:
     """A bronze block list with zero text blocks almost certainly failed parsing."""
     stem = context.partition_key
@@ -53,7 +54,7 @@ def v6b_bronze_blocks_has_text(context: AssetCheckExecutionContext) -> AssetChec
     )
 
 
-@asset_check(asset="v6b_bronze_blocks", blocking=True)
+@asset_check(asset="v6b_bronze_blocks", blocking=True, partitions_def=stem_partitions)
 def v6b_bronze_blocks_no_replacement_chars(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -68,7 +69,7 @@ def v6b_bronze_blocks_no_replacement_chars(
     )
 
 
-@asset_check(asset="v6b_bronze_blocks", blocking=True)
+@asset_check(asset="v6b_bronze_blocks", blocking=True, partitions_def=stem_partitions)
 def v6b_bronze_blocks_header_hierarchy_valid(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -83,7 +84,7 @@ def v6b_bronze_blocks_header_hierarchy_valid(
     )
 
 
-@asset_check(asset="v6b_bronze_blocks", blocking=False)
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
 def v6b_bronze_blocks_block_count_vs_baseline(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -111,7 +112,7 @@ def _evaluate_source_integrity(stem: str) -> CheckOutcome:
     return check_pdf_integrity(page_count=page_count, markdown_chars=markdown_chars)
 
 
-@asset_check(asset="v6b_bronze_blocks", blocking=False)
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
 def v6b_bronze_blocks_source_integrity(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:

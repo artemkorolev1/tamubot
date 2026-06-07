@@ -14,6 +14,7 @@ from dagster import (
 
 from tamubot.ingestion.ingest import EMBEDDING_MODEL
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.baseline_diff import (
     compute_baseline_delta,
     read_metadata_history,
@@ -24,7 +25,7 @@ def _load_embed(stem: str) -> dict:
     return json.loads(paths.silver_embed_path(stem).read_text(encoding="utf-8"))
 
 
-@asset_check(asset="v6b_silver_embed", blocking=True)
+@asset_check(asset="v6b_silver_embed", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_embed_count_matches_chunks(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -40,7 +41,7 @@ def v6b_silver_embed_count_matches_chunks(
     )
 
 
-@asset_check(asset="v6b_silver_embed", blocking=True)
+@asset_check(asset="v6b_silver_embed", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_embed_model_field_present(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -59,7 +60,7 @@ def v6b_silver_embed_model_field_present(
     )
 
 
-@asset_check(asset="v6b_silver_embed", blocking=False)
+@asset_check(asset="v6b_silver_embed", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_embed_voyage_calls_vs_baseline(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:

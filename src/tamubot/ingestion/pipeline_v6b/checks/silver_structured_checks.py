@@ -17,9 +17,10 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 
 
-@asset_check(asset="v6b_silver_structured", blocking=False)
+@asset_check(asset="v6b_silver_structured", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_structured_not_degenerate(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:

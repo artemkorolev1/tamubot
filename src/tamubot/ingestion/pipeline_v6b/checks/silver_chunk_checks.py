@@ -10,6 +10,7 @@ from dagster import (
 )
 
 from tamubot.ingestion.pipeline_v6b import paths
+from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.baseline_diff import (
     compute_baseline_delta,
     read_metadata_history,
@@ -27,7 +28,7 @@ def _load_chunks(stem: str) -> list[dict]:
     return data["chunks"]
 
 
-@asset_check(asset="v6b_silver_chunk_semantic", blocking=True)
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_chunk_count_nonzero(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -40,7 +41,7 @@ def v6b_silver_chunk_count_nonzero(
     )
 
 
-@asset_check(asset="v6b_silver_chunk_semantic", blocking=False)
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_chunk_no_oversized(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -53,7 +54,7 @@ def v6b_silver_chunk_no_oversized(
     )
 
 
-@asset_check(asset="v6b_silver_chunk_semantic", blocking=True)
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_chunk_low_no_header_rate(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -66,7 +67,7 @@ def v6b_silver_chunk_low_no_header_rate(
     )
 
 
-@asset_check(asset="v6b_silver_chunk_semantic", blocking=True)
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=True, partitions_def=stem_partitions)
 def v6b_silver_chunk_schema_valid(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -79,7 +80,7 @@ def v6b_silver_chunk_schema_valid(
     )
 
 
-@asset_check(asset="v6b_silver_chunk_semantic", blocking=False)
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_chunk_total_vs_baseline(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
@@ -100,7 +101,7 @@ def v6b_silver_chunk_total_vs_baseline(
     )
 
 
-@asset_check(asset="v6b_silver_chunk_semantic", blocking=False)
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
 def v6b_silver_chunk_flagged_rate_vs_baseline(
     context: AssetCheckExecutionContext,
 ) -> AssetCheckResult:
