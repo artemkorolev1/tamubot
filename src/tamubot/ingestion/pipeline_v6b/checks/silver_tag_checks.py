@@ -20,9 +20,12 @@ from dagster import (
 from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 
-# Phase 2 calibration — see plan §2f.
-BP_RATE_MIN = 0.05
-BP_RATE_MAX = 0.45
+# Phase 2 calibration — see plan §2f. Band widened to 35%–65% after the
+# corpus retag (2026-06-08): grad syllabi share a near-constant ~11–13 chunks of
+# university-mandated boilerplate (academic integrity, disability services,
+# Title IX, attendance), so a healthy boilerplate_rate sits ~50%, not <45%.
+BP_RATE_MIN = 0.35
+BP_RATE_MAX = 0.65
 DUP_RATE_MAX = 0.20
 
 
