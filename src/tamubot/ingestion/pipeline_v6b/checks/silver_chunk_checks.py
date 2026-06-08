@@ -13,6 +13,7 @@ from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.baseline_diff import (
     compute_baseline_delta,
+    describe_delta,
     read_metadata_history,
 )
 from tamubot.ingestion.validation.schema_validation import check_chunks_schema_valid
@@ -34,9 +35,11 @@ def v6b_silver_chunk_count_nonzero(
 ) -> AssetCheckResult:
     chunks = _load_chunks(context.partition_key)
     outcome = check_chunk_count_nonzero(chunks)
+    n = outcome.metadata.get("chunk_count", 0)
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.ERROR,
+        description=f"{n} chunk(s)" if outcome.passed else "0 chunks — chunking produced nothing",
         metadata=outcome.metadata,
     )
 
@@ -47,9 +50,16 @@ def v6b_silver_chunk_no_oversized(
 ) -> AssetCheckResult:
     chunks = _load_chunks(context.partition_key)
     outcome = check_no_oversized_chunks(chunks)
+    over = outcome.metadata.get("oversized_count", 0)
+    total = outcome.metadata.get("total", 0)
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
+        description=(
+            f"no oversized chunks ({total} total)"
+            if outcome.passed
+            else f"{over} of {total} chunk(s) exceed the token cap"
+        ),
         metadata=outcome.metadata,
     )
 
@@ -60,9 +70,16 @@ def v6b_silver_chunk_low_no_header_rate(
 ) -> AssetCheckResult:
     chunks = _load_chunks(context.partition_key)
     outcome = check_low_no_header_rate(chunks, max_rate=0.10)
+    rate = outcome.metadata.get("no_header_rate", 0.0)
+    mx = outcome.metadata.get("max_rate", 0.10)
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.ERROR,
+        description=(
+            f"no-header rate {rate:.0%} within max {mx:.0%}"
+            if outcome.passed
+            else f"no-header rate {rate:.0%} exceeds max {mx:.0%} — too many headerless chunks"
+        ),
         metadata=outcome.metadata,
     )
 
@@ -73,9 +90,16 @@ def v6b_silver_chunk_schema_valid(
 ) -> AssetCheckResult:
     chunks = _load_chunks(context.partition_key)
     outcome = check_chunks_schema_valid(chunks)
+    invalid = outcome.metadata.get("invalid_count", 0)
+    total = outcome.metadata.get("total", 0)
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.ERROR,
+        description=(
+            f"all {total} chunk(s) schema-valid"
+            if outcome.passed
+            else f"{invalid} of {total} chunk(s) fail schema validation"
+        ),
         metadata=outcome.metadata,
     )
 
@@ -97,6 +121,7 @@ def v6b_silver_chunk_total_vs_baseline(
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
+        description="chunk_count " + describe_delta(outcome.metadata),
         metadata=outcome.metadata,
     )
 
@@ -119,5 +144,6 @@ def v6b_silver_chunk_flagged_rate_vs_baseline(
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
+        description="flagged_rate " + describe_delta(outcome.metadata),
         metadata=outcome.metadata,
     )

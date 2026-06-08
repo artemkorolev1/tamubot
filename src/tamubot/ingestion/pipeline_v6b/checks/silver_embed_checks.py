@@ -17,6 +17,7 @@ from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.baseline_diff import (
     compute_baseline_delta,
+    describe_delta,
     read_metadata_history,
 )
 
@@ -37,6 +38,11 @@ def v6b_silver_embed_count_matches_chunks(
     return AssetCheckResult(
         passed=embedded == total and total > 0,
         severity=AssetCheckSeverity.ERROR,
+        description=(
+            f"all {total} chunk(s) embedded"
+            if embedded == total and total > 0
+            else f"{embedded}/{total} chunk(s) embedded — {total - embedded} missing"
+        ),
         metadata={"embedded": embedded, "total": total},
     )
 
@@ -52,6 +58,11 @@ def v6b_silver_embed_model_field_present(
     return AssetCheckResult(
         passed=missing == 0,
         severity=AssetCheckSeverity.ERROR,
+        description=(
+            f"all chunks tagged embedding_model={EMBEDDING_MODEL}"
+            if missing == 0
+            else f"{missing} of {len(chunks)} chunk(s) missing/wrong embedding_model (expected {EMBEDDING_MODEL})"
+        ),
         metadata={
             "expected_model": EMBEDDING_MODEL,
             "missing_or_wrong_model": missing,
@@ -85,6 +96,7 @@ def v6b_silver_embed_voyage_calls_vs_baseline(
         return AssetCheckResult(
             passed=True,
             severity=AssetCheckSeverity.WARN,
+            description="skipped — no materialization found to read voyage_calls from",
             metadata={"skipped": "no materialization found"},
         )
     mat = recent[0].event_log_entry.dagster_event.event_specific_data.materialization
@@ -93,5 +105,6 @@ def v6b_silver_embed_voyage_calls_vs_baseline(
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
+        description="voyage_calls " + describe_delta(outcome.metadata),
         metadata=outcome.metadata,
     )

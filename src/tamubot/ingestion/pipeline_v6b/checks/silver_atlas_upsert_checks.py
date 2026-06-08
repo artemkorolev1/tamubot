@@ -21,6 +21,7 @@ from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.baseline_diff import (
     compute_baseline_delta,
+    describe_delta,
     read_metadata_history,
 )
 from tamubot.ingestion.validation.golden_recall import compute_recall_at_k
@@ -80,6 +81,7 @@ def v6b_silver_atlas_vector_count_matches_chunks(
         return AssetCheckResult(
             passed=True,
             severity=AssetCheckSeverity.WARN,
+            description="skipped — V6B_INGEST_ENABLED=false (dry-run, Atlas not touched)",
             metadata={"skipped_reason": "V6B_INGEST_ENABLED=false (dry-run)"},
         )
     stem = context.partition_key
@@ -90,9 +92,16 @@ def v6b_silver_atlas_vector_count_matches_chunks(
         filter_query={"source_file": stem, "chunk_tag": "v6b_semantic"},
         expected_count=len(chunks),
     )
+    actual = outcome.metadata.get("actual_count")
+    expected = outcome.metadata.get("expected_count")
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.ERROR,
+        description=(
+            f"{actual} vector(s) in Atlas match {expected} chunk(s)"
+            if outcome.passed
+            else f"vector/chunk mismatch — {actual} in Atlas vs {expected} expected (Δ {outcome.metadata.get('delta')})"
+        ),
         metadata=outcome.metadata,
     )
 
@@ -107,6 +116,11 @@ def v6b_silver_atlas_index_status_ready(
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
+        description=(
+            f"index {INDEX_NAME} READY & queryable"
+            if outcome.passed
+            else f"index {INDEX_NAME} not ready — status={outcome.metadata.get('status')}, queryable={outcome.metadata.get('queryable')}"
+        ),
         metadata=outcome.metadata,
     )
 
@@ -119,6 +133,7 @@ def v6b_silver_atlas_index_size_vs_baseline(
         return AssetCheckResult(
             passed=True,
             severity=AssetCheckSeverity.WARN,
+            description="skipped — V6B_INGEST_ENABLED=false (dry-run, Atlas not touched)",
             metadata={"skipped_reason": "V6B_INGEST_ENABLED=false (dry-run)"},
         )
     stem = context.partition_key
@@ -135,6 +150,7 @@ def v6b_silver_atlas_index_size_vs_baseline(
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
+        description="atlas vector count " + describe_delta(outcome.metadata),
         metadata=outcome.metadata,
     )
 
@@ -152,18 +168,29 @@ def v6b_silver_atlas_golden_recall_at_5(
         return AssetCheckResult(
             passed=True,
             severity=AssetCheckSeverity.WARN,
+            description="skipped — RUN_GOLDEN_RECALL_CHECK not set to true",
             metadata={"skipped_reason": "RUN_GOLDEN_RECALL_CHECK not set to true"},
         )
     if not config.V6B_INGEST_ENABLED:
         return AssetCheckResult(
             passed=True,
             severity=AssetCheckSeverity.WARN,
+            description="skipped — V6B_INGEST_ENABLED=false (dry-run, Atlas not touched)",
             metadata={"skipped_reason": "V6B_INGEST_ENABLED=false (dry-run)"},
         )
     queries = _load_curated20()
     outcome = compute_recall_at_k(queries, retrieve_fn=_atlas_retrieve, k=5, min_recall=0.80)
+    recall = outcome.metadata.get("recall_at_k")
+    k = outcome.metadata.get("k", 5)
+    min_recall = outcome.metadata.get("min_recall", 0.80)
+    n = outcome.metadata.get("n_queries")
     return AssetCheckResult(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
+        description=(
+            f"recall@{k} {recall:.0%} ≥ min {min_recall:.0%} over {n} queries"
+            if outcome.passed
+            else f"recall@{k} {recall:.0%} below min {min_recall:.0%} over {n} queries"
+        ),
         metadata=outcome.metadata,
     )

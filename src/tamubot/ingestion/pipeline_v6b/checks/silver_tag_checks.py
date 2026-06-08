@@ -38,6 +38,11 @@ def v6b_silver_tag_chunk_count_preserved(
     return AssetCheckResult(
         passed=n_in == n_out,
         severity=AssetCheckSeverity.ERROR,
+        description=(
+            f"chunk count preserved ({n_out})"
+            if n_in == n_out
+            else f"chunk count changed {n_in} → {n_out} (Δ {n_out - n_in:+d}) — tagging must never drop chunks"
+        ),
         metadata={"chunks_in": n_in, "chunks_out": n_out, "delta": n_out - n_in},
     )
 
@@ -56,6 +61,11 @@ def v6b_silver_tag_boilerplate_rate_in_band(
     return AssetCheckResult(
         passed=in_band,
         severity=AssetCheckSeverity.WARN,
+        description=(
+            f"boilerplate_rate {rate:.0%} within band {BP_RATE_MIN:.0%}–{BP_RATE_MAX:.0%}"
+            if in_band
+            else f"boilerplate_rate {rate:.0%} ({bp}/{total}) outside band {BP_RATE_MIN:.0%}–{BP_RATE_MAX:.0%}"
+        ),
         metadata={
             "boilerplate_count": bp,
             "total_chunks": total,
@@ -80,6 +90,11 @@ def v6b_silver_tag_duplicate_rate_in_band(
     return AssetCheckResult(
         passed=in_band,
         severity=AssetCheckSeverity.WARN,
+        description=(
+            f"duplicate_rate {rate:.0%} within max {DUP_RATE_MAX:.0%}"
+            if in_band
+            else f"duplicate_rate {rate:.0%} ({dup}/{total}) exceeds max {DUP_RATE_MAX:.0%}"
+        ),
         metadata={
             "duplicate_count": dup,
             "total_chunks": total,

@@ -32,6 +32,11 @@ def v6b_silver_structured_not_degenerate(
     return AssetCheckResult(
         passed=has_identity,
         severity=AssetCheckSeverity.WARN,
+        description=(
+            f"extracted course_code={course_code!r}, instructor={instructor!r}"
+            if has_identity
+            else "degenerate extract — both course_code and instructor_name empty (gateway returned null shape)"
+        ),
         metadata={
             "course_code": course_code,
             "instructor_name": instructor,

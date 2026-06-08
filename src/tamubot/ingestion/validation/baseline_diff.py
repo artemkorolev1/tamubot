@@ -49,6 +49,26 @@ def compute_baseline_delta(
     )
 
 
+def describe_delta(metadata: dict) -> str:
+    """One-line human summary of a compute_baseline_delta() result — for an
+    AssetCheckResult.description so the Dagster Checks tab shows *why* a
+    run-over-run drift check fared as it did (current vs baseline, Δ%, band).
+
+    Pairs with the metadata emitted by compute_baseline_delta(); tolerates the
+    first-run (no history) and zero-baseline special cases.
+    """
+    current = metadata.get("current")
+    n = metadata.get("history_n", 0)
+    if not n:
+        return f"{current} — no baseline yet (first run)"
+    baseline = metadata.get("baseline_median")
+    if not baseline:  # None or 0 — delta undefined
+        return f"{current} vs baseline {baseline} — delta undefined"
+    delta_pct = metadata.get("delta_pct", 0.0)
+    allowed = metadata.get("max_drift_pct", 0.0)
+    return f"{current} vs baseline median {baseline} (Δ {delta_pct:+.0%}, allowed ±{allowed:.0%}, n={n})"
+
+
 def read_metadata_history(
     instance: Any,
     asset_key: str,

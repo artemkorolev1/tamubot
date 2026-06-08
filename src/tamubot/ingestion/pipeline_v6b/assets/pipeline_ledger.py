@@ -15,6 +15,11 @@ that stage:
 And a per-file row status: passed (all 7 done & green) / in progress (some
 stages still not started) / warning / failed / not started.
 
+Below the grid, a failures-first "Problems" table names every failed check —
+file × stage × check × *why* (the check's own description, which carries the
+actual metric vs threshold) — so the one report answers "which checks failed,
+in which documents, and what was wrong" without clicking into each partition.
+
 REPORT ONLY — reads the Dagster instance + event log, never asset outputs, so it
 takes NO `deps` and never mutates anything (same shape as v6b_corpus_report).
 
@@ -141,6 +146,39 @@ def build_ledger(
     return {"rows": rows, "summary": summary, "markdown": _render_markdown(rows, summary)}
 
 
+def _render_problems(rows: list[dict]) -> str:
+    """Failures-first detail table: one row per failed check, naming the file,
+    the stage, the check, and *why* it failed (the check's own description, which
+    carries the actual metric vs threshold). This is the "which checks failed, in
+    which documents, and what was wrong" view — ERROR-severity first, then WARN."""
+    label_of = {key: label for key, label in STAGES}
+    lines: list[dict] = []
+    for r in rows:
+        for fc in r.get("failed_checks", []):
+            is_error = fc.get("severity") == "ERROR"
+            lines.append(
+                {
+                    "is_error": is_error,
+                    "glyph": GLYPH_FAIL if is_error else GLYPH_WARN,
+                    "stem": r["stem"],
+                    "stage": label_of.get(fc.get("stage"), fc.get("stage", "")),
+                    "name": fc.get("name", ""),
+                    "why": fc.get("description") or "(no description)",
+                }
+            )
+    if not lines:
+        return "**Problems:** none — every check that ran passed. ✓"
+    # ERROR (blocking) failures first; stable order preserves the sorted rows within.
+    lines.sort(key=lambda d: 0 if d["is_error"] else 1)
+    header = "| | File | Stage | Check | Problem |"
+    divider = "|--|------|-------|-------|---------|"
+    body = [f"| {d['glyph']} | {d['stem']} | {d['stage']} | {d['name']} | {d['why']} |" for d in lines]
+    n_err = sum(1 for d in lines if d["is_error"])
+    n_warn = len(lines) - n_err
+    title = f"**Problems ({n_err} failing · {n_warn} warning) — failures first:**"
+    return title + "\n\n" + "\n".join([header, divider, *body])
+
+
 def _render_markdown(rows: list[dict], summary: dict) -> str:
     labels = [label for _key, label in STAGES]
     header = "| File | " + " | ".join(labels) + " |"
@@ -162,7 +200,9 @@ def _render_markdown(rows: list[dict], summary: dict) -> str:
         f"{GLYPH_FAIL} failed (blocking check failed) · "
         f"{GLYPH_MISSING} not started"
     )
-    return summary_line + "\n\n" + legend + "\n\n" + "\n".join([header, divider, *body])
+    grid = "\n".join([header, divider, *body])
+    problems = _render_problems(rows)
+    return summary_line + "\n\n" + legend + "\n\n" + grid + "\n\n" + problems
 
 
 def _stage_check_keys() -> dict[str, list[AssetCheckKey]]:
@@ -198,8 +238,14 @@ def _fetch_checks_by_stage(
         for key, record in records.items():
             evaluation = record.evaluation
             severity = evaluation.severity.value if evaluation is not None else "ERROR"
+            description = evaluation.description if evaluation is not None else None
             result[stage_of[key]].setdefault(stem, []).append(
-                {"name": key.name, "status": record.status.value, "severity": severity}
+                {
+                    "name": key.name,
+                    "status": record.status.value,
+                    "severity": severity,
+                    "description": description,
+                }
             )
     return result
 
@@ -254,7 +300,8 @@ v6b_pipeline_ledger = asset(
     description=(
         "Report-only: one table of every file (syllabus stem) × pipeline stage, each cell "
         "rolling up materialization + asset-check status (✓ passed / ~ checks-not-run / "
-        "⚠ warning / ✗ failed / · not started). Reads the Dagster instance + event log; "
-        "no deps, never mutates."
+        "⚠ warning / ✗ failed / · not started), plus a failures-first 'Problems' table "
+        "naming each failed check's file, stage, and why (metric vs threshold). Reads the "
+        "Dagster instance + event log; no deps, never mutates."
     ),
 )(_compute_pipeline_ledger)
