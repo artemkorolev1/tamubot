@@ -224,8 +224,11 @@ class TestDoclingBlockAdapter:
         tbl = _fake_text_item("")
         tbl.caption_text = "Schedule"
         tbl.__class__ = TableItem
+
         # Mock Docling's table data shape: rows of cells with .text
-        cell = lambda t: MagicMock(text=t)
+        def cell(t):
+            return MagicMock(text=t)
+
         tbl.data = MagicMock()
         tbl.data.grid = [
             [cell("Day"), cell("Time")],
@@ -247,6 +250,154 @@ class TestDoclingBlockAdapter:
         assert len(table_blocks) == 1
         body = table_blocks[0]["table_body"]
         assert body == [["Day", "Time"], ["MON", "10am"], ["WED", "11am"]]
+
+
+class TestUrlRecovery:
+    """_inject_urls_into_blocks: wrap in place, else append the dropped URL line."""
+
+    def test_wrap_in_place_when_link_text_present(self):
+        blocks = [{"type": "text", "text": "See cesg.tamu.edu for details", "page_idx": 1}]
+        urls = {1: [("cesg.tamu.edu", "https://cesg.tamu.edu/")]}
+        wrapped, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert (wrapped, appended) == (1, 0)
+        assert blocks[0]["text"] == "See [cesg.tamu.edu](https://cesg.tamu.edu/) for details"
+        assert len(blocks) == 1  # nothing appended
+
+    def test_append_orphan_url_when_line_dropped(self):
+        """Docling dropped the whole `Webpage: <url>` line -> no host block to wrap;
+        the URL must be appended, not discarded (the FID_CONTENT_DROPPED fix)."""
+        blocks = [
+            {"type": "text", "text": "Instructor: Jane Doe", "page_idx": 2},
+            {"type": "text", "text": "Catalog Description", "page_idx": 2},
+        ]
+        urls = {2: [("https://cesg.tamu.edu/faculty/jiang-hu/", "https://cesg.tamu.edu/faculty/jiang-hu/")]}
+        wrapped, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert (wrapped, appended) == (0, 1)
+        recovered = [b for b in blocks if b.get("recovered_url")]
+        assert len(recovered) == 1
+        assert recovered[0]["text"] == "https://cesg.tamu.edu/faculty/jiang-hu/"
+        assert recovered[0]["page_idx"] == 2
+        assert recovered[0]["type"] == "text"
+
+    def test_orphan_url_inserted_in_page_order(self):
+        """Recovered line lands after the last block of its page, before later pages."""
+        blocks = [
+            {"type": "text", "text": "p1 body", "page_idx": 1},
+            {"type": "text", "text": "p2 body", "page_idx": 2},
+        ]
+        urls = {1: [("http://x.tamu.edu", "http://x.tamu.edu")]}
+        dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        texts = [b["text"] for b in blocks]
+        # recovered p1 URL sits between p1 body and p2 body, not at the end
+        assert texts == ["p1 body", "http://x.tamu.edu", "p2 body"]
+
+    def test_no_duplicate_when_url_already_present(self):
+        """If Docling kept the URL somewhere, don't append a second copy."""
+        blocks = [{"type": "text", "text": "visit https://canvas.tamu.edu/ daily", "page_idx": 1}]
+        urls = {1: [("https://canvas.tamu.edu/", "https://canvas.tamu.edu/")]}
+        wrapped, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        # wrapped in place; never appended a duplicate
+        assert appended == 0
+        assert sum(1 for b in blocks if b.get("recovered_url")) == 0
+
+    def test_url_link_text_emitted_bare_even_if_uri_malformed(self):
+        """When the visible link text is a clean URL but the annotation's uri
+        target is garbled (source-PDF typo), emit the clean visible URL bare."""
+        blocks = [{"type": "text", "text": "unrelated", "page_idx": 1}]
+        urls = {1: [("https://canvas.tamu.edu/", "http://h_ps//canvas.tamu.edu/%20(check")]}
+        _, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert appended == 1
+        assert blocks[-1]["text"] == "https://canvas.tamu.edu/"
+
+    def test_named_link_text_rendered_as_markdown(self):
+        blocks = [{"type": "text", "text": "unrelated", "page_idx": 1}]
+        urls = {1: [("Course Webpage", "https://example.edu/c")]}
+        _, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert appended == 1
+        assert blocks[-1]["text"] == "[Course Webpage](https://example.edu/c)"
+
+    def test_empty_urls_noop(self):
+        blocks = [{"type": "text", "text": "x", "page_idx": 1}]
+        assert dba._inject_urls_into_blocks(blocks, {}, stem="S") == (0, 0)
+        assert len(blocks) == 1
+
+    def test_geometry_places_url_above_all_blocks_at_page_top(self):
+        """ECEN_719 case: instructor URL at the page top must NOT land under the
+        `ISBN:` block at the page bottom. Docling t is bottom-origin (H - t = from
+        top); link_cy is from top. Link above both blocks -> insert before first."""
+        blocks = [
+            {"type": "text", "text": "Catalog Description", "page_idx": 2, "block_id": "A"},
+            {"type": "text", "text": "ISBN:", "page_idx": 2, "block_id": "B"},
+        ]
+        tops = {"A": 687.2, "B": 97.8}  # H-687=105 (top), H-98=694 (bottom)
+        heights = {2: 792.0}
+        urls = {2: [("https://cesg.tamu.edu/x", "https://cesg.tamu.edu/x", 79.5)]}  # very top
+        _, appended = dba._inject_urls_into_blocks(blocks, urls, tops, heights, stem="S")
+        assert appended == 1
+        assert [b["text"] for b in blocks] == [
+            "https://cesg.tamu.edu/x",
+            "Catalog Description",
+            "ISBN:",
+        ]
+
+    def test_geometry_inserts_after_block_just_above_link(self):
+        """A mid-page link lands right after the block immediately above it."""
+        blocks = [
+            {"type": "text", "text": "Catalog Description", "page_idx": 2, "block_id": "A"},
+            {"type": "text", "text": "ISBN:", "page_idx": 2, "block_id": "B"},
+        ]
+        tops = {"A": 687.2, "B": 97.8}
+        heights = {2: 792.0}
+        urls = {2: [("http://mid.edu", "http://mid.edu", 400.0)]}  # between A(105) and B(694)
+        dba._inject_urls_into_blocks(blocks, urls, tops, heights, stem="S")
+        assert [b["text"] for b in blocks] == [
+            "Catalog Description",
+            "http://mid.edu",
+            "ISBN:",
+        ]
+
+
+class TestLabelValueRecovery:
+    """_extend_labels_with_values: re-attach dropped values to surviving labels."""
+
+    def test_recovers_dropped_isbn_value(self):
+        blocks = [{"type": "text", "text": "ISBN:", "page_idx": 2, "block_id": "A"}]
+        lines = {2: ["SystemC: From the Ground Up", "ISBN: 978-0-387-69957-8", "Optional"]}
+        bronze_tokens = {"isbn", "systemc", "optional"}  # value NOT present
+        n = dba._extend_labels_with_values(blocks, lines, bronze_tokens)
+        assert n == 1
+        assert blocks[0]["text"] == "ISBN: 978-0-387-69957-8"
+        assert blocks[0]["recovered_value"] is True
+
+    def test_skips_when_value_already_present(self):
+        """Docling kept the value (e.g. in a table) -> don't duplicate it."""
+        blocks = [{"type": "text", "text": "ISBN:", "page_idx": 2, "block_id": "A"}]
+        lines = {2: ["ISBN: 978-0-387-69957-8"]}
+        bronze_tokens = {"isbn", "978-0-387-69957-8"}  # value already in bronze
+        n = dba._extend_labels_with_values(blocks, lines, bronze_tokens)
+        assert n == 0
+        assert blocks[0]["text"] == "ISBN:"
+
+    def test_ignores_non_label_blocks(self):
+        """Only blocks that are a bare `…:` label are eligible."""
+        blocks = [{"type": "text", "text": "This course covers", "page_idx": 1, "block_id": "A"}]
+        lines = {1: ["This course covers a lot of extra dropped material here"]}
+        n = dba._extend_labels_with_values(blocks, lines, set())
+        assert n == 0
+        assert blocks[0]["text"] == "This course covers"
+
+    def test_only_matches_same_page(self):
+        blocks = [{"type": "text", "text": "Authors:", "page_idx": 1, "block_id": "A"}]
+        lines = {2: ["Authors: Black and Donovan"]}  # value is on a different page
+        n = dba._extend_labels_with_values(blocks, lines, set())
+        assert n == 0
+
+    def test_requires_substantial_tail_token(self):
+        """A tail of only short noise (no >=4-char missing token) is not recovered."""
+        blocks = [{"type": "text", "text": "Room:", "page_idx": 1, "block_id": "A"}]
+        lines = {1: ["Room: 3 A"]}  # tail tokens too short
+        n = dba._extend_labels_with_values(blocks, lines, set())
+        assert n == 0
 
 
 @pytest.mark.slow

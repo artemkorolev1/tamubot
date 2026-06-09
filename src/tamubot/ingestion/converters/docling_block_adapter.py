@@ -95,26 +95,33 @@ def _caption_text(item, doc) -> str:
     return (fn or "").strip()
 
 
-def _recover_urls_by_page(pdf_path: Path) -> Dict[int, List[tuple]]:
-    """Return {1-indexed_page: [(link_text, uri), ...]} from PDF link annotations.
+def _recover_urls_by_page(pdf_path: Path) -> tuple[Dict[int, List[tuple]], Dict[int, float]]:
+    """Recover PDF link annotations Docling drops during text extraction.
+
+    Returns ``(urls_by_page, page_heights)`` where ``urls_by_page`` maps a
+    1-indexed page to ``[(link_text, uri, link_cy_top), ...]`` — ``link_cy_top``
+    is the annotation's vertical centre measured from the page top (PyMuPDF
+    frame), used to place a recovered URL line where it actually sits on the
+    page. ``page_heights`` maps page -> height (points), needed to convert
+    Docling's bottom-origin block geometry into the same top-origin frame.
 
     Docling drops URL annotations during text extraction; v6's Gemini-VLM
-    bronze keeps them because URLs are visually rendered. We use PyMuPDF's
-    page.get_links() to recover them post-hoc — it's annotation-level access,
-    no OCR or LLM needed.
+    bronze keeps them because URLs are visually rendered. PyMuPDF's
+    ``page.get_links()`` gives annotation-level access — no OCR or LLM needed.
     """
     try:
         import pymupdf
     except ImportError:
         log.warning("pymupdf not installed; URL recovery disabled")
-        return {}
+        return ({}, {})
 
     out: Dict[int, List[tuple]] = {}
+    heights: Dict[int, float] = {}
     try:
         doc = pymupdf.open(str(pdf_path))
     except Exception as exc:
         log.warning("URL recovery: pymupdf failed to open %s: %s", pdf_path, exc)
-        return {}
+        return ({}, {})
     try:
         for pno, page in enumerate(doc, 1):  # type: ignore[var-annotated,arg-type]
             entries: List[tuple] = []
@@ -132,33 +139,135 @@ def _recover_urls_by_page(pdf_path: Path) -> Dict[int, List[tuple]]:
                 # Collapse newlines/extra whitespace so "Click\nHere" matches
                 # "Click Here" in the Docling markdown.
                 text = " ".join(text.split())
-                entries.append((text, uri))
+                link_cy = (float(rect.y0) + float(rect.y1)) / 2  # centre, from top
+                entries.append((text, uri, link_cy))
             if entries:
                 out[pno] = entries
+                heights[pno] = float(page.rect.height)
     finally:
         doc.close()
-    return out
+    return (out, heights)
+
+
+def _orphan_url_insert_index(
+    blocks: List[Dict[str, Any]],
+    page: int,
+    link_cy: Optional[float],
+    tops_by_blockid: Dict[str, float],
+    page_height: Optional[float],
+) -> Optional[int]:
+    """Index to insert a recovered URL line at so it lands where it actually sits
+    on the page. Inserts right *after* the page block immediately above the link
+    (by vertical position); if the link is above every block on the page, returns
+    the index of the page's first block (insert before it). Falls back to the last
+    block on the page when geometry is unavailable. ``None`` -> page absent,
+    caller appends at the document end.
+
+    Docling block geometry is bottom-origin (``t`` grows upward); the link centre
+    is top-origin — convert via ``top_from_top = page_height - t``.
+    """
+    page_indices = [i for i, b in enumerate(blocks) if (b.get("page_idx") or 0) == page]
+    if not page_indices:
+        return None
+    if link_cy is None or page_height is None:
+        return page_indices[-1] + 1  # geometry unavailable -> end of page
+
+    best_idx: Optional[int] = None
+    best_top = float("-inf")
+    for i in page_indices:
+        t = tops_by_blockid.get(blocks[i].get("block_id", ""))
+        if t is None:
+            continue
+        top_from_top = page_height - t
+        if top_from_top <= link_cy and top_from_top > best_top:
+            best_top = top_from_top
+            best_idx = i
+    if best_idx is not None:
+        return best_idx + 1  # after the block just above the link
+    return page_indices[0]  # link is above all page blocks -> before the first
+
+
+def _append_orphan_urls(
+    blocks: List[Dict[str, Any]],
+    pending: Dict[int, List[tuple]],
+    stem: str,
+    tops_by_blockid: Optional[Dict[str, float]] = None,
+    page_heights: Optional[Dict[int, float]] = None,
+) -> int:
+    """Tier 2 of URL recovery: insert URLs that matched no block as new text
+    blocks. Docling sometimes drops a URL's whole line (e.g. ``Webpage: <url>`` /
+    ``Biography: <url>``), leaving no host text to wrap — without this the URL,
+    confirmed present in the source PDF, is lost from everything RAG sees
+    (taxonomy ``FID_CONTENT_DROPPED``). The recovered line is placed by vertical
+    position so it doesn't masquerade as a neighbouring field's value. Skips a URL
+    whose uri or link-text is already present in some block (don't duplicate one
+    Docling did keep)."""
+    tops_by_blockid = tops_by_blockid or {}
+    page_heights = page_heights or {}
+    appended = 0
+    for page, queue in pending.items():
+        for entry in queue:
+            link_text, uri = entry[0], entry[1]
+            link_cy = entry[2] if len(entry) > 2 else None
+            if not uri:
+                continue
+            if any(
+                b.get("type") == "text" and (uri in b.get("text", "") or (link_text and link_text in b.get("text", "")))
+                for b in blocks
+            ):
+                continue
+            # Prefer the human-visible link text when it is itself a URL — a PDF
+            # annotation's uri target is sometimes malformed in the source
+            # (typo'd scheme, embedded prose), while the displayed text is clean.
+            # Reserve the [label](uri) form for a non-URL label ("Course Webpage").
+            if link_text and link_text.lower().startswith(("http://", "https://")):
+                line = link_text
+            elif link_text and link_text != uri:
+                line = f"[{link_text}]({uri})"
+            else:
+                line = uri
+            new_block = {
+                "type": "text",
+                "text": line,
+                "page_idx": page,
+                "block_id": f"{stem}_recovered_url_p{page}_{appended}",
+                "recovered_url": True,
+            }
+            insert_at = _orphan_url_insert_index(blocks, page, link_cy, tops_by_blockid, page_heights.get(page))
+            if insert_at is None:
+                blocks.append(new_block)
+            else:
+                blocks.insert(insert_at, new_block)
+            appended += 1
+    return appended
 
 
 def _inject_urls_into_blocks(
     blocks: List[Dict[str, Any]],
     urls_by_page: Dict[int, List[tuple]],
-) -> int:
-    """Mutate text blocks to wrap URL link-text in markdown links.
+    tops_by_blockid: Optional[Dict[str, float]] = None,
+    page_heights: Optional[Dict[int, float]] = None,
+    stem: str = "",
+) -> tuple[int, int]:
+    """Recover PDF link-annotation URLs that Docling drops during text extraction.
 
-    Walks blocks in order; for each text block, finds URLs whose page matches
-    and whose link_text appears in the block content; replaces the first
-    unwrapped occurrence with [text](uri). Marks each URL consumed so the
-    same URL isn't applied twice to the same link_text.
+    Two tiers (content must never be silently lost):
+      1. **wrap** — when the link-text already appears in a text block on the same
+         page, wrap that occurrence as ``[text](uri)`` in place.
+      2. **append** — when Docling dropped the URL's whole line so no host block
+         exists, insert the recovered URL as a NEW text block placed by vertical
+         position (``_append_orphan_urls``) rather than discard it.
 
-    Returns the number of URLs successfully injected.
+    Entries are ``(link_text, uri)`` or ``(link_text, uri, link_cy)``. Each URL is
+    consumed on its first wrap so it isn't applied twice. Returns
+    ``(wrapped, appended)`` counts.
     """
     if not urls_by_page:
-        return 0
+        return (0, 0)
 
-    # Per-page queue of (link_text, uri) entries still to consume.
+    # Per-page queue of (link_text, uri[, link_cy]) entries still to consume.
     pending = {pno: list(items) for pno, items in urls_by_page.items()}
-    injected = 0
+    wrapped = 0
 
     for block in blocks:
         if block.get("type") != "text":
@@ -173,20 +282,112 @@ def _inject_urls_into_blocks(
 
         # Try each pending URL on this page; consume on first match.
         remaining: List[tuple] = []
-        for link_text, uri in queue:
+        for entry in queue:
+            link_text, uri = entry[0], entry[1]
             if not link_text:
+                remaining.append(entry)
                 continue
             # Avoid double-wrapping if the URL is already a markdown link.
             already = f"]({uri})" in text or f"[{link_text}]" in text
             if not already and link_text in text:
                 text = text.replace(link_text, f"[{link_text}]({uri})", 1)
-                injected += 1
+                wrapped += 1
             else:
-                remaining.append((link_text, uri))
+                remaining.append(entry)
         pending[page] = remaining
         block["text"] = text
 
-    return injected
+    appended = _append_orphan_urls(blocks, pending, stem, tops_by_blockid, page_heights)
+    return (wrapped, appended)
+
+
+def _all_block_tokens(blocks: List[Dict[str, Any]]) -> set:
+    """Content tokens across every bronze block — text bodies, table-grid cells,
+    captions. Used to tell a genuinely-dropped value from one Docling kept
+    elsewhere (e.g. in a table)."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    parts: List[str] = []
+    for b in blocks:
+        t = b.get("text")
+        if isinstance(t, str) and t:
+            parts.append(t)
+        for key in ("table_caption", "image_caption"):
+            v = b.get(key)
+            if isinstance(v, str) and v:
+                parts.append(v)
+        grid = b.get("table_body")
+        if isinstance(grid, list):
+            for row in grid:
+                if isinstance(row, list):
+                    parts.append(" ".join(str(c) for c in row if c))
+    return content_tokens("\n".join(parts))
+
+
+def _extend_labels_with_values(
+    blocks: List[Dict[str, Any]],
+    lines_by_page: Dict[int, List[str]],
+    bronze_tokens: set,
+) -> int:
+    """Recover ``Label: value`` lines where Docling kept the label block but
+    dropped the trailing value (e.g. ``ISBN:`` survives, ``978-0-387-69957-8``
+    lost — the FID_CONTENT_DROPPED right-cell class). Extends a text block that is
+    a bare ``…:`` label with the full PyMuPDF line, but only when the tail carries
+    a content token missing from bronze (so a value Docling already kept is never
+    duplicated). Pure — host-testable. Returns the number of blocks extended."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    recovered = 0
+    for b in blocks:
+        if b.get("type") != "text":
+            continue
+        bt = b.get("text")
+        if not isinstance(bt, str):
+            continue
+        label = bt.rstrip()
+        if not label.endswith(":") or len(label) < 3:
+            continue
+        page = b.get("page_idx") or 0
+        for line in lines_by_page.get(page, ()):
+            if line == label or not line.startswith(label) or len(line) <= len(label) + 1:
+                continue
+            tail = content_tokens(line[len(label) :])
+            if any(tok not in bronze_tokens and len(tok) >= 4 for tok in tail):
+                b["text"] = line
+                b["recovered_value"] = True
+                bronze_tokens |= tail
+                recovered += 1
+                break
+    return recovered
+
+
+def _recover_dropped_label_values(pdf_path: Path, blocks: List[Dict[str, Any]]) -> int:
+    """PyMuPDF wrapper for ``_extend_labels_with_values``: read each page's visual
+    lines and re-attach values Docling dropped from ``Label:`` blocks."""
+    try:
+        import pymupdf
+    except ImportError:
+        return 0
+    try:
+        doc = pymupdf.open(str(pdf_path))
+    except Exception as exc:
+        log.warning("label-value recovery: pymupdf failed to open %s: %s", pdf_path, exc)
+        return 0
+    try:
+        lines_by_page: Dict[int, List[str]] = {}
+        for pno, page in enumerate(doc, 1):  # type: ignore[var-annotated,arg-type]
+            lines: List[str] = []
+            for blk in page.get_text("dict").get("blocks", []):
+                for ln in blk.get("lines", []):
+                    t = " ".join(sp.get("text", "") for sp in ln.get("spans", []))
+                    t = " ".join(t.split())
+                    if t:
+                        lines.append(t)
+            if lines:
+                lines_by_page[pno] = lines
+    finally:
+        doc.close()
+    return _extend_labels_with_values(blocks, lines_by_page, _all_block_tokens(blocks))
 
 
 def _render_table_png(
@@ -303,7 +504,7 @@ def _recover_heading_levels(blocks: List[Dict[str, Any]], headers_path: Path) ->
         return
     try:
         ref = json.loads(headers_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+    except json.JSONDecodeError, OSError:
         return
     ref_norm = [(_norm_header(h.get("text", "")), int(h.get("level", 1) or 1)) for h in ref]
 
@@ -393,6 +594,8 @@ def docling_to_blocks(
             table_bboxes_by_page.setdefault(_page_idx(item), []).append(tb)
 
     _last_text_key: tuple[int, str] | None = None  # (page_idx, normalized_text)
+    # block_id -> Docling bbox top (bottom-origin); used to place recovered URLs.
+    tops_by_blockid: Dict[str, float] = {}
 
     for item, _level in items:
         page = _page_idx(item)
@@ -483,15 +686,31 @@ def docling_to_blocks(
         else:
             continue
 
+        # A block was appended this iteration; record its top for URL placement.
+        if bbox and bbox[1] is not None:
+            tops_by_blockid[block_id] = bbox[1]
         idx += 1
 
-    # URL recovery: Docling drops PDF link annotations; PyMuPDF still has
-    # them. Wrap matching link-text in text blocks with markdown links so
-    # they propagate to chunks.
-    urls_by_page = _recover_urls_by_page(pdf_path)
-    injected = _inject_urls_into_blocks(blocks, urls_by_page)
-    if injected:
-        log.info("v6b URL recovery: injected %d markdown links into %s blocks", injected, stem)
+    # URL recovery: Docling drops PDF link annotations; PyMuPDF still has them.
+    # Wrap matching link-text in place, else insert the dropped URL line by its
+    # vertical position so it propagates to chunks without masquerading as a
+    # neighbouring field's value.
+    urls_by_page, page_heights = _recover_urls_by_page(pdf_path)
+    wrapped, appended = _inject_urls_into_blocks(blocks, urls_by_page, tops_by_blockid, page_heights, stem=stem)
+    if wrapped or appended:
+        log.info(
+            "v6b URL recovery for %s: wrapped %d link(s) in place, appended %d dropped URL line(s)",
+            stem,
+            wrapped,
+            appended,
+        )
+
+    # Re-attach `Label: value` values Docling dropped (e.g. ISBN numbers) — the
+    # right-cell FID_CONTENT_DROPPED class. Runs after URL recovery so a recovered
+    # URL already counts as present and isn't re-added.
+    values = _recover_dropped_label_values(pdf_path, blocks)
+    if values:
+        log.info("v6b label-value recovery for %s: re-attached %d dropped value(s)", stem, values)
 
     convert(pdf_path, output_dir, converter=converter, apply_hierarchy=apply_hierarchy)
 

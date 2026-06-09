@@ -22,6 +22,52 @@ Newest first. One entry per distinct failure mode (not per syllabus instance).
 
 ## Entries
 
+### 2026-06-09 · Docling drops PDF link-annotation URL lines · FID_CONTENT_DROPPED
+- run: iter_05_3e43f07 (30-stem judge)    stems: ECEN_738_601, CSCE_629_600, ECEN_719_601
+- observed: instructor `Webpage:`/`Biography:` URLs and a `check daily: https://canvas.tamu.edu/`
+  line are visible in the source PDF but absent from PROCESSED *and* ORIGINAL (bronze md) —
+  top error class in iter_05 (FID_CONTENT_DROPPED blocker, n=5/4 stems; fidelity 0.80).
+- confirmed: PDF-confirmed by sub-agent judges AND a raw-Docling diagnostic — the URLs are
+  link **annotations** (PyMuPDF `page.get_links()` has them) but Docling never emits a text
+  item for the line, so the loss precedes all our postprocessing. Our existing
+  `_recover_urls_by_page` recovered the URL but `_inject_urls_into_blocks` only *wrapped*
+  link-text already in a block, discarding any with no host block.
+- owner: `converters/docling_block_adapter.py`.
+- fix: fixed — added tier-2 `_append_orphan_urls`: a recovered URL with no host block is
+  inserted as a new text block, placed by **vertical geometry** (`_orphan_url_insert_index`:
+  PyMuPDF link-rect centre vs Docling bottom-origin block tops, `top_from_top = page_height - t`)
+  so it lands where it sits on the page instead of being dumped at the page end. Prefers the
+  clean visible URL when the annotation's uri target is malformed (CSCE_629's PDF had a typo'd
+  href). Unit-tested (`tests/test_docling_block_adapter.py::TestUrlRecovery`, 9 cases incl. 2
+  geometry-placement).
+- result: re-judged (iter_06_urlfix) — **ECEN_738_601 + CSCE_629_600 fidelity FAIL→PASS**.
+  ECEN_719_601 still fails but only on the open ISBN-value class below; its first-pass fix put
+  the URL under `ISBN:` (judge flagged corruption), which the geometry placement then moved to
+  the instructor area (verified in bronze: URL now between Email/image and Catalog Description).
+- status: fixed (URL/hyperlink sub-class only)
+
+### 2026-06-09 · Docling drops right-column label values + table cells/rows · FID_CONTENT_DROPPED / FID_TABLE_LOST
+- run: iter_05_3e43f07 (30-stem judge)    stems: ECEN_719_601 (ISBN value), ISEN_625_601 / ECEN_721_700 (table)
+- observed: label survives but trailing value dropped (`ISBN:` present, `978-0-387-69957-8`
+  gone; `Authors:`/`Publisher:` values gone); two-column Course-Info block split
+  (ECEN_671_600); Course-Schedule table trailing cells / a whole `1st MIDTERM | Mar. 3` row
+  dropped. All identical-missing in ORIGINAL+PROCESSED → Docling extraction.
+- confirmed: raw-Docling diagnostic — value cells absent from `result.document`; the data IS
+  in PyMuPDF `page.get_text()`. Table cells come through with empty leading cells (TableFormer
+  under our `do_cell_matching=False` config). Web research: label:value/two-column is a known
+  Docling reading-order class (no config fix); table under-capture maps to docling #2064.
+- owner: `converters/docling_block_adapter.py` (label-value recovery — DONE), `converters/docling_converter.py`
+  (`do_cell_matching` A/B for tables — open).
+- fix: **label-value class fixed** — `_recover_dropped_label_values` / `_extend_labels_with_values`
+  re-attaches a dropped value to its surviving `Label:` block from the PyMuPDF visual line, only
+  when the tail carries a content token missing from bronze (incl. table grids) so a kept value is
+  never duplicated. Unit-tested (`TestLabelValueRecovery`, 5). Verified: ECEN_719 `ISBN:` →
+  `ISBN: 978-0-387-69957-8`, coverage 0.9971→0.9985. **Table cell/row class still open** — needs a
+  TableFormer `do_cell_matching` A/B (riskier; the new `text_coverage` check now surfaces these
+  drops in `sample_missing`).
+- result: ECEN_719 ISBN re-attached; re-judge pending. ISEN_625 / ECEN_721 table drops untouched.
+- status: fixed (label-value class); table class open
+
 ### 2026-06-08 · Small leading metadata block dropped by tiny-chunk floor · FID_CONTENT_DROPPED
 - run: iter_02_f29d74a (10-stem judge)    stems: STAT_620
 - observed: after the metadata-keep fix, STAT_620's larger "Instructor Details" section is now
