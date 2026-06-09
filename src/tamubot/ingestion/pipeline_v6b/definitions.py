@@ -32,6 +32,8 @@ from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_block_count_vs_baseline,
     v6b_bronze_blocks_has_text,
     v6b_bronze_blocks_header_hierarchy_valid,
+    v6b_bronze_blocks_header_levels_normalized,
+    v6b_bronze_blocks_min_headers,
     v6b_bronze_blocks_no_replacement_chars,
     v6b_bronze_blocks_nonempty,
     v6b_bronze_blocks_source_integrity,
@@ -57,6 +59,8 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_embed_checks import (
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
     v6b_silver_modal_budget_not_exceeded,
+    v6b_silver_modal_no_degenerate_tables,
+    v6b_silver_modal_no_table_lost,
     v6b_silver_modal_result_schema_valid,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_structured_checks import (
@@ -84,6 +88,18 @@ v6b_pilot_job = define_asset_job(
     description="Per-syllabus partitioned pipeline. Backfill this to materialize all 7 stages in one launch.",
 )
 
+# Tag-only job so PASS 2 (boilerplate + cross-syllabus dedup) can be launched as ONE
+# backfill over a cohort — giving a native Backfills page that groups every file's
+# tag run + check status in one view (vs. per-stem `asset materialize`, which scatters
+# them into separate "jobless" runs). Tag is CPU-only, so a backfill is GPU-safe.
+# MUST run AFTER the corpus meta indexes are (re)built, or dedup sees an empty index
+# (project-v6b-dedup-two-phase). See scripts/v6b_tag_backfill.sh.
+v6b_tag_job = define_asset_job(
+    "v6b_tag_job",
+    selection=AssetSelection.assets("v6b_silver_tag_semantic"),
+    description="PASS 2 — boilerplate + cross-syllabus dedup tagging. Backfill a cohort AFTER meta indexes build.",
+)
+
 defs = Definitions(
     assets=[
         bronze_blocks,
@@ -104,9 +120,13 @@ defs = Definitions(
         v6b_bronze_blocks_has_text,
         v6b_bronze_blocks_no_replacement_chars,
         v6b_bronze_blocks_header_hierarchy_valid,
+        v6b_bronze_blocks_header_levels_normalized,
+        v6b_bronze_blocks_min_headers,
         v6b_bronze_blocks_source_integrity,
         v6b_silver_modal_budget_not_exceeded,
         v6b_silver_modal_result_schema_valid,
+        v6b_silver_modal_no_table_lost,
+        v6b_silver_modal_no_degenerate_tables,
         v6b_silver_chunk_count_nonzero,
         v6b_silver_chunk_low_no_header_rate,
         v6b_silver_chunk_no_oversized,
@@ -126,7 +146,7 @@ defs = Definitions(
         v6b_silver_atlas_index_size_vs_baseline,
         v6b_silver_atlas_golden_recall_at_5,
     ],
-    jobs=[v6b_pilot_job],
+    jobs=[v6b_pilot_job, v6b_tag_job],
     sensors=[v6b_check_failure_alert],
     resources={
         "docling": DoclingConverterResource(),

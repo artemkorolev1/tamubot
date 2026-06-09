@@ -392,22 +392,38 @@ def chunk_semantic(
     markdown: str,
     flag_threshold: int = 500,
     min_chunk_tokens: int = 15,
+    drop_metadata_sections: bool = True,
 ) -> tuple[list[dict], dict]:
     """Semantic chunking: one chunk per top-level section, no max size cap.
 
-    - Sections matching metadata headers are dropped (already in course_metadata).
+    - Sections matching metadata headers are dropped (already in course_metadata)
+      **when** *drop_metadata_sections* is True. v4/v5 callers rely on this because
+      a parallel structured-extract path re-injects the fields. v6b has no such
+      re-injection, so it passes ``drop_metadata_sections=False`` and these
+      sections (instructor contact, meeting times, prerequisites, credit hours)
+      are emitted as ordinary chunks instead of being silently lost.
     - Chunks under *min_chunk_tokens* are merged into the previous chunk.
     - Chunks over *flag_threshold* are flagged but **not** split.
     - Subsections stay with their parent (semantic unity).
     """
     root = _parse_sections(markdown)
     chunks: list[dict] = []
+    # Sub-`min_chunk_tokens` sections that have no *previous* chunk to merge
+    # backward into (e.g. leading "Course Information" / "Instructor Details"
+    # metadata at the very top of a syllabus). Rather than dropping them — which
+    # silently loses the highest-value retrieval targets — they are buffered here
+    # and prepended to the next real chunk (merge FORWARD). This mirrors the
+    # default in Unstructured (`combine_text_under_n_chars`) and the fix requested
+    # in Docling issue #1174: merge an undersized fragment into the nearest
+    # preceding *or following* chunk, never delete it.
+    pending_forward: list[str] = []
     log: dict = {
         "total_sections": _count_sections(root),
         "kept": 0,
         "dropped_metadata": 0,
         "dropped_tiny": 0,
         "merged_tiny": 0,
+        "merged_forward": 0,
         "flagged_oversized": 0,
     }
 
@@ -435,8 +451,17 @@ def chunk_semantic(
                 _refresh_flags(chunks[-1])
                 log["merged_tiny"] += 1
             else:
-                log["dropped_tiny"] += 1
+                # No previous chunk (leading section): buffer to merge FORWARD
+                # into the next real chunk rather than drop.
+                pending_forward.append(text)
+                log["merged_forward"] += 1
             return
+        # Real chunk: flush any buffered leading fragments into it first so the
+        # head-of-document metadata rides along instead of being lost.
+        if pending_forward:
+            text = "\n\n".join(pending_forward) + "\n\n" + text
+            pending_forward.clear()
+            tok = _tokens_approx(text)
         flags: list[str] = []
         if tok > flag_threshold:
             flags.append("OVERSIZED")
@@ -461,7 +486,7 @@ def chunk_semantic(
     def _process_node(node: SectionNode, ancestors: list[str]) -> None:
         hp = _header_path(ancestors)
 
-        if node.header and _is_metadata_section(node.header):
+        if drop_metadata_sections and node.header and _is_metadata_section(node.header):
             log["dropped_metadata"] += 1
             # Still recurse into children — they may be real content sections
             # nested under a metadata/title header
@@ -481,7 +506,9 @@ def chunk_semantic(
                 _refresh_flags(chunks[-1])
                 log["merged_tiny"] += 1
             else:
-                log["dropped_tiny"] += 1
+                # Leading section with no backward target: buffer to merge FORWARD.
+                pending_forward.append(text)
+                log["merged_forward"] += 1
             return
 
         # If oversized and has children, recurse into subsections
@@ -497,6 +524,10 @@ def chunk_semantic(
                 chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(own_text)
                 _refresh_flags(chunks[-1])
                 log["merged_tiny"] += 1
+            elif _tokens_approx(own_text) > 0:
+                # Tiny parent body, no backward target: merge FORWARD.
+                pending_forward.append(own_text)
+                log["merged_forward"] += 1
             # Recurse into each child
             for child in node.children:
                 _process_node(child, ancestors + [child.header])
@@ -544,6 +575,36 @@ def chunk_semantic(
     # Each top-level child → one semantic chunk
     for child in root.children:
         _process_node(child, [child.header])
+
+    # Flush any leading fragments that never found a forward target (e.g. a
+    # sparse "Directed Studies" syllabus whose every section is sub-min): merge
+    # into the last chunk if one exists, else emit as a single chunk. Never drop.
+    if pending_forward:
+        leftover = "\n\n".join(pending_forward)
+        pending_forward.clear()
+        if chunks:
+            chunks[-1]["content"] += "\n\n" + leftover
+            chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
+            chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(leftover)
+            _refresh_flags(chunks[-1])
+            log["merged_forward"] += 1
+        else:
+            flags = []
+            if _has_table(leftover):
+                flags.append("HAS_TABLE")
+            flags.append("NO_HEADER")
+            chunks.append(
+                {
+                    "chunk_index": 0,
+                    "content": leftover,
+                    "header_path": "",
+                    "token_count": _tokens_approx(leftover),
+                    "has_table": _has_table(leftover),
+                    "flags": flags,
+                    "split_reason": "semantic",
+                }
+            )
+            log["kept"] += 1
 
     # Re-index
     for i, c in enumerate(chunks):

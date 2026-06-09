@@ -37,15 +37,23 @@ def build_chat_payload(
     model: str,
     max_tokens: int = 1024,
     template: dict[str, Any] | None = None,
+    presence_penalty: float = 0.0,
 ) -> dict[str, Any]:
     tmpl = json.dumps(template, indent=4) if template is not None else _TEMPLATE_JSON
-    return {
+    payload: dict[str, Any] = {
         "model": model,
         "messages": [{"role": "user", "content": content}],
         "max_tokens": max_tokens,
         "temperature": 0.0,
         "chat_template_kwargs": {"template": tmpl, "enable_thinking": False},
     }
+    # presence_penalty is a flat one-time nudge the first time a token recurs —
+    # the table-safe lever to break a `| |` repetition loop without the
+    # per-occurrence corruption of repetition/frequency penalty on legitimately
+    # repeated table cells. Only applied to the table path (Qwen-recommended ~1.5).
+    if presence_penalty:
+        payload["presence_penalty"] = presence_penalty
+    return payload
 
 
 def parse_chat_response(data: dict[str, Any]) -> SyllabusExtract:
@@ -77,10 +85,23 @@ class NuExtractHTTPClient:
         r.raise_for_status()
         return parse_chat_response(r.json())
 
-    def _post_raw(self, content: list[dict], *, template: dict[str, Any], max_new_tokens: int = 1024) -> dict[str, Any]:
+    def _post_raw(
+        self,
+        content: list[dict],
+        *,
+        template: dict[str, Any],
+        max_new_tokens: int = 1024,
+        presence_penalty: float = 0.0,
+    ) -> dict[str, Any]:
         r = self._client.post(
             f"{self.base_url}/chat/completions",
-            json=build_chat_payload(content, model=self.model, max_tokens=max_new_tokens, template=template),
+            json=build_chat_payload(
+                content,
+                model=self.model,
+                max_tokens=max_new_tokens,
+                template=template,
+                presence_penalty=presence_penalty,
+            ),
         )
         r.raise_for_status()
         return parse_json_object(r.json()["choices"][0]["message"]["content"])
@@ -92,8 +113,17 @@ class NuExtractHTTPClient:
         b64 = base64.b64encode(buf.getvalue()).decode()
         return [{"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}]
 
+    # Table images are where greedy decoding degenerates into an unbounded
+    # `| | |` repetition loop → truncated, unterminated JSON → the whole table
+    # is lost. A moderate presence_penalty breaks the loop; tables only.
+    TABLE_PRESENCE_PENALTY = 1.5
+
     def transcribe_table(self, image: "Image") -> dict[str, Any]:
-        return self._post_raw(self._image_content(image), template=TABLE_TEMPLATE)
+        return self._post_raw(
+            self._image_content(image),
+            template=TABLE_TEMPLATE,
+            presence_penalty=self.TABLE_PRESENCE_PENALTY,
+        )
 
     def describe_image(self, image: "Image") -> dict[str, Any]:
         return self._post_raw(self._image_content(image), template=IMAGE_TEMPLATE)

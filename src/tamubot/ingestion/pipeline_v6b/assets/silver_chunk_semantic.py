@@ -54,6 +54,10 @@ def _compute_silver_chunk_semantic(context: AssetExecutionContext) -> Materializ
         markdown,
         flag_threshold=FLAG_THRESHOLD,
         min_chunk_tokens=MIN_CHUNK_TOKENS,
+        # v6b has no structured-extract re-injection path, so metadata sections
+        # (instructor contact, meeting times, prerequisites) must survive as
+        # chunks rather than being dropped — they answer top student questions.
+        drop_metadata_sections=False,
     )
 
     crn = _crn_from_stem(stem)

@@ -30,6 +30,18 @@ from tamubot.core import config
 from tamubot.ingestion.pipeline_v5.util import code_version_of, dept_from_stem
 from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
+from tamubot.ingestion.validation.table_quality import (
+    OUTCOME_PARTIAL_KEPT,
+    is_failure_marker,
+    render_table_markdown,
+    summarize_table_outcomes,
+)
+from tamubot.ingestion.validation.table_quality import (
+    table_body_to_gfm as _table_body_to_gfm,
+)
+
+# Re-exported for tests / callers that referenced the old local name.
+__all__ = ["_table_body_to_gfm"]
 
 
 def _b64_to_image(image_b64: str):
@@ -77,37 +89,13 @@ def _make_nuextract_image_func(extractor):
     return _call
 
 
-def _table_body_to_gfm(rows: list[list[str]]) -> str:
-    """Render a Docling-extracted table grid (`block["table_body"]`) as GitHub-
-    flavored markdown. Row 0 is treated as the header. Returns "" for an empty or
-    degenerate grid. This is the fallback that keeps table content alive when the
-    modal stage is disabled (no `modal_result.table_markdown`)."""
-    cleaned = [
-        [(c or "").strip().replace("|", "\\|").replace("\n", " ") for c in row]
-        for row in rows
-        if row
-    ]
-    if not cleaned:
-        return ""
-    width = max(len(r) for r in cleaned)
-    if width == 0:
-        return ""
-    norm = [r + [""] * (width - len(r)) for r in cleaned]
-    out = [
-        "| " + " | ".join(norm[0]) + " |",
-        "| " + " | ".join(["---"] * width) + " |",
-    ]
-    for r in norm[1:]:
-        out.append("| " + " | ".join(r) + " |")
-    return "\n".join(out)
-
-
 def _merge_to_markdown(blocks: list[dict]) -> str:
     """Reconstruct a markdown string from a block list.
 
-    Used by the semantic chunker downstream. When silver_modal has run with
-    descriptions, image/table blocks contribute their captions; in no-op
-    mode they contribute a placeholder so chunker_v4 can still see them.
+    Used by the semantic chunker downstream. Table blocks resolve through the
+    graceful-degradation ladder in ``table_quality.render_table_markdown`` —
+    VLM transcription → Docling grid → kept partial → (only then) failure marker
+    — so a degenerate VLM run can never silently drop a whole table.
     """
     lines: list[str] = []
     for b in blocks:
@@ -130,19 +118,23 @@ def _merge_to_markdown(blocks: list[dict]) -> str:
             lines.append("")
         elif btype == "table":
             modal = b.get("modal_result") or {}
-            table_md = (modal.get("table_markdown") or "").strip()
             caption = modal.get("caption") or b.get("table_caption") or ""
-            # Fall back to the Docling-extracted cell grid when modal didn't
-            # transcribe the table (e.g. V6B_MODAL_ENABLED=false) — otherwise the
-            # table's content is silently dropped from the chunker's markdown.
-            if not table_md:
-                table_md = _table_body_to_gfm(b.get("table_body") or [])
-            if table_md:
-                if caption:
-                    lines.append(f"<!-- table: {caption} -->")
-                lines.append(table_md)
-            elif caption:
+            # Never emit the VLM's `[table processing failed: …]` error string as
+            # a caption — when a table falls back to the grid/partial tier that
+            # marker is meaningless noise that would pollute the RAG chunk.
+            if is_failure_marker(caption):
+                caption = b.get("table_caption") or ""
+                if is_failure_marker(caption):
+                    caption = ""
+            table_md, outcome = render_table_markdown(b)
+            if caption:
                 lines.append(f"<!-- table: {caption} -->")
+            if outcome == OUTCOME_PARTIAL_KEPT:
+                # Degraded-but-present: flag as unverified so a human can recover
+                # it later, but keep the rows so RAG isn't left with nothing.
+                lines.append("<!-- table (unverified) -->")
+            if table_md:
+                lines.append(table_md)
             lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
@@ -209,6 +201,7 @@ def _compute_silver_modal(
     md_out.write_text(md, encoding="utf-8")
 
     low_conf = sum(1 for b in enriched if (b.get("modal_result") or {}).get("confidence", 1.0) < 0.5)
+    table_outcomes = summarize_table_outcomes(enriched)
 
     meta = {
         "stem": stem,
@@ -219,6 +212,13 @@ def _compute_silver_modal(
         "low_confidence_blocks": low_conf,
         "blocks_path": MetadataValue.path(str(modal_out)),
         "markdown_path": MetadataValue.path(str(md_out)),
+        # Table-survival rollup (FID_TABLE_LOST observability).
+        "table_blocks_total": table_outcomes["table_blocks_total"],
+        "tables_transcribed": table_outcomes["transcribed"],
+        "tables_grid_fallback": table_outcomes["grid_fallback"],
+        "tables_partial_kept": table_outcomes["partial_kept"],
+        "tables_lost": table_outcomes["lost"],
+        "degenerate_tables": table_outcomes["degenerate_tables"],
     }
     if skipped_reason:
         meta["skipped_reason"] = skipped_reason

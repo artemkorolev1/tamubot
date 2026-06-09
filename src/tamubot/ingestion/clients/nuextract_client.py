@@ -179,7 +179,14 @@ class NuExtractExtractor:
 
     def transcribe_table(self, image: "Image") -> dict[str, Any]:
         """Transcribe a rendered table image to GFM via the TABLE_TEMPLATE.
-        Returns {"table_markdown", "caption"}."""
+        Returns {"table_markdown", "caption"}.
+
+        NB: the http (vLLM sidecar) path applies a table-safe ``presence_penalty``
+        to break the `| |` repetition-loop degeneration; transformers ``generate``
+        has no presence_penalty and ``repetition_penalty``/``no_repeat_ngram`` would
+        corrupt legitimately repeated table cells, so this in-process path stays
+        greedy. The production backend is http (see .env / ingestion/CLAUDE.md);
+        prefer it for table-heavy runs."""
         return parse_json_object(self._generate([{"type": "image", "image": image}], template=TABLE_TEMPLATE))
 
     def describe_image(self, image: "Image") -> dict[str, Any]:

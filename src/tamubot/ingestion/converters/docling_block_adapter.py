@@ -326,6 +326,33 @@ def _recover_heading_levels(blocks: List[Dict[str, Any]], headers_path: Path) ->
             b["level"] = min(6, last_level + 1)
 
 
+def _normalize_heading_levels(blocks: List[Dict[str, Any]]) -> int:
+    """Re-level heading blocks so the hierarchy is skip-free, in place.
+
+    Records each heading's pre-normalization level as ``raw_level`` (so the
+    bronze ``header_levels_normalized`` check can report how many skips were
+    repaired) then overwrites ``level`` with the stack-based tree depth. A
+    single H1->H3 skip used to abort the whole document at the bronze gate;
+    this guarantees the no-skip invariant deterministically without ever
+    dropping content. Returns the number of forward skips repaired.
+    """
+    from tamubot.ingestion.validation.header_hierarchy import (
+        count_level_skips,
+        normalize_heading_levels,
+    )
+
+    headings = [b for b in blocks if b.get("type") == "heading"]
+    if not headings:
+        return 0
+    raw_levels = [int(b.get("level", 1) or 1) for b in headings]
+    repaired = count_level_skips(raw_levels)
+    normalized = normalize_heading_levels(raw_levels)
+    for b, raw, lvl in zip(headings, raw_levels, normalized):
+        b["raw_level"] = raw
+        b["level"] = lvl
+    return repaired
+
+
 def docling_to_blocks(
     pdf_path: Union[str, Path],
     output_dir: Path,
@@ -475,6 +502,12 @@ def docling_to_blocks(
     # chunker's section tree and phase2 header_path) reflect real hierarchy.
     if apply_hierarchy:
         _recover_heading_levels(blocks, output_dir / f"{stem}.headers.json")
+    # Always re-level to a skip-free hierarchy (records raw_level for the
+    # observability check). Deterministic, content-preserving — replaces the
+    # old blocking-ERROR gate that dropped whole documents on a single skip.
+    repaired = _normalize_heading_levels(blocks)
+    if repaired:
+        log.info("v6b heading re-leveling: repaired %d level-skip(s) in %s", repaired, stem)
     return blocks
 
 
