@@ -20,6 +20,42 @@ open history. Newest first; one entry per distinct failure mode.
 
 ## Entries
 
+### 2026-06-09 · iter_09 full-100 baseline — 70-stem locked holdout judged · BASELINE
+  impact: first fidelity number on the unseen 70; the dev-30 extraction-loss fixes held (iter_08 stays 1.00), the holdout exposes 9 new fails across 3 dimensions
+  result: full-100 → boilerplate 0.99 · dedup 1.00 · chunking 0.99 · fidelity 0.93; holdout-70 alone → fidelity 0.90
+  status: ✅ recorded  ·  iter_10_full100 (30 iter_08 + 70 iter_09) · code 9b77e0b · 9 open fails logged below
+
+### 2026-06-09 · Orphan mailto recovery fabricates a `[label](mailto:)` block · FID_HALLUCINATION
+  impact: RAG sees a synthesized contact line absent from the PDF — here a Zoom `?pwd=` fragment spliced into a fake email link; a hallucinated, citable-looking source
+  fix:    open — guard `_append_orphan_urls` to skip a `mailto:` orphan whose address already appears as text (`docling_block_adapter.py`); regression introduced by ac3edc1
+  status: 🔲 open  ·  ISEN_633_600 processed L27 `[niosh@tamu.edu; ?pwd=ooFUavFzL](mailto:niosh@tamu.edu)` (email already plain on L25)
+
+### 2026-06-09 · Disabled-modal image fetch leaks errno string into RAG text · FID_TABLE_LOST / FID_IMAGE_LOST
+  impact: `![[image processing failed: [Errno 111] Connection refused]](#)` literal shown in processed text; when the image was a content table the table is silently lost
+  fix:    open — degrade a failed image to a clean `<!-- image -->` marker, never bake the exception string (`assets/silver_modal.py` / `docling_block_adapter.py`); real table recovery for ISEN_665 needs a GPU modal pass (gpu-ops)
+  status: 🔲 open  ·  ISEN_665_600 ×4 (schedule "Topical outline" table pp.6-8 lost); contributes to FID_IMAGE_LOST ×23 corpus-wide
+
+### 2026-06-09 · New bronze line/row drops on the holdout · FID_CONTENT_DROPPED
+  impact: lab time, "check daily: canvas.tamu.edu", seminar/final-project grading, a midterm row absent from ORIGINAL+PROCESSED — confidently-wrong answers to high-frequency questions
+  fix:    open — Docling-drop variants the iter_06–08 detectors miss; needs per-variant triage in recovery (`docling_block_adapter.py` / `assets/bronze_blocks.py`)
+  status: 🔲 open  ·  ECEN_749_602 (lab time), CSCE_629_600 (canvas link), CSCE_704_600 (grading), ECEN_688_602 (midterm row)
+
+### 2026-06-09 · Course-specific grading row hidden as boilerplate/duplicate · FID_TABLE_LOST (over-hide)
+  impact: a unique grading-weight row present in ORIGINAL removed from PROCESSED by tag/dedup — answer looks complete, isn't
+  fix:    open — tighten tagging so a unique grading row isn't clustered as bp/dup (`util/tagging.py` / `util/boilerplate_clustering.py`)
+  status: 🔲 open  ·  CSCE_689_700 "Async Progress Check-in Posts" 5% row
+
+### 2026-06-09 · Stranded campus-policy headers at chunk tail · CHUNK_ORPHAN_HEADER
+  impact: body-less "Campus-Specific Policies / Texas A&M at Galveston" headers end a chunk — retrieval noise, weak embeddings
+  fix:    open (`chunker_v4.py`)
+  check:  orphan-header / `no_oversized` check should coincide — verify it fires on this stem
+  status: 🔲 open  ·  STAT_620_600
+
+### 2026-06-09 · University-policy boilerplate left untagged · BP_MISSED
+  impact: standard TAMU policy text surfaced as course content — dilutes retrieval, repeats across the corpus
+  fix:    open (`util/tagging.py` / `util/boilerplate_clustering.py`)
+  status: 🔲 open  ·  STAT_651_600
+
 ### 2026-06-09 · Docling drops PDF link-annotation URL lines · FID_CONTENT_DROPPED
   impact: "link to the instructor page / Canvas" returns nothing; no source to cite
   fix:    `_append_orphan_urls` inserts a dropped-URL line as a geometry-placed text block (`docling_block_adapter.py`)
