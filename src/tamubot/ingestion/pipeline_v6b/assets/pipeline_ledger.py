@@ -15,10 +15,17 @@ that stage:
 And a per-file row status: passed (all 7 done & green) / in progress (some
 stages still not started) / warning / failed / not started.
 
-Below the grid, a failures-first "Problems" table names every failed check —
-file × stage × check × *why* (the check's own description, which carries the
-actual metric vs threshold) — so the one report answers "which checks failed,
-in which documents, and what was wrong" without clicking into each partition.
+Below the grid, a "Failures by check" histogram tallies how many files tripped
+each check (most-failures-first), then a failures-first "Problems" table names
+every failed check — file × stage × check × *why* (the check's own description,
+which carries the actual metric vs threshold) — so the one report answers "which
+checks failed, in which documents, and what was wrong" without clicking into each
+partition.
+
+Scope: by default every *registered* partition is a row (the whole corpus, most
+of it never run). Set ``V6B_LEDGER_LAST_RUNS=N`` (and/or ``V6B_LEDGER_SINCE_HOURS``)
+to restrict the roster to the files touched by the recent runs — e.g. ``=20``
+after a 20-file run renders just that cohort instead of all ~190 syllabi.
 
 REPORT ONLY — reads the Dagster instance + event log, never asset outputs, so it
 takes NO `deps` and never mutates anything (same shape as v6b_corpus_report).
@@ -30,6 +37,8 @@ unit-testable; `_compute` only does the instance I/O.
 """
 
 import json
+import time
+from datetime import timezone
 from pathlib import Path
 
 from dagster import (
@@ -42,8 +51,13 @@ from dagster import (
 )
 from dagster._core.event_api import PartitionKeyFilter
 
+from tamubot.core import config
 from tamubot.ingestion.pipeline_v5.util import DATA_ROOT
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
+
+# Dagster stamps the partition key on every partitioned run under this tag; the
+# ledger reads it back off recent runs to derive the "files we just ran" cohort.
+PARTITION_TAG = "dagster/partition"
 
 # (asset key, short column label) in execution order. struct is the parallel
 # branch off bronze; the main chain is bronze->modal->chunk->tag->embed->atlas.
@@ -65,6 +79,49 @@ GLYPH_MISSING = "·"  # not materialized
 
 # A check outcome is a plain dict so build_ledger stays Dagster-free:
 #   {"name": str, "status": "SUCCEEDED"|"FAILED"|"PLANNED", "severity": "ERROR"|"WARN"}
+
+
+def _select_recent_stems(
+    runs: list[dict],
+    last_runs: int,
+    since_hours: float,
+    now: float,
+) -> set[str] | None:
+    """Pure: derive the "files we just ran" cohort from recent runs.
+
+    - runs: [{"partition": str|None, "timestamp": float}] newest-first.
+    - last_runs: keep only the N newest runs (0 = no cap).
+    - since_hours: keep only runs within this window (0 = no window).
+    - now: current epoch seconds (injected for testability).
+
+    Returns the set of partition keys (stems) to include, or None when neither
+    filter is active (caller treats None as "whole corpus"). When both filters
+    are set they intersect: the newest N runs *and* within the window.
+    """
+    if last_runs <= 0 and since_hours <= 0:
+        return None
+    selected = runs
+    if last_runs > 0:
+        selected = selected[:last_runs]
+    if since_hours > 0:
+        cutoff = now - since_hours * 3600
+        selected = [r for r in selected if r.get("timestamp", 0) >= cutoff]
+    return {r["partition"] for r in selected if r.get("partition")}
+
+
+def _check_histogram(rows: list[dict]) -> list[dict]:
+    """Pure: roll the per-file failed_checks up into a per-check tally — the
+    "how many files failed each check?" view. Sorted most-failures-first."""
+    agg: dict[str, dict] = {}
+    for r in rows:
+        for fc in r.get("failed_checks", []):
+            name = fc.get("name", "")
+            entry = agg.setdefault(
+                name,
+                {"name": name, "stage": fc.get("stage", ""), "severity": fc.get("severity", ""), "count": 0},
+            )
+            entry["count"] += 1
+    return sorted(agg.values(), key=lambda d: (-d["count"], d["name"]))
 
 
 def _cell(materialized: bool, outcomes: list[dict], stage_has_checks: bool) -> str:
@@ -106,13 +163,17 @@ def build_ledger(
     materialized_by_stage: dict[str, set[str]],
     checks_by_stage: dict[str, dict[str, list[dict]]],
     stage_has_checks: dict[str, bool],
+    scope_label: str | None = None,
 ) -> dict:
     """Pure builder: turn pre-fetched instance state into the ledger.
 
-    - roster: every registered stem (dynamic partition keys).
+    - roster: the stems to render (already scoped by the caller — every
+      registered stem for the full-corpus view, or just the recent cohort).
     - materialized_by_stage: {stage_asset: {stem materialized, ...}}.
     - checks_by_stage: {stage_asset: {stem: [check-outcome dicts]}}.
     - stage_has_checks: {stage_asset: bool} — whether the stage defines any checks.
+    - scope_label: optional one-line note (e.g. "scoped to last 20 runs") shown
+      atop the report; None renders the plain full-corpus header.
 
     Returns {"rows", "summary", "markdown"}; absent stems/stages are treated as
     missing (never an error) so a registered-but-never-run stem renders cleanly.
@@ -135,6 +196,7 @@ def build_ledger(
         counts[status] += 1
         rows.append({"stem": stem, "status": status, "cells": cells, "failed_checks": failed_checks})
 
+    by_check = _check_histogram(rows)
     summary = {
         "files": len(rows),
         "passed": counts["passed"],
@@ -142,8 +204,9 @@ def build_ledger(
         "with_warnings": counts["warning"],
         "with_failures": counts["failed"],
         "not_started": counts["not_started"],
+        "by_check": by_check,
     }
-    return {"rows": rows, "summary": summary, "markdown": _render_markdown(rows, summary)}
+    return {"rows": rows, "summary": summary, "markdown": _render_markdown(rows, summary, scope_label)}
 
 
 def _render_problems(rows: list[dict]) -> str:
@@ -179,7 +242,25 @@ def _render_problems(rows: list[dict]) -> str:
     return title + "\n\n" + "\n".join([header, divider, *body])
 
 
-def _render_markdown(rows: list[dict], summary: dict) -> str:
+def _render_check_histogram(by_check: list[dict]) -> str:
+    """Per-check tally: 'N files failed check X' — the aggregate rollup that
+    turns the scattered one-per-partition warnings into a ranked problem list."""
+    if not by_check:
+        return ""
+    label_of = {key: label for key, label in STAGES}
+    n_err = sum(d["count"] for d in by_check if d.get("severity") == "ERROR")
+    n_warn = sum(d["count"] for d in by_check if d.get("severity") != "ERROR")
+    title = f"**Failures by check ({n_err} blocking · {n_warn} warning, files affected):**"
+    header = "| Files | Check | Stage | Severity |"
+    divider = "|------:|-------|-------|----------|"
+    body = [
+        f"| {d['count']} | {d['name']} | {label_of.get(d['stage'], d['stage'])} | {d.get('severity', '')} |"
+        for d in by_check
+    ]
+    return title + "\n\n" + "\n".join([header, divider, *body])
+
+
+def _render_markdown(rows: list[dict], summary: dict, scope_label: str | None = None) -> str:
     labels = [label for _key, label in STAGES]
     header = "| File | " + " | ".join(labels) + " |"
     divider = "|------|" + "|".join([":--:"] * len(STAGES)) + "|"
@@ -192,6 +273,8 @@ def _render_markdown(rows: list[dict], summary: dict) -> str:
         f"{summary['with_failures']} with failures · "
         f"{summary['not_started']} not started"
     )
+    if scope_label:
+        summary_line = f"_{scope_label}_\n\n" + summary_line
     legend = (
         "Legend: "
         f"{GLYPH_PASS} passed (checks green) · "
@@ -201,8 +284,13 @@ def _render_markdown(rows: list[dict], summary: dict) -> str:
         f"{GLYPH_MISSING} not started"
     )
     grid = "\n".join([header, divider, *body])
+    histogram = _render_check_histogram(summary.get("by_check", []))
     problems = _render_problems(rows)
-    return summary_line + "\n\n" + legend + "\n\n" + grid + "\n\n" + problems
+    sections = [summary_line, legend, grid]
+    if histogram:
+        sections.append(histogram)
+    sections.append(problems)
+    return "\n\n".join(sections)
 
 
 def _stage_check_keys() -> dict[str, list[AssetCheckKey]]:
@@ -250,8 +338,43 @@ def _fetch_checks_by_stage(
     return result
 
 
+def _recent_stem_scope(context: AssetExecutionContext, last_runs: int, since_hours: float) -> set[str] | None:
+    """Fetch recent runs and reduce them to the cohort of stems to include, or
+    None when neither scope toggle is set (full-corpus view)."""
+    if last_runs <= 0 and since_hours <= 0:
+        return None
+    limit = last_runs if last_runs > 0 else 2000
+    records = context.instance.get_run_records(limit=limit)
+    runs = [
+        {
+            "partition": rec.dagster_run.tags.get(PARTITION_TAG),
+            "timestamp": rec.create_timestamp.replace(tzinfo=timezone.utc).timestamp(),
+        }
+        for rec in records
+    ]
+    return _select_recent_stems(runs, last_runs, since_hours, time.time())
+
+
+def _scope_label(last_runs: int, since_hours: float, n_files: int) -> str:
+    bits = []
+    if last_runs > 0:
+        bits.append(f"last {last_runs} runs")
+    if since_hours > 0:
+        bits.append(f"last {since_hours:g}h")
+    return (
+        f"Scoped to {' ∩ '.join(bits)} — {n_files} file(s). "
+        "Unset V6B_LEDGER_LAST_RUNS / V6B_LEDGER_SINCE_HOURS for the full corpus."
+    )
+
+
 def _compute_pipeline_ledger(context: AssetExecutionContext) -> MaterializeResult:
     roster = list(context.instance.get_dynamic_partitions(stem_partitions.name))
+
+    include = _recent_stem_scope(context, config.V6B_LEDGER_LAST_RUNS, config.V6B_LEDGER_SINCE_HOURS)
+    scope_label: str | None = None
+    if include is not None:
+        roster = [s for s in roster if s in include]
+        scope_label = _scope_label(config.V6B_LEDGER_LAST_RUNS, config.V6B_LEDGER_SINCE_HOURS, len(roster))
 
     materialized_by_stage = {
         asset_name: context.instance.get_materialized_partitions(AssetKey(asset_name)) for asset_name, _label in STAGES
@@ -260,7 +383,7 @@ def _compute_pipeline_ledger(context: AssetExecutionContext) -> MaterializeResul
     stage_has_checks = {stage: len(keys) > 0 for stage, keys in stage_keys.items()}
     checks_by_stage = _fetch_checks_by_stage(context, roster, stage_keys)
 
-    ledger = build_ledger(roster, materialized_by_stage, checks_by_stage, stage_has_checks)
+    ledger = build_ledger(roster, materialized_by_stage, checks_by_stage, stage_has_checks, scope_label)
     summary = ledger["summary"]
 
     out_path = Path(DATA_ROOT) / "_meta" / "v6b_pipeline_ledger.json"
@@ -280,18 +403,19 @@ def _compute_pipeline_ledger(context: AssetExecutionContext) -> MaterializeResul
         summary["not_started"],
     )
 
-    return MaterializeResult(
-        metadata={
-            "ledger": MetadataValue.md(ledger["markdown"]),
-            "files": summary["files"],
-            "passed": summary["passed"],
-            "in_progress": summary["in_progress"],
-            "with_warnings": summary["with_warnings"],
-            "with_failures": summary["with_failures"],
-            "not_started": summary["not_started"],
-            "report_path": str(out_path),
-        }
-    )
+    metadata = {
+        "ledger": MetadataValue.md(ledger["markdown"]),
+        "files": summary["files"],
+        "passed": summary["passed"],
+        "in_progress": summary["in_progress"],
+        "with_warnings": summary["with_warnings"],
+        "with_failures": summary["with_failures"],
+        "not_started": summary["not_started"],
+        "failing_checks": len(summary["by_check"]),
+        "scope": scope_label or "full corpus",
+        "report_path": str(out_path),
+    }
+    return MaterializeResult(metadata=metadata)
 
 
 v6b_pipeline_ledger = asset(

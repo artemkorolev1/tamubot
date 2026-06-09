@@ -163,6 +163,16 @@ V6B_MODAL_ENABLED: bool = os.getenv("V6B_MODAL_ENABLED", "true").lower() == "tru
 # disk but never written to Atlas. Flip to True to actually upsert chunks_v4.
 V6B_INGEST_ENABLED: bool = os.getenv("V6B_INGEST_ENABLED", "false").lower() == "true"
 
+# --- v6b_pipeline_ledger scope (report-only) ---
+# The ledger renders one row per *registered* syllabus partition, so by default it
+# shows the whole corpus (~190 files), most of which never ran. These two toggles
+# scope it to a recent cohort so a single materialization answers "how did the files
+# I just ran fare?". 0 = disabled (full corpus). When both are set, they intersect.
+# V6B_LEDGER_LAST_RUNS=20 -> only files touched by the 20 most recent runs.
+V6B_LEDGER_LAST_RUNS: int = int(os.getenv("V6B_LEDGER_LAST_RUNS", "0"))
+# V6B_LEDGER_SINCE_HOURS=6 -> only files whose run is within the last 6 hours.
+V6B_LEDGER_SINCE_HOURS: float = float(os.getenv("V6B_LEDGER_SINCE_HOURS", "0"))
+
 # --- NuExtract structured-extraction backend ---
 # "in_process" (transformers+fla on the local GPU, default) or "http" (vLLM
 # sidecar, OpenAI-compatible). The in-process path stays the default + fallback.

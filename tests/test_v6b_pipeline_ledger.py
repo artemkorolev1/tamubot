@@ -13,6 +13,8 @@ from tamubot.ingestion.pipeline_v6b.assets.pipeline_ledger import (
     GLYPH_WARN,
     STAGES,
     _cell,
+    _check_histogram,
+    _select_recent_stems,
     build_ledger,
 )
 
@@ -84,6 +86,7 @@ def test_full_pass_row():
         "with_warnings": 0,
         "with_failures": 0,
         "not_started": 0,
+        "by_check": [],
     }
     row = ledger["rows"][0]
     assert row["status"] == "passed"
@@ -131,6 +134,7 @@ def test_partial_materialization_is_in_progress_not_passed():
         "with_warnings": 0,
         "with_failures": 0,
         "not_started": 0,
+        "by_check": [],
     }
 
 
@@ -173,6 +177,87 @@ def test_failure_outranks_missing_downstream():
     checks = {"v6b_bronze_blocks": {stem: [_failed("v6b_bronze_blocks_nonempty", "ERROR")]}}
     ledger = build_ledger([stem], materialized, checks, HAS_CHECKS)
     assert ledger["rows"][0]["status"] == "failed"
+
+
+# --- _select_recent_stems (run-scope) --------------------------------------
+
+
+def _run(partition: str | None, timestamp: float = 0.0) -> dict:
+    return {"partition": partition, "timestamp": timestamp}
+
+
+def test_recent_stems_none_when_no_filters():
+    # No scope toggles -> None signals "whole corpus" to the caller.
+    runs = [_run("a"), _run("b")]
+    assert _select_recent_stems(runs, last_runs=0, since_hours=0, now=100.0) is None
+
+
+def test_recent_stems_last_n_takes_newest_runs_only():
+    runs = [_run("a"), _run("b"), _run("c"), _run("d")]  # newest-first
+    assert _select_recent_stems(runs, last_runs=2, since_hours=0, now=100.0) == {"a", "b"}
+
+
+def test_recent_stems_dedupes_partitions_across_runs():
+    # 3 runs but only 2 distinct files (a re-run of "a") -> set of 2.
+    runs = [_run("a"), _run("a"), _run("b")]
+    assert _select_recent_stems(runs, last_runs=3, since_hours=0, now=100.0) == {"a", "b"}
+
+
+def test_recent_stems_skips_runs_without_partition():
+    # Non-partitioned runs (e.g. the ledger itself) carry no partition tag.
+    runs = [_run(None), _run("a"), _run(None)]
+    assert _select_recent_stems(runs, last_runs=3, since_hours=0, now=100.0) == {"a"}
+
+
+def test_recent_stems_since_hours_windows_by_timestamp():
+    now = 10_000.0
+    runs = [_run("fresh", now - 1800), _run("stale", now - 7200)]  # 0.5h vs 2h ago
+    assert _select_recent_stems(runs, last_runs=0, since_hours=1, now=now) == {"fresh"}
+
+
+def test_recent_stems_intersects_last_n_and_window():
+    now = 10_000.0
+    runs = [_run("a", now - 60), _run("b", now - 7200), _run("c", now - 30)]
+    # last_runs=2 -> {a,b}; window 1h drops b -> {a}.
+    assert _select_recent_stems(runs, last_runs=2, since_hours=1, now=now) == {"a"}
+
+
+# --- _check_histogram + markdown rollup ------------------------------------
+
+
+def test_check_histogram_counts_files_per_check_sorted():
+    stems = ["s1", "s2", "s3"]
+    materialized = _materialized_everywhere(stems)
+    checks = _all_green(stems)
+    # boilerplate fails on all 3; duplicate fails on 1.
+    for s in stems:
+        checks["v6b_silver_tag_semantic"][s] = [_failed("v6b_silver_tag_boilerplate_rate_in_band", "WARN")]
+    checks["v6b_silver_tag_semantic"]["s1"].append(_failed("v6b_silver_tag_duplicate_rate_in_band", "WARN"))
+    ledger = build_ledger(stems, materialized, checks, HAS_CHECKS)
+    hist = ledger["summary"]["by_check"]
+    assert hist[0] == {
+        "name": "v6b_silver_tag_boilerplate_rate_in_band",
+        "stage": "v6b_silver_tag_semantic",
+        "severity": "WARN",
+        "count": 3,
+    }
+    assert hist[1]["name"] == "v6b_silver_tag_duplicate_rate_in_band"
+    assert hist[1]["count"] == 1
+    # markdown surfaces the rollup table
+    assert "Failures by check" in ledger["markdown"]
+    assert _check_histogram([]) == []
+
+
+def test_scope_label_rendered_in_markdown():
+    stems = ["202611_CSCE_601_600_111"]
+    ledger = build_ledger(
+        stems,
+        _materialized_everywhere(stems),
+        _all_green(stems),
+        HAS_CHECKS,
+        scope_label="Scoped to last 20 runs — 1 file(s).",
+    )
+    assert "Scoped to last 20 runs" in ledger["markdown"]
 
 
 def test_rows_sorted_and_markdown_has_legend_and_rows():
