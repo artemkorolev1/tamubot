@@ -21,10 +21,52 @@ from tamubot.ingestion.validation.header_hierarchy import (
     check_header_hierarchy_valid,
     check_header_levels_normalized,
     check_min_headers,
+    check_suspicious_heading_rate,
 )
 from tamubot.ingestion.validation.pdf_integrity import check_pdf_integrity, count_pdf_pages
+from tamubot.ingestion.validation.text_coverage import compute_text_coverage
 from tamubot.ingestion.validation.text_quality import check_no_replacement_chars
 from tamubot.ingestion.validation.types import CheckOutcome
+
+
+def _bronze_content_text(blocks: list) -> str:
+    """All text that survives into bronze — text/heading bodies PLUS table-grid
+    cells, captions and footnotes. Table content lives in ``table_body`` (a grid),
+    not a ``text`` field, so a text-only join would falsely flag every schedule
+    table's cells (times, dates, grade bands) as dropped."""
+    parts: list[str] = []
+    for b in blocks:
+        t = b.get("text")
+        if isinstance(t, str) and t:
+            parts.append(t)
+        for key in ("table_caption", "image_caption", "table_footnote", "image_footnote"):
+            v = b.get(key)
+            if isinstance(v, str) and v:
+                parts.append(v)
+        grid = b.get("table_body")
+        if isinstance(grid, list):
+            for row in grid:
+                if isinstance(row, list):
+                    parts.append(" ".join(str(c) for c in row if c))
+    return "\n".join(parts)
+
+
+def _pdf_plaintext(pdf_path) -> str:
+    """Full PDF text layer via PyMuPDF — the ground truth the coverage check
+    compares bronze against. Returns "" if PyMuPDF is unavailable or the open
+    fails (the check then trivially passes rather than erroring)."""
+    try:
+        import pymupdf
+    except ImportError:
+        return ""
+    try:
+        doc = pymupdf.open(str(pdf_path))
+    except Exception:
+        return ""
+    try:
+        return "\n".join(page.get_text() for page in doc)  # type: ignore[arg-type]
+    finally:
+        doc.close()
 
 
 @asset_check(asset="v6b_bronze_blocks", blocking=True, partitions_def=stem_partitions)
@@ -159,6 +201,87 @@ def v6b_bronze_blocks_min_headers(
             f"{outcome.metadata['header_count']} headers / "
             f"{outcome.metadata['distinct_levels']} distinct level(s) across {page_count} page(s)"
         ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_text_coverage(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """Generic extraction-loss gate (FID_CONTENT_DROPPED): fraction of the source
+    PDF's content tokens that survived into bronze. PyMuPDF reliably has the full
+    text layer; a low coverage means Docling dropped content (URLs, label values
+    like ``ISBN: 978-…``, table cells). ``sample_missing`` names what was lost.
+    WARN — calibrate the threshold on the corpus before any promotion to blocking."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    bronze_text = _bronze_content_text(blocks)
+    pdf_text = _pdf_plaintext(paths.raw_path(stem))
+    outcome = compute_text_coverage(pdf_text, bronze_text)
+    cov = outcome.metadata["coverage"]
+    miss = outcome.metadata["missing_count"]
+    sample = outcome.metadata["sample_missing"]
+    detail = f"; e.g. {', '.join(sample[:5])}" if miss else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=f"{cov:.1%} of PDF content tokens survived into bronze ({miss} dropped{detail})",
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_suspicious_heading_rate(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """G3: catches body text wrongly promoted to a heading (inline-label-shaped,
+    over-long, or sentence-terminated). WARN above 15% — a high rate means the
+    bronze hierarchy is inventing structure from body lines."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    headers = [{"text": b.get("text", "")} for b in blocks if b.get("type") == "heading"]
+    outcome = check_suspicious_heading_rate(headers)
+    count = outcome.metadata["suspicious_heading_count"]
+    total = outcome.metadata["total_headers"]
+    rate = outcome.metadata["suspicious_rate"]
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            f"{count}/{total} headings look body-like ({rate:.0%}, threshold {outcome.metadata['max_rate']:.0%})"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_heading_repair_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """G6 drift watchdog: a code change that suddenly repairs 10x more level-skips
+    is a regression signal. Compares ``repaired_skip_count`` against the run-over-run
+    baseline. WARN on drift."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    headers = [
+        {"raw_level": b.get("raw_level", b.get("level", 1)), "level": b.get("level", 1), "text": b.get("text", "")}
+        for b in blocks
+        if b.get("type") == "heading"
+    ]
+    repaired = check_header_levels_normalized(headers).metadata["repaired_skip_count"]
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6b_bronze_blocks",
+        partition_key=stem,
+        metadata_key="repaired_skip_count",
+        last_n=5,
+    )
+    outcome = compute_baseline_delta(current=repaired, history=history, max_drift_pct=0.20)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description="repaired_skip_count " + describe_delta(outcome.metadata),
         metadata=outcome.metadata,
     )
 

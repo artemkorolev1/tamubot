@@ -33,6 +33,7 @@ from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.table_quality import (
     OUTCOME_PARTIAL_KEPT,
     is_failure_marker,
+    mean_table_confidence,
     render_table_markdown,
     summarize_table_outcomes,
 )
@@ -173,12 +174,8 @@ def _compute_silver_modal(
         # Both tables and images run on the local NuExtract3 model: tables → GFM
         # transcription, images → description. Per-block VLM calls share the
         # per-file budget below.
-        table_proc = TableModalProcessor(
-            vision_func=_make_nuextract_table_func(extractor), cache_path=cache_path
-        )
-        image_proc = ImageModalProcessor(
-            vision_func=_make_nuextract_image_func(extractor), cache_path=cache_path
-        )
+        table_proc = TableModalProcessor(vision_func=_make_nuextract_table_func(extractor), cache_path=cache_path)
+        image_proc = ImageModalProcessor(vision_func=_make_nuextract_image_func(extractor), cache_path=cache_path)
         try:
             enriched = process_blocks(
                 blocks,
@@ -202,6 +199,7 @@ def _compute_silver_modal(
 
     low_conf = sum(1 for b in enriched if (b.get("modal_result") or {}).get("confidence", 1.0) < 0.5)
     table_outcomes = summarize_table_outcomes(enriched)
+    total_tables = table_outcomes["table_blocks_total"]
 
     meta = {
         "stem": stem,
@@ -213,13 +211,19 @@ def _compute_silver_modal(
         "blocks_path": MetadataValue.path(str(modal_out)),
         "markdown_path": MetadataValue.path(str(md_out)),
         # Table-survival rollup (FID_TABLE_LOST observability).
-        "table_blocks_total": table_outcomes["table_blocks_total"],
+        "table_blocks_total": total_tables,
         "tables_transcribed": table_outcomes["transcribed"],
         "tables_grid_fallback": table_outcomes["grid_fallback"],
         "tables_partial_kept": table_outcomes["partial_kept"],
         "tables_lost": table_outcomes["lost"],
         "degenerate_tables": table_outcomes["degenerate_tables"],
+        "vlm_truncated_tables": table_outcomes["vlm_truncated_tables"],
+        # Headline modal-quality scalar for the run-over-run drift check (G6).
+        "pct_tables_transcribed": round((table_outcomes["transcribed"] / total_tables) if total_tables else 0.0, 4),
     }
+    mean_conf = mean_table_confidence(enriched)
+    if mean_conf is not None:
+        meta["mean_table_confidence"] = round(mean_conf, 4)
     if skipped_reason:
         meta["skipped_reason"] = skipped_reason
 

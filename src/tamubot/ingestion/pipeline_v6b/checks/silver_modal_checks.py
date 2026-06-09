@@ -11,9 +11,18 @@ from dagster import (
 
 from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
+from tamubot.ingestion.validation.baseline_diff import (
+    compute_baseline_delta,
+    describe_delta,
+    read_metadata_history,
+)
 from tamubot.ingestion.validation.table_quality import (
+    check_confidence_floor,
     check_no_degenerate_tables,
+    check_no_failure_markers,
     check_no_table_lost,
+    check_no_truncated_tables,
+    pct_tables_transcribed,
 )
 
 _REQUIRED_MODAL_RESULT_KEYS = ("confidence",)
@@ -115,5 +124,106 @@ def v6b_silver_modal_no_degenerate_tables(
             if outcome.passed
             else f"{degenerate} of {total} table(s) show repetition-loop degeneration"
         ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_modal", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_modal_no_truncated_output(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """G2: the VLM produced a clean-but-short table the Docling grid had to rescue
+    from truncation. A non-zero count means the decode is dropping rows on long
+    tables (candidate for tiling / higher max_tokens). WARN for now."""
+    stem = context.partition_key
+    blocks = json.loads(paths.silver_modal_path(stem).read_text(encoding="utf-8"))
+    outcome = check_no_truncated_tables(blocks)
+    truncated = outcome.metadata.get("vlm_truncated_tables", 0)
+    total = outcome.metadata.get("table_blocks_total", 0)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            f"no truncated VLM tables across {total} table(s)"
+            if outcome.passed
+            else f"{truncated} of {total} table(s) truncated by the VLM — grid rescued the rows"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_modal", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_modal_no_failure_markers(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """G5: no ``[table/image processing failed]`` marker should reach the merged
+    markdown RAG sees. WARN when one leaks but the table still survived via a
+    fallback tier; ERROR-severity (still non-blocking during calibration) when a
+    marker coincides with an actual unrecoverable table loss."""
+    stem = context.partition_key
+    blocks = json.loads(paths.silver_modal_path(stem).read_text(encoding="utf-8"))
+    md_path = paths.silver_modal_markdown_path(stem)
+    markdown = md_path.read_text(encoding="utf-8") if md_path.exists() else ""
+    outcome = check_no_failure_markers(markdown, blocks)
+    markers = outcome.metadata["failure_markers"]
+    lost = outcome.metadata["tables_lost"]
+    severity = AssetCheckSeverity.ERROR if lost > 0 else AssetCheckSeverity.WARN
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=severity,
+        description=(
+            "no failure markers in merged markdown"
+            if outcome.passed
+            else f"{markers} failure marker(s) leaked into markdown ({lost} table(s) lost with no fallback)"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_modal", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_modal_confidence_floor(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """G4: fraction of modal results below the confidence floor. A high rate means
+    vision transcription is broadly weak on this doc, not just one bad table.
+    WARN above 25%."""
+    stem = context.partition_key
+    blocks = json.loads(paths.silver_modal_path(stem).read_text(encoding="utf-8"))
+    outcome = check_confidence_floor(blocks)
+    low = outcome.metadata["low_confidence_blocks"]
+    total = outcome.metadata["total_modal_blocks"]
+    rate = outcome.metadata["low_confidence_rate"]
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            f"{low}/{total} modal result(s) low-confidence ({rate:.0%}, threshold "
+            f"{outcome.metadata['max_low_confidence_rate']:.0%})"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_modal", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_modal_quality_vs_baseline(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """G6 corpus regression: ``pct_tables_transcribed`` (share of tables accepted
+    at the best VLM tier) vs the run-over-run baseline median. WARN on drift."""
+    stem = context.partition_key
+    blocks = json.loads(paths.silver_modal_path(stem).read_text(encoding="utf-8"))
+    pct = pct_tables_transcribed(blocks)
+    history = read_metadata_history(
+        context.instance,
+        asset_key="v6b_silver_modal",
+        partition_key=stem,
+        metadata_key="pct_tables_transcribed",
+        last_n=5,
+    )
+    outcome = compute_baseline_delta(current=pct, history=history, max_drift_pct=0.15)
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description="pct_tables_transcribed " + describe_delta(outcome.metadata),
         metadata=outcome.metadata,
     )

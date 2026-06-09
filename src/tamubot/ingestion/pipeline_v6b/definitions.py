@@ -33,10 +33,13 @@ from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_has_text,
     v6b_bronze_blocks_header_hierarchy_valid,
     v6b_bronze_blocks_header_levels_normalized,
+    v6b_bronze_blocks_heading_repair_vs_baseline,
     v6b_bronze_blocks_min_headers,
     v6b_bronze_blocks_no_replacement_chars,
     v6b_bronze_blocks_nonempty,
     v6b_bronze_blocks_source_integrity,
+    v6b_bronze_blocks_suspicious_heading_rate,
+    v6b_bronze_blocks_text_coverage,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_atlas_upsert_checks import (
     v6b_silver_atlas_golden_recall_at_5,
@@ -59,8 +62,12 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_embed_checks import (
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_modal_checks import (
     v6b_silver_modal_budget_not_exceeded,
+    v6b_silver_modal_confidence_floor,
     v6b_silver_modal_no_degenerate_tables,
+    v6b_silver_modal_no_failure_markers,
     v6b_silver_modal_no_table_lost,
+    v6b_silver_modal_no_truncated_output,
+    v6b_silver_modal_quality_vs_baseline,
     v6b_silver_modal_result_schema_valid,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_structured_checks import (
@@ -123,10 +130,15 @@ defs = Definitions(
         v6b_bronze_blocks_header_levels_normalized,
         v6b_bronze_blocks_min_headers,
         v6b_bronze_blocks_source_integrity,
+        v6b_bronze_blocks_suspicious_heading_rate,
+        v6b_bronze_blocks_text_coverage,
         v6b_silver_modal_budget_not_exceeded,
         v6b_silver_modal_result_schema_valid,
         v6b_silver_modal_no_table_lost,
         v6b_silver_modal_no_degenerate_tables,
+        v6b_silver_modal_no_truncated_output,
+        v6b_silver_modal_no_failure_markers,
+        v6b_silver_modal_confidence_floor,
         v6b_silver_chunk_count_nonzero,
         v6b_silver_chunk_low_no_header_rate,
         v6b_silver_chunk_no_oversized,
@@ -140,6 +152,8 @@ defs = Definitions(
         v6b_silver_atlas_vector_count_matches_chunks,
         v6b_silver_atlas_index_status_ready,
         v6b_bronze_blocks_block_count_vs_baseline,
+        v6b_bronze_blocks_heading_repair_vs_baseline,
+        v6b_silver_modal_quality_vs_baseline,
         v6b_silver_chunk_total_vs_baseline,
         v6b_silver_chunk_flagged_rate_vs_baseline,
         v6b_silver_embed_voyage_calls_vs_baseline,

@@ -2,9 +2,35 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from tamubot.ingestion.validation.types import CheckOutcome
+
+# Mirror of ``_INLINE_LABEL_RE`` in ``converters/docling_converter.py`` — kept in
+# sync by hand. We cannot import the converter here: it pulls in Docling at module
+# import, which is not host-loadable, and this module must stay pure/host-testable.
+# A heading whose text is shaped like an inline label ("Instructor: Jane Doe") is
+# almost certainly body text that was wrongly promoted to a heading.
+_INLINE_LABEL_RE = re.compile(r"^[A-Z][A-Za-z0-9 /&'\"-]{2,40}:\s.+$")
+
+# A real heading is short and label-like; a long phrase or a sentence-terminated
+# line is body text masquerading as a heading.
+_MAX_HEADING_WORDS = 12
+_SENTENCE_END = (".", "!", "?")
+
+
+def _is_suspicious_heading(text: str) -> bool:
+    """True when a heading's text looks like body text mis-promoted to a heading:
+    inline-label-shaped, over-long, or ending in sentence punctuation."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    if _INLINE_LABEL_RE.match(t):
+        return True
+    if len(t.split()) > _MAX_HEADING_WORDS:
+        return True
+    return t.endswith(_SENTENCE_END)
 
 
 def count_level_skips(levels: list[int]) -> int:
@@ -112,5 +138,30 @@ def check_min_headers(
             "distinct_levels": distinct,
             "minimum": minimum,
             "page_count": page_count,
+        },
+    )
+
+
+def check_suspicious_heading_rate(headers: list[dict[str, Any]], *, max_rate: float = 0.15) -> CheckOutcome:
+    """Catch body text wrongly promoted to a heading (heading-doc G3).
+
+    Counts headings whose text is inline-label-shaped, over-long, or
+    sentence-terminated — the signatures of a font-cluster mis-promotion. A high
+    rate means the bronze hierarchy is inventing structure from body lines. WARN
+    above ``max_rate``; pure observability otherwise (calibrate on the corpus
+    before any promotion to blocking).
+    """
+    texts = [str(h.get("text", "")) for h in headers]
+    suspicious = [t for t in texts if _is_suspicious_heading(t)]
+    total = len(texts)
+    rate = (len(suspicious) / total) if total else 0.0
+    return CheckOutcome(
+        passed=rate <= max_rate,
+        metadata={
+            "suspicious_heading_count": len(suspicious),
+            "total_headers": total,
+            "suspicious_rate": round(rate, 4),
+            "max_rate": max_rate,
+            "sample": [t[:60] for t in suspicious[:10]],
         },
     )

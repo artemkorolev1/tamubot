@@ -229,3 +229,90 @@ def check_no_degenerate_tables(blocks: list[dict[str, Any]]) -> CheckOutcome:
         passed=degenerate == 0,
         metadata={"degenerate_tables": degenerate, "table_blocks_total": summary["table_blocks_total"]},
     )
+
+
+def check_no_truncated_tables(blocks: list[dict[str, Any]]) -> CheckOutcome:
+    """G2 truncation gate: the VLM produced a clean-but-short table that the
+    Docling grid had to rescue from truncation (row-count conservation kicked in).
+    A non-zero count means the VLM decode is dropping rows on long tables — a
+    candidate for tiling / a higher ``max_tokens``. WARN for now."""
+    summary = summarize_table_outcomes(blocks)
+    truncated = summary["vlm_truncated_tables"]
+    return CheckOutcome(
+        passed=truncated == 0,
+        metadata={"vlm_truncated_tables": truncated, "table_blocks_total": summary["table_blocks_total"]},
+    )
+
+
+# Substrings the VLM fail path stuffs into a caption when transcription throws.
+# These must never survive into the merged markdown — the degradation ladder
+# strips them when it falls back to the grid/partial tier, so any that leak
+# signal the ladder didn't engage.
+_FAILURE_MARKER_SUBSTRINGS = ("[table processing failed", "[image processing failed")
+
+
+def count_failure_markers(markdown: str) -> int:
+    """Count ``[table/image processing failed`` markers leaking into merged markdown."""
+    md = markdown or ""
+    return sum(md.count(s) for s in _FAILURE_MARKER_SUBSTRINGS)
+
+
+def check_no_failure_markers(markdown: str, blocks: list[dict[str, Any]] | None = None) -> CheckOutcome:
+    """G5 failure-marker gate: no ``[… processing failed]`` string should reach the
+    merged markdown RAG sees. When ``blocks`` is supplied, also report whether any
+    table was *actually lost* (no grid/partial fallback) — the caller escalates
+    severity for that unrecoverable case. WARN otherwise."""
+    markers = count_failure_markers(markdown)
+    lost = 0
+    if blocks is not None:
+        lost = summarize_table_outcomes(blocks)[OUTCOME_LOST]
+    return CheckOutcome(
+        passed=markers == 0,
+        metadata={"failure_markers": markers, "tables_lost": lost},
+    )
+
+
+def check_confidence_floor(
+    blocks: list[dict[str, Any]],
+    *,
+    max_low_confidence_rate: float = 0.25,
+    confidence_threshold: float = 0.5,
+) -> CheckOutcome:
+    """G4 confidence-floor gate: fraction of modal results below
+    ``confidence_threshold``. A high rate means vision transcription is broadly
+    weak on this doc (not just one bad table). WARN above ``max_low_confidence_rate``.
+    Empty (no modal blocks) trivially passes."""
+    modal_blocks = [b for b in blocks if b.get("modal_result")]
+    total = len(modal_blocks)
+    low = sum(1 for b in modal_blocks if (b.get("modal_result") or {}).get("confidence", 1.0) < confidence_threshold)
+    rate = (low / total) if total else 0.0
+    return CheckOutcome(
+        passed=rate <= max_low_confidence_rate,
+        metadata={
+            "low_confidence_blocks": low,
+            "total_modal_blocks": total,
+            "low_confidence_rate": round(rate, 4),
+            "max_low_confidence_rate": max_low_confidence_rate,
+        },
+    )
+
+
+def pct_tables_transcribed(blocks: list[dict[str, Any]]) -> float:
+    """Fraction of table blocks whose VLM transcription was accepted (best tier).
+    The headline modal-quality scalar for run-over-run drift. 0.0 when no tables."""
+    summary = summarize_table_outcomes(blocks)
+    total = summary["table_blocks_total"]
+    return (summary[OUTCOME_TRANSCRIBED] / total) if total else 0.0
+
+
+def mean_table_confidence(blocks: list[dict[str, Any]]) -> float | None:
+    """Mean VLM confidence across table blocks that carry a modal result, or
+    ``None`` when there are none (so it never poisons a baseline with a zero)."""
+    confs = [
+        float((b.get("modal_result") or {}).get("confidence", 0.0))
+        for b in blocks
+        if b.get("type") == "table" and b.get("modal_result")
+    ]
+    if not confs:
+        return None
+    return sum(confs) / len(confs)

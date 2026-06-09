@@ -19,6 +19,7 @@ from tamubot.ingestion.pipeline_v5.util import code_version_of, dept_from_stem, 
 from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource
+from tamubot.ingestion.validation.header_hierarchy import check_header_levels_normalized
 from tamubot.ingestion.validation.pdf_integrity import count_pdf_pages
 
 
@@ -82,6 +83,15 @@ def _compute_bronze_blocks(
 
     page_count = count_pdf_pages(pdf)
 
+    # Raw heading-level skips the normalizer repaired — emitted so the
+    # heading_repair_vs_baseline (G6) drift check has a run-over-run history.
+    headers = [
+        {"raw_level": b.get("raw_level", b.get("level", 1)), "level": b.get("level", 1), "text": b.get("text", "")}
+        for b in blocks
+        if b.get("type") == "heading"
+    ]
+    repaired_skip_count = check_header_levels_normalized(headers).metadata["repaired_skip_count"]
+
     return MaterializeResult(
         metadata={
             "stem": stem,
@@ -90,6 +100,7 @@ def _compute_bronze_blocks(
             "block_count": len(blocks),
             "block_types": MetadataValue.json(type_counts),
             "page_count": page_count,
+            "repaired_skip_count": repaired_skip_count,
             "sha256": hash_file(blocks_out),
             "preview": MetadataValue.json(blocks[:5]),
         }
