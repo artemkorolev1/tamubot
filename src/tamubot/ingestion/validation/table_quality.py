@@ -211,6 +211,67 @@ def summarize_table_outcomes(blocks: list[dict[str, Any]]) -> dict[str, int]:
     return summary
 
 
+def _grid_token_set(grids: list[list[list[str]]]) -> set[str]:
+    """Content-token set across every cell of every grid in ``grids``."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    out: set[str] = set()
+    for grid in grids:
+        for row in grid:
+            out |= content_tokens(" ".join(c for c in row if c))
+    return out
+
+
+def compute_table_capture(
+    docling_grids: list[list[list[str]]],
+    pdf_grids: list[list[list[str]]],
+    *,
+    max_missing_rate: float = 0.10,
+) -> CheckOutcome:
+    """Table-scoped extraction-loss gate (``FID_TABLE_LOST`` / table
+    ``FID_CONTENT_DROPPED``): the fraction of content tokens present in the PyMuPDF
+    ``find_tables`` reconstruction but absent from EVERY Docling table grid — i.e.
+    cells/rows TableFormer dropped from the structured grid. Pure — the caller
+    supplies both grid lists.
+
+    This is the deterministic detector for table under-capture, which
+    ``text_coverage`` *misses*: a dropped table token (e.g. ``midterm`` from a whole
+    dropped schedule row) often also appears in body text, so document-scoped token
+    recall stays high while the table itself is broken. Scoping the comparison to
+    table grids surfaces the structural loss. ``sample_missing`` names the dropped
+    cells. Runs on post-recovery bronze, so it doubles as a regression guard on the
+    adapter's table-cell recovery. WARN — calibrate ``max_missing_rate`` on the
+    corpus (``find_tables`` headers/captions Docling stores separately add a small
+    baseline residual)."""
+    pdf = _grid_token_set(pdf_grids)
+    if not pdf:
+        return CheckOutcome(
+            passed=True,
+            metadata={
+                "pdf_table_tokens": 0,
+                "docling_table_tokens": len(_grid_token_set(docling_grids)),
+                "missing_count": 0,
+                "missing_rate": 0.0,
+                "max_missing_rate": max_missing_rate,
+                "sample_missing": [],
+            },
+        )
+    docling = _grid_token_set(docling_grids)
+    missing = pdf - docling
+    rate = len(missing) / len(pdf)
+    return CheckOutcome(
+        passed=rate <= max_missing_rate,
+        metadata={
+            "pdf_table_tokens": len(pdf),
+            "docling_table_tokens": len(docling),
+            "missing_count": len(missing),
+            "missing_rate": round(rate, 4),
+            "max_missing_rate": max_missing_rate,
+            "sample_missing": sorted(missing)[:20],
+        },
+    )
+
+
 def check_no_table_lost(blocks: list[dict[str, Any]]) -> CheckOutcome:
     """The FID_TABLE_LOST gate: every table block must contribute >=1 row to the
     merged markdown via *some* tier of the ladder. Shipped as WARN; promote to

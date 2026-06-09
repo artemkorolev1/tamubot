@@ -24,8 +24,9 @@ from tamubot.ingestion.validation.header_hierarchy import (
     check_suspicious_heading_rate,
 )
 from tamubot.ingestion.validation.pdf_integrity import check_pdf_integrity, count_pdf_pages
+from tamubot.ingestion.validation.table_quality import compute_table_capture
 from tamubot.ingestion.validation.text_coverage import compute_text_coverage
-from tamubot.ingestion.validation.text_quality import check_no_replacement_chars
+from tamubot.ingestion.validation.text_quality import check_no_replacement_chars, count_unanswered_labels
 from tamubot.ingestion.validation.types import CheckOutcome
 
 
@@ -227,6 +228,58 @@ def v6b_bronze_blocks_text_coverage(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
         description=f"{cov:.1%} of PDF content tokens survived into bronze ({miss} dropped{detail})",
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_table_cell_capture(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """Table under-capture gate (FID_TABLE_LOST): content tokens PyMuPDF's
+    ``find_tables`` finds in the table region but the Docling grid dropped. Catches
+    what ``text_coverage`` misses (a dropped table token often also appears in body
+    text). Runs on post-recovery bronze, so it also guards the adapter's table-cell
+    recovery against regressions. WARN — calibrate on the corpus."""
+    from tamubot.ingestion.converters.docling_block_adapter import _pymupdf_table_grids_by_page
+
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    docling_grids = [b["table_body"] for b in blocks if b.get("type") == "table" and b.get("table_body")]
+    pages = {b.get("page_idx") or 0 for b in blocks if b.get("type") == "table" and b.get("table_body")}
+    pdf_grids = [g for grids in _pymupdf_table_grids_by_page(paths.raw_path(stem), pages).values() for g in grids]
+    outcome = compute_table_capture(docling_grids, pdf_grids)
+    miss = outcome.metadata["missing_count"]
+    sample = outcome.metadata["sample_missing"]
+    detail = f"; e.g. {', '.join(sample[:5])}" if miss else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=f"{miss} table cell token(s) PyMuPDF found but the Docling grid dropped{detail}",
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_no_orphaned_labels(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """Two-column reading-order gate (FID_HEADER_BROKEN): short ``Label:`` blocks
+    left with no value beside them — the signature of a two-column course-info block
+    Docling read column-first and orphaned. Catches what ``text_coverage`` misses
+    (the values survive, just disconnected); also guards the adapter's two-column
+    recovery. WARN — calibrate on the corpus."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    outcome = count_unanswered_labels(blocks)
+    n = outcome.metadata["unanswered_labels"]
+    total = outcome.metadata["total_labels"]
+    sample = outcome.metadata["sample_unanswered"]
+    detail = f"; e.g. {', '.join(sample[:5])}" if n else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=f"{n}/{total} field labels have no value beside them{detail}",
         metadata=outcome.metadata,
     )
 

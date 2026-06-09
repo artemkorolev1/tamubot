@@ -400,6 +400,153 @@ class TestLabelValueRecovery:
         assert n == 0
 
 
+class TestTwoColumnRecovery:
+    """_repair_orphaned_label_values: re-pair labels with their orphaned values."""
+
+    def test_repairs_orphaned_value(self):
+        """ECEN_671: `Location:` at the top, `ETB 1037` orphaned far below after
+        intervening sections -> merge in and delete the orphan."""
+        blocks = [
+            {"type": "text", "text": "Location:", "page_idx": 1},
+            {"type": "heading", "text": "Course Description", "page_idx": 1},
+            {"type": "text", "text": "Long prose about the course.", "page_idx": 1},
+            {"type": "text", "text": "ETB 1037", "page_idx": 1},
+        ]
+        pairs = {1: {"Location:": "ETB 1037"}}
+        n = dba._repair_orphaned_label_values(blocks, pairs)
+        assert n == 1
+        assert blocks[0]["text"] == "Location: ETB 1037"
+        assert blocks[0]["recovered_two_column"] is True
+        assert all(b.get("text") != "ETB 1037" for b in blocks)  # orphan removed
+
+    def test_leaves_adjacent_value_untouched(self):
+        """The correctly-ordered case (value in the next block, e.g. the instructor
+        block) must not be merged or duplicated."""
+        blocks = [
+            {"type": "text", "text": "Instructor:", "page_idx": 1},
+            {"type": "text", "text": "Prof. H.R. Harris", "page_idx": 1},
+        ]
+        pairs = {1: {"Instructor:": "Prof. H.R. Harris"}}
+        n = dba._repair_orphaned_label_values(blocks, pairs)
+        assert n == 0
+        assert [b["text"] for b in blocks] == ["Instructor:", "Prof. H.R. Harris"]
+
+    def test_no_pair_is_noop(self):
+        blocks = [{"type": "text", "text": "Section:", "page_idx": 1}]
+        assert dba._repair_orphaned_label_values(blocks, {1: {}}) == 0
+        assert len(blocks) == 1
+
+    def test_missing_orphan_block_not_attached(self):
+        """A paired value with no matching orphan block on the page is skipped
+        (don't hallucinate a value into the label)."""
+        blocks = [{"type": "text", "text": "Section:", "page_idx": 1}]
+        pairs = {1: {"Section:": "501"}}
+        n = dba._repair_orphaned_label_values(blocks, pairs)
+        assert n == 0
+        assert blocks[0]["text"] == "Section:"
+
+    def test_only_same_page(self):
+        blocks = [
+            {"type": "text", "text": "Location:", "page_idx": 1},
+            {"type": "text", "text": "x", "page_idx": 1},
+            {"type": "text", "text": "ETB 1037", "page_idx": 2},
+        ]
+        pairs = {1: {"Location:": "ETB 1037"}}
+        n = dba._repair_orphaned_label_values(blocks, pairs)
+        assert n == 0
+
+
+class TestTableCellRecovery:
+    """_merge_table_grids: add-only recovery of TableFormer-dropped rows/cells."""
+
+    def test_inserts_whole_dropped_row(self):
+        """ECEN_721: TableFormer dropped the `1st MIDTERM | Mar. 3` row between the
+        header and the first content row. PyMuPDF kept it -> insert in place."""
+        docling = [
+            ["Schedule", ""],
+            ["V. Transmitter Analysis", "Week 9-14"],
+            ["Project Report Due", "Apr. 28"],
+        ]
+        pdf = [
+            ["Schedule", ""],
+            ["1st MIDTERM", "Mar. 3"],
+            ["V. Transmitter Analysis", "Week 9-14"],
+            ["Project Report Due", "Apr. 28"],
+        ]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, pdf)
+        assert (inserted, upgraded) == (1, 0)
+        assert merged[1] == ["1st MIDTERM", "Mar. 3"]
+        assert [r[0] for r in merged] == ["Schedule", "1st MIDTERM", "V. Transmitter Analysis", "Project Report Due"]
+
+    def test_upgrades_cell_with_dropped_trailing_line(self):
+        """ISEN_625: a multi-line cell lost its last line (`…plots,` ->
+        `…plots, interpreting results`). Replace the cell with the fuller text."""
+        docling = [
+            ["Week", "Topics", "Events"],
+            ["3", "Lab3: counting, branching, plots,", "Lab 3 due"],
+        ]
+        pdf = [
+            ["Week", "Topics", "Events"],
+            ["3", "Lab3: counting, branching, plots, interpreting results", "Lab 3 due"],
+        ]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, pdf)
+        assert (inserted, upgraded) == (0, 1)
+        assert merged[1][1] == "Lab3: counting, branching, plots, interpreting results"
+
+    def test_keeps_docling_filled_merged_cells(self):
+        """Docling fills row-spanning cells (`Week 1-8`) that PyMuPDF leaves blank;
+        an empty PyMuPDF cell must never overwrite a populated Docling cell."""
+        docling = [
+            ["Topic", "Week"],
+            ["1. Optical Devices", "Week 1-8"],
+        ]
+        pdf = [
+            ["Topic", "Week"],
+            ["1. Optical Devices", ""],
+        ]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, pdf)
+        assert (inserted, upgraded) == (0, 0)
+        assert merged == docling
+
+    def test_does_not_munge_header_split_differently(self):
+        """Docling merged `Week`+`Topics` into one header cell with an empty col0;
+        the differently-split PyMuPDF header must not duplicate `Week` into col0."""
+        docling = [["", "Week Topics", "Important Events"], ["1", "intro to modeling", "Lab 1 due"]]
+        pdf = [["Week", "Topics", "Important Events"], ["1", "intro to modeling", "Lab 1 due"]]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, pdf)
+        assert (inserted, upgraded) == (0, 0)
+        assert merged[0] == ["", "Week Topics", "Important Events"]
+
+    def test_bails_on_unequal_column_width(self):
+        """Disagreeing table structure (different widths) -> keep Docling untouched."""
+        docling = [["A", "B"], ["1", "2"]]
+        pdf = [["A", "B", "C"], ["1", "2", "3"]]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, pdf)
+        assert (inserted, upgraded) == (0, 0)
+        assert merged == docling
+
+    def test_keeps_docling_row_pymupdf_missed(self):
+        """A row only Docling has must survive — recovery is add-only."""
+        docling = [["H1", "H2"], ["keep me", "x"], ["common", "y"]]
+        pdf = [["H1", "H2"], ["common", "y"]]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, pdf)
+        assert (inserted, upgraded) == (0, 0)
+        assert ["keep me", "x"] in merged
+
+    def test_does_not_insert_row_whose_tokens_all_present(self):
+        """A PyMuPDF row whose tokens already live in the grid is not re-inserted
+        (no duplication), even if it failed to align positionally."""
+        docling = [["H1", "H2"], ["alpha beta", "gamma"]]
+        pdf = [["H1", "H2"], ["beta alpha", "gamma"]]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, pdf)
+        assert inserted == 0
+
+    def test_empty_pdf_is_noop(self):
+        docling = [["A", "B"], ["1", "2"]]
+        merged, inserted, upgraded = dba._merge_table_grids(docling, [])
+        assert (merged, inserted, upgraded) == (docling, 0, 0)
+
+
 @pytest.mark.slow
 class TestDoclingBlockAdapterIntegration:
     """End-to-end on a real PDF. Skipped if no STAT pilot PDF is present."""

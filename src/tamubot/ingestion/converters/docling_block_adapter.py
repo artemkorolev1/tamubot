@@ -390,6 +390,339 @@ def _recover_dropped_label_values(pdf_path: Path, blocks: List[Dict[str, Any]]) 
     return _extend_labels_with_values(blocks, lines_by_page, _all_block_tokens(blocks))
 
 
+def _match_key(s: str) -> str:
+    """Whitespace- and dash-insensitive key for matching a paired value against the
+    orphaned block that holds it. Docling and PyMuPDF disagree on internal spacing
+    and en/em-dash vs hyphen (``10:20 -11:10`` vs ``10:20 – 11:10``); normalising
+    both kills those cosmetic diffs without risking a false match (the value is
+    already geometry-paired to the label)."""
+    return re.sub(r"\s+", "", (s or "")).replace("–", "-").replace("—", "-").lower()
+
+
+def _repair_orphaned_label_values(
+    blocks: List[Dict[str, Any]],
+    pairs_by_page: Dict[int, Dict[str, str]],
+) -> int:
+    """Re-pair a two-column ``Label: value`` block whose value Docling orphaned far
+    from its label (the FID_HEADER_BROKEN reading-order class). Pure — host-testable.
+
+    Docling reads a two-column course-info block column-first: it emits every left
+    column ``Label:`` in a run, then the matching right-column values much later,
+    after intervening sections — so a retrieval chunk gets ``Location:`` without
+    ``ETB 1037``. ``pairs_by_page`` maps a page's ``label_text -> value_text`` as
+    paired by PyMuPDF geometry (same y-band, value to the right of the label).
+
+    For each bare ``Label:`` block this merges its paired value in (``Location:`` ->
+    ``Location: ETB 1037``) and deletes the orphaned value block — but ONLY when
+    that value block sits non-adjacent to the label. A value already in the next
+    block (the common, correctly-ordered case, e.g. the instructor block) is left
+    untouched, so this only repairs the genuine orphaning. The orphan is matched by
+    exact text on the same page; the first unconsumed match is taken. Returns the
+    number of pairs repaired."""
+    repaired = 0
+    consumed: set = set()  # ids() of block dicts removed as a re-paired value
+    for i, b in enumerate(blocks):
+        if b.get("type") != "text":
+            continue
+        bt = (b.get("text") or "").rstrip()
+        if not bt.endswith(":") or len(bt) < 3:
+            continue
+        page = b.get("page_idx") or 0
+        value = pairs_by_page.get(page, {}).get(bt)
+        if not value or value == bt:
+            continue
+        # Find the orphaned value block: same page, matching text (whitespace/dash
+        # insensitive), not adjacent, unused.
+        value_key = _match_key(value)
+        orphan_idx = None
+        for j, ob in enumerate(blocks):
+            if (
+                j != i
+                and ob.get("type") == "text"
+                and (ob.get("page_idx") or 0) == page
+                and _match_key(ob.get("text") or "") == value_key
+                and id(ob) not in consumed
+            ):
+                orphan_idx = j
+                break
+        if orphan_idx is None or orphan_idx == i + 1:
+            continue  # value missing entirely, or already adjacent (correctly ordered)
+        b["text"] = f"{bt} {value}"
+        b["recovered_two_column"] = True
+        consumed.add(id(blocks[orphan_idx]))
+        repaired += 1
+    if consumed:
+        blocks[:] = [b for b in blocks if id(b) not in consumed]
+    return repaired
+
+
+def _two_column_pairs_by_page(pdf_path: Path) -> Dict[int, Dict[str, str]]:
+    """PyMuPDF geometry: pair each left-column ``Label:`` line with its right-column
+    value line (same vertical band, value's x clearly to the right). Feeds
+    :func:`_repair_orphaned_label_values`. Returns ``{page: {label: value}}``."""
+    try:
+        import pymupdf
+    except ImportError:
+        return {}
+    try:
+        doc = pymupdf.open(str(pdf_path))
+    except Exception as exc:
+        log.warning("two-column recovery: pymupdf failed to open %s: %s", pdf_path, exc)
+        return {}
+    min_col_gap = 40.0  # value column must start this many points right of the label
+    y_tol = 6.0  # label/value share a row when their y-centres are within this
+    out: Dict[int, Dict[str, str]] = {}
+    try:
+        for pno, page in enumerate(doc, 1):  # type: ignore[var-annotated,arg-type]
+            lines: List[tuple] = []  # (x0, y_center, text)
+            for blk in page.get_text("dict").get("blocks", []):
+                for ln in blk.get("lines", []):
+                    t = " ".join(sp.get("text", "") for sp in ln.get("spans", []))
+                    t = " ".join(t.split())
+                    bb = ln.get("bbox")
+                    if t and bb:
+                        lines.append((float(bb[0]), (float(bb[1]) + float(bb[3])) / 2, t))
+            pairs: Dict[str, str] = {}
+            for lx, ly, ltext in lines:
+                if not ltext.endswith(":") or len(ltext) < 3:
+                    continue
+                best = None
+                best_dx = float("inf")
+                for vx, vy, vtext in lines:
+                    if vx > lx + min_col_gap and abs(vy - ly) <= y_tol and vtext != ltext:
+                        if (vx - lx) < best_dx:
+                            best_dx = vx - lx
+                            best = vtext
+                if best is not None and ltext not in pairs:
+                    pairs[ltext] = best
+            if pairs:
+                out[pno] = pairs
+    finally:
+        doc.close()
+    return out
+
+
+def _recover_two_column_values(pdf_path: Path, blocks: List[Dict[str, Any]]) -> int:
+    """PyMuPDF wrapper for :func:`_repair_orphaned_label_values`."""
+    return _repair_orphaned_label_values(blocks, _two_column_pairs_by_page(pdf_path))
+
+
+def _row_text(row: List[str]) -> str:
+    """The non-empty cells of a grid row joined into one string for tokenizing."""
+    return " ".join(c for c in row if c)
+
+
+def _grid_tokens(grid: List[List[str]]) -> set:
+    """Content-token set across every cell of a table grid."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    out: set = set()
+    for row in grid:
+        out |= content_tokens(_row_text(row))
+    return out
+
+
+def _rows_match(d: List[str], p: List[str]) -> bool:
+    """Whether a Docling grid row and a PyMuPDF row are the same logical row.
+
+    Subset either way counts (a Docling cell that dropped its trailing line is a
+    token-subset of the fuller PyMuPDF cell); otherwise require Jaccard >= 0.4 so
+    re-ordered/re-split cells still align without matching unrelated rows."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    dt, pt = content_tokens(_row_text(d)), content_tokens(_row_text(p))
+    if not dt and not pt:
+        return True
+    if not dt or not pt:
+        return False
+    if dt <= pt or pt <= dt:
+        return True
+    return len(dt & pt) / len(dt | pt) >= 0.4
+
+
+def _row_is_dropped(p: List[str], grid_tokens: set) -> bool:
+    """True when a PyMuPDF row carries a content token (len >= 4) absent from the
+    whole Docling grid — the signature of a row TableFormer never captured."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    return any(tok not in grid_tokens and len(tok) >= 4 for tok in content_tokens(_row_text(p)))
+
+
+def _upgrade_row(d: List[str], p: List[str]) -> tuple[List[str], int]:
+    """Per-cell within-row recovery: replace a NON-EMPTY Docling cell with the
+    PyMuPDF cell when the latter is a strict token-superset carrying an extra
+    content token (the dropped-trailing-line class, e.g. ``…plots,`` ->
+    ``…plots, interpreting results``). Empty Docling cells are left alone — they
+    are usually merged-cell continuations whose blank is intentional, and filling
+    them from PyMuPDF risks munging the header. Returns ``(row, cells_upgraded)``.
+    """
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    if len(d) != len(p):
+        return d, 0
+    out: List[str] = []
+    upgraded = 0
+    for dc, pc in zip(d, p):
+        dct, pct = content_tokens(dc), content_tokens(pc)
+        if dc.strip() and dct < pct and any(tok not in dct and len(tok) >= 4 for tok in pct):
+            out.append(pc)
+            upgraded += 1
+        else:
+            out.append(dc)
+    return out, upgraded
+
+
+def _merge_table_grids(
+    docling: List[List[str]],
+    pdf: List[List[str]],
+) -> tuple[List[List[str]], int, int]:
+    """Conservatively merge a PyMuPDF-reconstructed grid into a Docling grid,
+    recovering cells/rows TableFormer under-captured (``FID_CONTENT_DROPPED`` /
+    ``FID_TABLE_LOST``). Pure — host-testable.
+
+    Content is only ever ADDED, never reordered or dropped: a two-pointer walk
+    matches rows by token overlap; a matched pair upgrades within-cell drops
+    (:func:`_upgrade_row`); a PyMuPDF row that matches no Docling row and carries a
+    token absent from the whole grid is inserted in place. Docling rows PyMuPDF
+    missed are always kept. Bails out (returns the Docling grid unchanged) unless
+    both grids share a single, equal column width — an unequal width means the two
+    table finders disagreed on structure and a cell-level merge would misalign.
+    Returns ``(merged_grid, rows_inserted, cells_upgraded)``.
+    """
+    if not docling or not pdf:
+        return docling, 0, 0
+    width = len(docling[0])
+    if width == 0 or any(len(r) != width for r in docling) or any(len(r) != width for r in pdf):
+        return docling, 0, 0
+
+    grid_tokens = _grid_tokens(docling)
+    out: List[List[str]] = []
+    inserted = upgraded = 0
+    i = j = 0
+    while i < len(docling) and j < len(pdf):
+        d, p = docling[i], pdf[j]
+        if _rows_match(d, p):
+            row, n = _upgrade_row(d, p)
+            out.append(row)
+            upgraded += n
+            i += 1
+            j += 1
+        elif _row_is_dropped(p, grid_tokens) and not any(_rows_match(dd, p) for dd in docling[i:]):
+            out.append(list(p))
+            inserted += 1
+            j += 1
+        else:
+            out.append(d)
+            i += 1
+    while i < len(docling):
+        out.append(docling[i])
+        i += 1
+    while j < len(pdf):
+        if _row_is_dropped(pdf[j], grid_tokens) and not any(_rows_match(dd, pdf[j]) for dd in out):
+            out.append(list(pdf[j]))
+            inserted += 1
+        j += 1
+    return out, inserted, upgraded
+
+
+def _pymupdf_table_grids_by_page(pdf_path: Path, pages: set) -> Dict[int, List[List[List[str]]]]:
+    """Reconstruct table grids via PyMuPDF ``find_tables`` for the given 1-indexed
+    pages. Returns ``{page: [grid, ...]}`` where each grid is a list of string
+    rows. Only tables with >= 2 rows are kept (``find_tables`` also emits a junk
+    whole-page candidate with a single mega-cell). PyMuPDF retains cells Docling's
+    TableFormer under-captures, so this is the recovery source."""
+    try:
+        import pymupdf
+    except ImportError:
+        return {}
+    try:
+        doc = pymupdf.open(str(pdf_path))
+    except Exception as exc:
+        log.warning("table-cell recovery: pymupdf failed to open %s: %s", pdf_path, exc)
+        return {}
+    out: Dict[int, List[List[List[str]]]] = {}
+    try:
+        for pno in sorted(pages):
+            if pno < 1 or pno > len(doc):
+                continue
+            page = doc[pno - 1]
+            try:
+                found = page.find_tables()
+            except Exception as exc:
+                log.warning("table-cell recovery: find_tables failed on %s p%d: %s", pdf_path, pno, exc)
+                continue
+            grids: List[List[List[str]]] = []
+            for tab in found.tables:
+                try:
+                    rows = tab.extract()
+                except Exception:
+                    continue
+                grid = [[(" ".join((c or "").split())) for c in row] for row in rows]
+                if len(grid) >= 2:
+                    grids.append(grid)
+            if grids:
+                out[pno] = grids
+    finally:
+        doc.close()
+    return out
+
+
+def _recover_dropped_table_cells(pdf_path: Path, blocks: List[Dict[str, Any]]) -> tuple[int, int]:
+    """Merge PyMuPDF-reconstructed table grids into Docling table blocks to recover
+    rows/cells TableFormer dropped. For each table block, picks the same-page
+    PyMuPDF grid of equal column width with the highest token overlap (Jaccard >=
+    0.5, so an unrelated table is never merged in) and runs :func:`_merge_table_grids`.
+    A PyMuPDF grid is consumed once matched. Returns ``(rows_inserted, cells_upgraded)``
+    totalled across the document."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    table_blocks = [b for b in blocks if b.get("type") == "table" and b.get("table_body")]
+    if not table_blocks:
+        return (0, 0)
+    pages = {b.get("page_idx") or 0 for b in table_blocks}
+    grids_by_page = _pymupdf_table_grids_by_page(pdf_path, pages)
+    if not grids_by_page:
+        return (0, 0)
+
+    total_inserted = total_upgraded = 0
+    consumed: Dict[int, set] = {}
+    for b in table_blocks:
+        page = b.get("page_idx") or 0
+        candidates = grids_by_page.get(page)
+        if not candidates:
+            continue
+        dgrid = b["table_body"]
+        width = len(dgrid[0]) if dgrid else 0
+        dtok = _grid_tokens(dgrid)
+        if not dtok:
+            continue
+        best_idx = -1
+        best_jac = 0.0
+        used = consumed.setdefault(page, set())
+        for ci, cand in enumerate(candidates):
+            if ci in used or not cand or len(cand[0]) != width:
+                continue
+            ctok: set = set()
+            for row in cand:
+                ctok |= content_tokens(_row_text(row))
+            if not ctok:
+                continue
+            jac = len(dtok & ctok) / len(dtok | ctok)
+            if jac > best_jac:
+                best_jac = jac
+                best_idx = ci
+        if best_idx < 0 or best_jac < 0.5:
+            continue
+        merged, inserted, upgraded = _merge_table_grids(dgrid, candidates[best_idx])
+        if inserted or upgraded:
+            b["table_body"] = merged
+            b["recovered_table_cells"] = True
+            used.add(best_idx)
+            total_inserted += inserted
+            total_upgraded += upgraded
+    return (total_inserted, total_upgraded)
+
+
 def _render_table_png(
     pdf_path: Path,
     page_idx: int,
@@ -711,6 +1044,25 @@ def docling_to_blocks(
     values = _recover_dropped_label_values(pdf_path, blocks)
     if values:
         log.info("v6b label-value recovery for %s: re-attached %d dropped value(s)", stem, values)
+
+    # Re-pair two-column `Label: value` blocks whose value Docling orphaned far from
+    # its label (column-first reading order). FID_HEADER_BROKEN fix.
+    repaired = _recover_two_column_values(pdf_path, blocks)
+    if repaired:
+        log.info("v6b two-column recovery for %s: re-paired %d orphaned value(s)", stem, repaired)
+
+    # Recover table rows/cells Docling's TableFormer under-captured. PyMuPDF's
+    # find_tables keeps cells (whole dropped rows, dropped trailing lines within a
+    # cell) the grid lost; merge them in conservatively (add-only). The FID_TABLE_LOST
+    # / table-class FID_CONTENT_DROPPED fix.
+    rows_inserted, cells_upgraded = _recover_dropped_table_cells(pdf_path, blocks)
+    if rows_inserted or cells_upgraded:
+        log.info(
+            "v6b table-cell recovery for %s: inserted %d dropped row(s), upgraded %d cell(s)",
+            stem,
+            rows_inserted,
+            cells_upgraded,
+        )
 
     convert(pdf_path, output_dir, converter=converter, apply_hierarchy=apply_hierarchy)
 

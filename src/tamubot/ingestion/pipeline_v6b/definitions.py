@@ -35,10 +35,12 @@ from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_header_levels_normalized,
     v6b_bronze_blocks_heading_repair_vs_baseline,
     v6b_bronze_blocks_min_headers,
+    v6b_bronze_blocks_no_orphaned_labels,
     v6b_bronze_blocks_no_replacement_chars,
     v6b_bronze_blocks_nonempty,
     v6b_bronze_blocks_source_integrity,
     v6b_bronze_blocks_suspicious_heading_rate,
+    v6b_bronze_blocks_table_cell_capture,
     v6b_bronze_blocks_text_coverage,
 )
 from tamubot.ingestion.pipeline_v6b.checks.silver_atlas_upsert_checks import (
@@ -131,6 +133,8 @@ defs = Definitions(
         v6b_bronze_blocks_min_headers,
         v6b_bronze_blocks_source_integrity,
         v6b_bronze_blocks_suspicious_heading_rate,
+        v6b_bronze_blocks_table_cell_capture,
+        v6b_bronze_blocks_no_orphaned_labels,
         v6b_bronze_blocks_text_coverage,
         v6b_silver_modal_budget_not_exceeded,
         v6b_silver_modal_result_schema_valid,

@@ -8,10 +8,35 @@ from tamubot.ingestion.validation.table_quality import (
     check_confidence_floor,
     check_no_failure_markers,
     check_no_truncated_tables,
+    compute_table_capture,
     count_failure_markers,
     mean_table_confidence,
     pct_tables_transcribed,
 )
+
+# --- table-capture (FID_TABLE_LOST deterministic detector) ----------------
+
+
+def test_table_capture_clean_when_grid_matches_pdf():
+    grids = [[["Week", "Topic"], ["1", "Intro to modeling"]]]
+    out = compute_table_capture(grids, grids)
+    assert out.passed
+    assert out.metadata["missing_count"] == 0
+
+
+def test_table_capture_flags_dropped_row():
+    """PyMuPDF found a row (`1st MIDTERM | Mar. 3`) the Docling grid never had."""
+    docling = [[["Schedule", ""], ["V. Transmitter Analysis", "Week 9-14"]]]
+    pdf = [[["Schedule", ""], ["1st", "MIDTERM"], ["V. Transmitter Analysis", "Week 9-14"]]]
+    out = compute_table_capture(docling, pdf, max_missing_rate=0.0)
+    assert not out.passed
+    assert "midterm" in out.metadata["sample_missing"]
+
+
+def test_table_capture_empty_pdf_passes():
+    out = compute_table_capture([[["A", "B"]]], [])
+    assert out.passed
+    assert out.metadata["missing_count"] == 0
 
 
 def _gfm(n_data_rows: int) -> str:
