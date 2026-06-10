@@ -65,7 +65,6 @@ tamu_data/**
 !tamu_data/**/
 !tamu_data/evals/eval_corpus.json
 !tamu_data/evals/personas/**
-!tamu_data/raw/missing_syllabuses/**
 !tamu_data/raw/simple_syllabus_metadata.json
 !tamu_data/raw/simple_syllabus/*/graduate/*/metadata.json
 
