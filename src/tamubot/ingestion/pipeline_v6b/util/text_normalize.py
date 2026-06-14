@@ -16,6 +16,31 @@ _WS_RE = re.compile(r"\s+")
 _NUM_PERM = 128
 _NGRAM_N = 5
 
+# OCR ligature-loss folding (STAT_651 class). PDF text layers frequently drop the
+# f-ligature glyphs (fi/fl/ff/ffi/ffl), so "office"->"ofce", "confidentiality"->
+# "confdentiality", "staff"->"staf". A *clean* corpus copy and an OCR-damaged copy
+# of the same university policy then share almost no 5-grams, sinking the MinHash
+# Jaccard below the boilerplate floor (Mental Health 0.094, Title IX 0.086).
+# Rather than try to REPAIR (we can't know the dropped letters), we FOLD both forms
+# to the same damaged shape: collapse each f-ligature cluster to a bare "f". Applied
+# symmetrically to every text in the signature path, so clean and damaged copies of
+# the same policy land on identical shingles. Longest clusters first so "office"
+# (ffi) folds in one pass. Applied ONLY to MinHash shingles — normalize_text and the
+# stable_cluster_id hash are deliberately untouched (changing them would rebuild
+# every cluster id). NOTE: minhash_of feeds the persisted signature index, so
+# v6b_meta_chunk_signature_index must be rebuilt after this change.
+_LIGATURE_RE = re.compile(r"ffi|ffl|ff|fi|fl")
+
+
+def fold_ligatures(text: str) -> str:
+    """Collapse OCR-prone f-ligature clusters (ffi/ffl/ff/fi/fl) to a bare ``f``.
+
+    Maps a clean word and its ligature-dropped OCR twin to one canonical form
+    ("office" and "ofce" both -> "ofce"). Idempotent. Operates on already-lowered
+    text; callers normalize first.
+    """
+    return _LIGATURE_RE.sub("f", text)
+
 # Header-anchored boilerplate fallback (see ReferenceIndex.match_by_header).
 # A header only joins the allow-list if its cluster is a genuine cross-corpus
 # policy: present in at least this many distinct departments. The real
@@ -55,8 +80,13 @@ def normalize_text(text: str) -> str:
 
 
 def ngrams(text: str, n: int = 5) -> list[str]:
-    """Return word n-grams (space-joined) over normalized text."""
-    tokens = normalize_text(text).split()
+    """Return word n-grams (space-joined) over normalized, ligature-folded text.
+
+    Folding makes the shingles robust to OCR f-ligature loss (see fold_ligatures);
+    it is intentionally absent from normalize_text so only the fuzzy-match path is
+    affected.
+    """
+    tokens = fold_ligatures(normalize_text(text)).split()
     if len(tokens) < n:
         return []
     return [" ".join(tokens[i : i + n]) for i in range(len(tokens) - n + 1)]
@@ -86,7 +116,7 @@ def minhash_of(text: str, num_perm: int = _NUM_PERM) -> MinHash:
     mh = MinHash(num_perm=num_perm)
     grams = ngrams(text, n=_NGRAM_N)
     if not grams:
-        norm = normalize_text(text)
+        norm = fold_ligatures(normalize_text(text))
         if norm:
             mh.update(norm.encode("utf-8"))
         return mh

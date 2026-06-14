@@ -19,7 +19,10 @@ from tamubot.ingestion.pipeline_v6b.util.text_normalize import (
     minhash_of,
     normalize_text,
 )
-from tamubot.ingestion.validation.boilerplate_quality import find_course_specific_signal
+from tamubot.ingestion.validation.boilerplate_quality import (
+    find_course_specific_signal,
+    find_dedup_protected_signal,
+)
 
 BP_THRESHOLD = 0.80
 WITHIN_SYL_THRESHOLD = 0.92
@@ -141,6 +144,15 @@ def flag_cross_syllabus_dups(
     """
     for i, sig in local_sigs.items():
         if chunks[i].get("is_duplicate"):
+            continue
+        # Dedup over-hide guard (CSCE_629 class): never collapse a cross-syllabus
+        # near-duplicate that carries an actionable section-specific signal (a URL,
+        # grade percentage, or concrete due date). Collapsing it would drop a
+        # course website / Canvas link from this section's retrieval even though the
+        # canonical lives in a DIFFERENT stem. Within-syllabus dedup is unaffected
+        # (its canonical stays in the same stem), so it is not gated here.
+        if find_dedup_protected_signal(chunks[i].get("content", "")):
+            chunks[i]["dedup_overhide_protected"] = True
             continue
         my_chunk_index = chunks[i].get("chunk_index", i)
         my_id = chunk_id_of(stem, my_chunk_index)

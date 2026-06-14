@@ -17,6 +17,10 @@ from tamubot.ingestion.validation.baseline_diff import (
     describe_delta,
     read_metadata_history,
 )
+from tamubot.ingestion.validation.image_quality import (
+    check_content_bearing_images,
+    check_no_ocr_failure_page,
+)
 from tamubot.ingestion.validation.header_hierarchy import (
     check_header_hierarchy_valid,
     check_header_levels_normalized,
@@ -28,6 +32,7 @@ from tamubot.ingestion.validation.table_quality import compute_table_capture
 from tamubot.ingestion.validation.text_coverage import compute_text_coverage
 from tamubot.ingestion.validation.text_quality import (
     check_no_replacement_chars,
+    count_ligature_damage,
     count_unanswered_labels,
     find_fabricated_links,
 )
@@ -393,6 +398,83 @@ def _evaluate_source_integrity(stem: str) -> CheckOutcome:
     markdown_chars = len(md_path.read_text(encoding="utf-8")) if md_path.exists() else 0
     page_count = count_pdf_pages(paths.raw_path(stem))
     return check_pdf_integrity(page_count=page_count, markdown_chars=markdown_chars)
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_no_content_image_lost(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """FID_IMAGE_LOST / FID_TABLE_LOST gate (ISEN_665 class): a large, uncaptioned image
+    block — a content figure/table that the default modal-disabled path emits as a bare
+    ``<!-- image -->``. A non-zero count is EXPECTED while modal is off; it names exactly
+    which stems/pages need a GPU modal/VLM pass to recover the trapped content. WARN."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    outcome = check_content_bearing_images(blocks)
+    n = outcome.metadata["content_image_count"]
+    pages = outcome.metadata["offending_pages"]
+    detail = f"; pages {pages[:5]}" if n else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            "no large uncaptioned content images"
+            if outcome.passed
+            else f"{n} large uncaptioned image(s) not transcribed (modal disabled){detail}"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_no_ocr_failure_page(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """OCR-failure page gate (CSCE_704 class): a page carrying a large image but almost
+    no extracted text — a whole content region trapped in an un-OCR'd page image that no
+    host-side text fix can reach. Names the pages needing a GPU modal/VLM re-pass. WARN."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    outcome = check_no_ocr_failure_page(blocks)
+    n = outcome.metadata["ocr_failure_page_count"]
+    pages = outcome.metadata["offending_pages"]
+    detail = f"; page(s) {pages}" if n else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            "no image-only / OCR-failure pages"
+            if outcome.passed
+            else f"{n} image-only page(s) with trapped content{detail}"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_low_ligature_damage(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """OCR ligature-damage gate (STAT_651 class): counts common university-policy words
+    arriving in their f-ligature-dropped form ("ofce", "confdentiality", "signifcant").
+    The signature fold makes matching robust, but a high count means this stem's text
+    layer is badly damaged and any text-similarity (dedup/boilerplate/retrieval) on it is
+    degraded — worth a human glance. WARN above the threshold."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    text = _bronze_content_text(blocks)
+    outcome = count_ligature_damage(text)
+    n = outcome.metadata["ligature_damage_count"]
+    sample = outcome.metadata["matches"]
+    detail = f"; e.g. {', '.join(sample[:5])}" if n else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            f"{n} ligature-damaged policy word(s) (threshold {outcome.metadata['threshold']}){detail}"
+        ),
+        metadata=outcome.metadata,
+    )
 
 
 @asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)

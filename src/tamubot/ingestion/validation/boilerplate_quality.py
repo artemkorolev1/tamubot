@@ -42,6 +42,62 @@ _MONTH = (
 _DUE_DATE_RE = re.compile(rf"\b(?:due|deadline|submitted by)\b[^.\n]{{0,40}}?(?:{_MONTH})", re.IGNORECASE)
 
 
+# A concrete resource pointer — an http(s)/www URL. The strongest "keep this in
+# every section's retrieval" signal for the cross-syllabus dedup guard: a course
+# website / Canvas / form link (CSCE_629 "check daily: https://canvas.tamu.edu/")
+# is actionable per-section content, not collapsible cross-course boilerplate.
+_URL_RE = re.compile(r"https?://\S+|\bwww\.\S+", re.IGNORECASE)
+
+
+def find_dedup_protected_signal(text: str) -> str | None:
+    """Return a label for an actionable, section-specific signal that should keep a
+    cross-syllabus near-duplicate VISIBLE (not collapsed), or ``None``.
+
+    Used only by the cross-syllabus dedup guard (CSCE_629 class). A URL (concrete
+    resource pointer) is the primary signal; a grade percentage / concrete due date
+    also marks course-configurable content. Within-syllabus dedup is unaffected —
+    its canonical survives in the same stem, so collapsing there loses nothing.
+    """
+    body = text or ""
+    m = _URL_RE.search(body)
+    if m:
+        return f"url:{m.group(0).rstrip('.,);')[:60]}"
+    return find_course_specific_signal(body)
+
+
+def check_no_duplicate_overhide(chunks: list[dict[str, Any]]) -> CheckOutcome:
+    """The cross-syllabus dedup over-hide gate (CSCE_629 class).
+
+    FLAG any chunk flagged ``is_duplicate=True`` whose body carries an actionable
+    section-specific signal (URL / grade percentage / concrete due date) — content
+    that should remain visible in every section's retrieval rather than collapsed to
+    a cross-corpus canonical. The dedup guard in ``util/tagging`` prevents these from
+    being hidden in the first place; this check is the regression guard. Shipped WARN.
+    """
+    offenders: list[dict[str, Any]] = []
+    for c in chunks:
+        if not c.get("is_duplicate"):
+            continue
+        signal = find_dedup_protected_signal(c.get("content") or "")
+        if signal is None:
+            continue
+        offenders.append(
+            {
+                "header_path": c.get("header_path") or "",
+                "duplicate_of": c.get("duplicate_of_chunk_id") or "",
+                "signal": signal,
+            }
+        )
+    return CheckOutcome(
+        passed=len(offenders) == 0,
+        metadata={
+            "overhide_count": len(offenders),
+            "offenders": offenders[:20],
+            "offending_header_paths": [o["header_path"] for o in offenders[:20]],
+        },
+    )
+
+
 def find_course_specific_signal(text: str, *, include_weekday_time: bool = False) -> str | None:
     """Return a short label for the first strong course-specific signal in ``text``
     (``percent`` / ``due_date``, plus ``weekday_time`` only when explicitly opted in),

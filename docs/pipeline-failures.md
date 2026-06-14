@@ -20,6 +20,29 @@ open history. Newest first; one entry per distinct failure mode.
 
 ## Entries
 
+### 2026-06-14 · iter_11_fixcheck — 9 changed stems re-judged · CONFIRM
+  impact: confirms the iter_10 holdout fixes held end-to-end before committing; isolates the 4 true residuals
+  result: 9 re-judged → 5 FAIL→PASS (ECEN_688, ECEN_749, ISEN_633, STAT_620, CSCE_689); 4 residual = ISEN_665 FID_TABLE_LOST + CSCE_704 FID_CONTENT_DROPPED (GPU-modal) + STAT_651 BP_MISSED + CSCE_629 FID_CONTENT_DROPPED (OCR/extraction)
+  status: ✅ recorded  ·  iter_11_fixcheck · sub-agent visual judge · scope = 9 changed stems only (does not clear the other-91 regression caveat)
+
+### 2026-06-14 · OCR f-ligature loss sinks policy dedup below floor · BP_MISSED
+  impact: STAT_651 Mental Health (0.094) / Title IX (0.086) score below the 0.12 header-anchored body floor only because ligature drop ("Ofce", "confdentiality") shreds the 5-gram MinHash — genuine standard policy left visible to RAG
+  fix:    APPLIED — `fold_ligatures()` collapses fi/fl/ff/ffi/ffl→`f` in the MinHash shingle path only (`util/text_normalize.py` ngrams + minhash_of fallback); normalize_text + stable_cluster_id untouched so cluster ids stay stable. NB rebuild `v6b_meta_chunk_signature_index` (it persists signatures) + re-tag. (3 tests; 24 tag/sig tests green)
+  check:  `v6b_bronze_blocks_low_ligature_damage` (WARN) — counts damaged policy words; STAT_651 = 25, clean stems = 0
+  status: 🟢 fold confirmed in unit (clean↔damaged Jaccard clears 0.12); end-to-end re-tag pending the sig-index rebuild
+
+### 2026-06-14 · Cross-syllabus dedup over-hides an actionable section line · FID_CONTENT_DROPPED
+  impact: a cross-section near-duplicate carrying a course URL / Canvas link (CSCE_629 "check daily: canvas.tamu.edu") collapses to a canonical in ANOTHER stem → this section's retrieval loses the link
+  fix:    APPLIED — dedup over-hide guard in `flag_cross_syllabus_dups` (`util/tagging.py`): never collapse a cross-doc duplicate whose body holds an actionable signal (URL / grade % / due date); sets `dedup_overhide_protected`. Within-syllabus dedup unaffected (canonical stays in-stem). (2 tests)
+  check:  `v6b_silver_tag_no_duplicate_overhide` (WARN) — dedup twin of the boilerplate-overhide gate
+  status: 🟡 defensive — guards the over-hide path; CSCE_629's judged loss is upstream EXTRACTION of the prose line (needs line-geometry threading, same family as deferred items), so this alone does not flip CSCE_629 to pass
+
+### 2026-06-14 · Content trapped in images is silently lost (modal disabled) · FID_IMAGE_LOST / FID_TABLE_LOST / FID_CONTENT_DROPPED
+  impact: ISEN_665 schedule TABLE rendered as an image (pp.6-8) and CSCE_704 ~25-line grading region on a textless un-OCR'd page (p.3) become bare `<!-- image -->` — no host text fix can reach pixels
+  fix:    open — selective GPU modal/VLM re-pass; design in `docs/v6b-group-a-modal-repass-plan.md`
+  check:  APPLIED — `v6b_bronze_blocks_no_content_image_lost` (large uncaptioned image; fires ISEN_665 pp.6-8) + `v6b_bronze_blocks_no_ocr_failure_page` (textless page w/ large-or-bbox-less image; fires CSCE_704 p.3). Both WARN, add-only (15 tests)
+  status: 🔲 open (GPU) · now ALGORITHMICALLY DETECTED — these classes can no longer go silent
+
 ### 2026-06-09 · iter_09 full-100 baseline — 70-stem locked holdout judged · BASELINE
   impact: first fidelity number on the unseen 70; the dev-30 extraction-loss fixes held (iter_08 stays 1.00), the holdout exposes 9 new fails across 3 dimensions
   result: full-100 → boilerplate 0.99 · dedup 1.00 · chunking 0.99 · fidelity 0.93; holdout-70 alone → fidelity 0.90

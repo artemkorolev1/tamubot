@@ -3,9 +3,39 @@
 from tamubot.ingestion.validation.text_quality import (
     check_letter_drops,
     check_no_replacement_chars,
+    count_ligature_damage,
     count_unanswered_labels,
     find_fabricated_links,
 )
+
+
+# --- OCR f-ligature damage (STAT_651 class) -----------------------------------
+
+
+def test_ligature_damage_counts_damaged_policy_words():
+    text = (
+        "The counseling ofce handles all matters with strict confdentiality. "
+        "Signifcant difculties should be reported. This is a fnancial certifcate."
+    )
+    out = count_ligature_damage(text)
+    assert out.metadata["ligature_damage_count"] >= 5
+    assert out.passed is False  # > threshold (default 2)
+
+
+def test_ligature_damage_clean_text_passes():
+    text = (
+        "The counseling office handles all matters with strict confidentiality. "
+        "Significant difficulties should be reported to the financial office."
+    )
+    out = count_ligature_damage(text)
+    assert out.metadata["ligature_damage_count"] == 0
+    assert out.passed
+
+
+def test_ligature_damage_under_threshold_passes():
+    out = count_ligature_damage("A single ofce reference is tolerable.")
+    assert out.metadata["ligature_damage_count"] == 1
+    assert out.passed
 
 
 # --- Check 1: fabricated mailto/URL links (FID_HALLUCINATION / ISEN_633) -------

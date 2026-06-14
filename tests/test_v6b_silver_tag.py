@@ -355,6 +355,45 @@ def test_cross_syllabus_dedup_flags_self_when_other_is_canonical():
     assert chunks_self[0]["duplicate_of_chunk_id"] == chunk_id_of(stem_other, 0)
 
 
+def test_cross_syllabus_dedup_guard_keeps_url_line_visible():
+    """Dedup over-hide guard (CSCE_629): a cross-syllabus near-duplicate carrying a
+    URL must stay visible even when another stem is the lex-canonical, because the
+    canonical lives in a DIFFERENT stem and collapsing would drop the link from this
+    section's retrieval."""
+    url_text = (
+        "Important course logistics for this section are posted on the learning "
+        "management system. Also check daily for announcements and updated material "
+        "at https://canvas.tamu.edu/ which is the authoritative source for this "
+        "course schedule readings homework deadlines and any policy changes."
+    )
+    stem_self = "202531_TEST_101_999_99999"  # lex-larger → would normally be flagged
+    stem_other = "202531_TEST_101_500_11111"  # lex-smaller → canonical
+    chunks_self = [_chunk(0, url_text)]
+    chunks_other = [_chunk(0, url_text)]
+    cross_lsh, cross_sigs, cross_metadata = _build_cross_index_from_chunks(
+        {stem_self: chunks_self, stem_other: chunks_other}
+    )
+    sigs = build_local_signatures(chunks_self)
+    flag_cross_syllabus_dups(chunks_self, stem_self, sigs, cross_lsh, cross_sigs, cross_metadata)
+    assert chunks_self[0]["is_duplicate"] is False
+    assert chunks_self[0]["dedup_overhide_protected"] is True
+
+
+def test_cross_syllabus_dedup_guard_does_not_protect_plain_boilerplate():
+    """Control: a signal-free cross-syllabus duplicate is still collapsed as before —
+    the guard only spares actionable section-specific lines."""
+    stem_self = "202531_TEST_101_999_99999"  # lex-larger → flagged
+    stem_other = "202531_TEST_101_500_11111"  # lex-smaller → canonical
+    chunks_self = [_chunk(0, _AGGIE_HONOR)]
+    chunks_other = [_chunk(0, _AGGIE_HONOR)]
+    cross_lsh, cross_sigs, cross_metadata = _build_cross_index_from_chunks(
+        {stem_self: chunks_self, stem_other: chunks_other}
+    )
+    sigs = build_local_signatures(chunks_self)
+    flag_cross_syllabus_dups(chunks_self, stem_self, sigs, cross_lsh, cross_sigs, cross_metadata)
+    assert chunks_self[0]["is_duplicate"] is True
+
+
 def test_cross_syllabus_skips_self_match_only():
     """A chunk that only matches itself in the index must not be flagged."""
     stem_self = "202531_TEST_101_500_11111"

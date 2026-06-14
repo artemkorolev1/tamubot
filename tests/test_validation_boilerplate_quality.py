@@ -7,7 +7,9 @@ over-hide; genuine standard policies (Makeup / Academic Integrity / ADA) must no
 
 from tamubot.ingestion.validation.boilerplate_quality import (
     check_no_boilerplate_overhide,
+    check_no_duplicate_overhide,
     find_course_specific_signal,
+    find_dedup_protected_signal,
 )
 
 # Genuine university-standard policy wording — no course-specific numbers/dates.
@@ -109,5 +111,49 @@ def test_non_boilerplate_chunk_ignored():
         }
     ]
     out = check_no_boilerplate_overhide(chunks)
+    assert out.passed
+    assert out.metadata["overhide_count"] == 0
+
+
+# ---------- dedup over-hide guard (CSCE_629 class) ----------
+
+def test_dedup_protected_signal_detects_url():
+    sig = find_dedup_protected_signal("Also, check daily: https://canvas.tamu.edu/ for updates.")
+    assert sig is not None
+    assert sig.startswith("url:")
+
+
+def test_dedup_protected_signal_none_for_plain_policy():
+    assert find_dedup_protected_signal(_STANDARD_ADA) is None
+
+
+def test_duplicate_overhide_flags_hidden_url_line():
+    """A cross-doc duplicate carrying a course URL should be surfaced as an over-hide."""
+    chunks = [
+        {
+            "is_duplicate": True,
+            "duplicate_of_chunk_id": "OTHER_STEM#3",
+            "header_path": "Course Website",
+            "content": "Check daily: https://canvas.tamu.edu/ is the authoritative source.",
+        },
+        {
+            "is_duplicate": True,
+            "duplicate_of_chunk_id": "OTHER_STEM#9",
+            "header_path": "Academic Integrity",
+            "content": _STANDARD_ADA,  # plain policy → correctly collapsible
+        },
+    ]
+    out = check_no_duplicate_overhide(chunks)
+    assert out.passed is False
+    assert out.metadata["overhide_count"] == 1
+    assert "Course Website" in out.metadata["offending_header_paths"]
+
+
+def test_duplicate_overhide_clean_for_plain_duplicates():
+    chunks = [
+        {"is_duplicate": True, "duplicate_of_chunk_id": "X#1", "content": _STANDARD_ADA},
+        {"is_duplicate": False, "content": "Visit https://example.com/ — not a duplicate."},
+    ]
+    out = check_no_duplicate_overhide(chunks)
     assert out.passed
     assert out.metadata["overhide_count"] == 0

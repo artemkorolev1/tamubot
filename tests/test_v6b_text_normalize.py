@@ -6,6 +6,7 @@ import pandas as pd
 
 from tamubot.ingestion.pipeline_v6b.util.text_normalize import (
     ReferenceIndex,
+    fold_ligatures,
     jaccard,
     minhash_of,
     ngrams,
@@ -104,6 +105,58 @@ def test_minhash_jaccard_approximates_true_jaccard():
     est = mh_a.jaccard(mh_b)
 
     assert abs(est - true_jacc) < 0.10
+
+
+def test_fold_ligatures_collapses_f_clusters():
+    # Clean word and its OCR-ligature-dropped twin must fold to the SAME shape.
+    assert fold_ligatures("office") == fold_ligatures("ofce")
+    assert fold_ligatures("confidentiality") == fold_ligatures("confdentiality")
+    assert fold_ligatures("staff") == fold_ligatures("staf")
+    # Idempotent.
+    assert fold_ligatures(fold_ligatures("office")) == fold_ligatures("office")
+
+
+def test_fold_ligatures_does_not_change_cluster_id_or_normalize():
+    # The fold is confined to the MinHash path; normalize_text + cluster id are
+    # deliberately untouched so the persisted reference cluster ids stay stable.
+    assert "fi" in normalize_text("confidentiality")
+    assert stable_cluster_id("office hours") != stable_cluster_id("ofce hours")
+
+
+def test_minhash_recovers_ocr_ligature_damaged_policy_above_floor():
+    # STAT_651 class: an OCR-damaged Mental Health statement should still match its
+    # clean cluster well above the 0.12 header-anchored body floor. Without folding
+    # the asymmetric ligature loss sinks this below the floor (~0.09 observed).
+    clean = (
+        "Mental health and wellbeing are a priority in this office. If you are "
+        "experiencing difficulties please contact the counseling staff who handle "
+        "all matters with strict confidentiality and offer professional support to "
+        "every student facing significant personal or academic difficulties."
+    )
+    # Drop the f-ligatures the way a PDF text layer does.
+    damaged = (
+        clean.replace("office", "ofce")
+        .replace("difficulties", "difculties")
+        .replace("staff", "staf")
+        .replace("confidentiality", "confdentiality")
+        .replace("offer", "ofer")
+        .replace("significant", "signifcant")
+    )
+    folded = minhash_of(clean).jaccard(minhash_of(damaged))
+    assert folded >= 0.12
+
+    # Sanity: the same comparison on the raw 5-gram sets WITHOUT folding is far lower,
+    # proving the fold is what lifts it over the floor.
+    unfolded = jaccard(
+        set(" ".join(t) for t in _raw_5grams(clean)),
+        set(" ".join(t) for t in _raw_5grams(damaged)),
+    )
+    assert unfolded < folded
+
+
+def _raw_5grams(text):
+    toks = normalize_text(text).split()
+    return [toks[i : i + 5] for i in range(len(toks) - 4)]
 
 
 def test_stable_cluster_id_deterministic():

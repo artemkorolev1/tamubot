@@ -33,6 +33,56 @@ def check_no_replacement_chars(text: str) -> CheckOutcome:
     )
 
 
+# OCR f-ligature loss (STAT_651 class): the PDF text layer drops the fi/fl/ff/ffi/ffl
+# glyphs, so high-frequency university-policy words arrive mangled ("office"->"ofce",
+# "confidentiality"->"confdentiality"). These damaged forms are vanishingly rare as
+# legitimate words, so a curated allow-list of the common policy-vocabulary casualties
+# is a low-false-positive proxy for "this doc's OCR damage is degrading dedup/BP
+# matching". The util/text_normalize fold makes matching robust to this; this check is
+# the visibility signal so a heavily-damaged stem gets a human glance. Case-insensitive.
+_LIGATURE_DAMAGE_TOKENS = (
+    r"ofce", r"ofcial", r"ofcer", r"ofcers",
+    r"confdential", r"confdentiality", r"confdentially",
+    r"signifcant", r"signifcantly",
+    r"difcult", r"difculty", r"difculties",
+    r"beneft", r"benefts",
+    r"fnal", r"fnally",
+    r"specifc", r"specifcally", r"specifed",
+    r"certifcate", r"certifcation",
+    r"notifcation", r"notifed", r"notifes",
+    r"fexible", r"fexibility",
+    r"fnancial",
+    r"afliated", r"afliation",
+    r"sufcient", r"sufciently",
+    r"efcient", r"efciency",
+    r"profcient", r"profciency",
+    r"classifcation", r"classifed",
+    r"modifcation", r"modifed",
+    r"qualifcation", r"qualifed",
+)
+_LIGATURE_DAMAGE_RE = re.compile(r"\b(?:" + "|".join(_LIGATURE_DAMAGE_TOKENS) + r")\b", re.IGNORECASE)
+
+
+def count_ligature_damage(text: str, threshold: int = 2) -> CheckOutcome:
+    """Count OCR f-ligature-damaged policy words (STAT_651 class).
+
+    A curated allow-list of common university-policy words in their ligature-dropped
+    form ("ofce", "confdentiality", "signifcant", ...). Pass iff the count is
+    ``<= threshold`` — a handful is tolerable (the signature fold handles matching),
+    but a high count means the source PDF's text layer is badly damaged and any
+    text-similarity (dedup, boilerplate, retrieval) on this stem is degraded. WARN.
+    """
+    matches = _LIGATURE_DAMAGE_RE.findall(text)
+    return CheckOutcome(
+        passed=len(matches) <= threshold,
+        metadata={
+            "ligature_damage_count": len(matches),
+            "matches": matches[:20],
+            "threshold": threshold,
+        },
+    )
+
+
 def check_letter_drops(text: str, threshold: int = 0) -> CheckOutcome:
     """Pass iff letter-drop token count <= threshold (default 0)."""
     matches = _LETTER_DROP_RE.findall(text)
