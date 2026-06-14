@@ -19,6 +19,40 @@ from typing import Any
 
 from tamubot.ingestion.validation.types import CheckOutcome
 
+# The neutral, non-citable placeholder ``silver_modal._merge_to_markdown`` emits for an
+# image block that left NO recoverable text behind (no modal description, no caption).
+# A bare marker that reaches the chunk view = a figure RAG retrieves with zero content.
+BARE_IMAGE_MARKER = "<!-- image -->"
+
+
+def count_bare_image_markers(text: str) -> int:
+    """Number of bare ``<!-- image -->`` placeholders in ``text`` (e.g. the concatenated
+    chunk view). Markers carrying a description (``![cap](#) <!-- … -->``) or a caption
+    (``![cap](#)``) are *not* bare and are not counted."""
+    return (text or "").count(BARE_IMAGE_MARKER)
+
+
+def check_no_bare_image_markers(
+    chunk_view: str, *, bronze_image_count: int | None = None
+) -> CheckOutcome:
+    """End-to-end FID_IMAGE_LOST gate at the chunk view: a bare ``<!-- image -->`` that
+    survived into the text RAG retrieves is a figure delivered with zero recoverable
+    content (no caption, description, or OCR).
+
+    Complements the *predictive* bronze ``check_content_bearing_images`` (which flags a
+    large uncaptioned image by bbox area, before chunking): this is the *confirmatory*
+    end-of-line signal — it counts the markers that actually reached a chunk, after the
+    merge + chunk steps, regardless of bbox. When ``bronze_image_count`` is supplied it
+    also reports the share of image blocks that degraded to a bare marker. Shipped WARN —
+    a non-zero count is expected while modal is disabled; it names how much figure content
+    a GPU modal/VLM pass would recover. ``passed`` iff zero bare markers."""
+    markers = count_bare_image_markers(chunk_view)
+    meta: dict[str, Any] = {"bare_image_markers": markers}
+    if bronze_image_count is not None:
+        meta["bronze_image_count"] = bronze_image_count
+        meta["bare_marker_rate"] = round(markers / bronze_image_count, 4) if bronze_image_count else 0.0
+    return CheckOutcome(passed=markers == 0, metadata=meta)
+
 # Area (pt^2) above which an uncaptioned image is treated as content-bearing rather than
 # a logo/decoration. US-Letter is 612x792 = ~485k pt^2; 50k ~ 10% of the page. A course
 # logo/seal is ~5k pt^2; a half-page schedule table image is ~200k+. Tunable per call.

@@ -6,6 +6,7 @@ Letter-drop dictionary mirrors pipeline_v6c.run_bakeoff._LETTER_DROP_TOKENS.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from tamubot.ingestion.validation.types import CheckOutcome
 
@@ -154,6 +155,88 @@ def find_fabricated_links(blocks: list) -> CheckOutcome:
             "fabricated_link_count": fabricated,
             "total_links": len(link_hits),
             "sample_fabricated": samples,
+        },
+    )
+
+
+# A label that is itself a bare URL / email / domain (whitespace-free, URL-shaped).
+# Markdown renderers auto-link these; a trailing ``?``/``.`` is target or punctuation
+# noise, not a garbled prose anchor, so they are excluded from the garbled-anchor scan.
+# Covers schemes (``https://…``), emails (``x@y.edu``) and bare hostnames
+# (``988lifeline.org.``, ``tamu.edu/path``) — the last three a single dotted-token form.
+_AUTOLINK_LABEL_RE = re.compile(
+    r"^(?:https?://|www\.|mailto:)\S+$"  # scheme / www
+    r"|^[^\s@]+@[^\s@]+\.[^\s@]+$"  # email
+    r"|^[\w-]+(?:\.[\w-]+)+\.?(?:/\S*)?$",  # bare hostname, optional trailing dot / path
+    re.IGNORECASE,
+)
+# A mid-label sentence boundary CONTINUING in lowercase — real prose run, e.g.
+# ``…webpage. students must…``. Requiring a lowercase continuation skips abbreviations
+# (``U.S. Department``) and Title-Case org names that a bare ``[.!?]\s`` would false-flag.
+_MIDSENTENCE_BREAK_RE = re.compile(r"[.!?]\s+[a-z]")
+
+
+def _is_autolink_label(label: str) -> bool:
+    return " " not in label and bool(_AUTOLINK_LABEL_RE.match(label))
+
+
+def find_garbled_link_anchors(text: str, *, min_prose_words: int = 4) -> CheckOutcome:
+    """Detect markdown links whose *anchor text* is a garbled / truncated prose fragment
+    rather than a real label — the ``FID_REPLACEMENT_CHARS`` / broken-hyperlink class the
+    judge flagged from chunk-view evidence like
+    ``[keup work for an (Student Rule 7)](https://…)`` and
+    ``[ms can do so within FERPA Notice to webpage.](…)``: PDF text-layer damage truncated
+    the anchor mid-word and swept a run of body prose into the link label.
+
+    Pure over a text string (the concatenated chunk view). A link ``[label](target)`` is
+    FLAGGED when its label looks like spilled prose, by any of three low-false-positive
+    signals:
+      * **midsentence break** — the label contains a sentence boundary that continues in
+        lowercase (``…webpage. students must…``); the lowercase continuation requirement
+        skips abbreviations (``U.S. Department``) and Title-Case org names a bare ``. ``
+        would false-flag;
+      * **lowercase prose** — it starts lowercase AND runs to ``>= min_prose_words`` words
+        (``keup work for an …`` / ``ms can do so within …``); short lowercase anchors like
+        ``course website`` stay under the word floor and pass;
+      * **unbalanced parentheses** — a ``(`` without its ``)`` (or vice-versa), the
+        signature of a fragment sliced out of a longer line.
+    A label that is itself a bare URL / email (an *autolink* — no internal whitespace and
+    URL/email-shaped) is never flagged: a trailing ``?``/``.`` there is part of the target
+    or stray sentence punctuation, not a garbled prose fragment, and the link still resolves
+    (``https://tamu.zoom.us/j/…?`` / ``civilrights@tamu.edu.``). Genuine garbled anchors
+    carry prose words.
+
+    ``offenders`` gives ``label -> target`` with the reasons. Shipped WARN — promote to
+    blocking once the pass rate is confirmed across the golden set."""
+    flagged: list[dict[str, Any]] = []
+    total = 0
+    for m in _MD_LINK_RE.finditer(text or ""):
+        total += 1
+        label = m.group("label").strip()
+        if _is_autolink_label(label):
+            continue
+        reasons: list[str] = []
+        if _MIDSENTENCE_BREAK_RE.search(label):
+            reasons.append("midsentence_break")
+        words = label.split()
+        if words and label[:1].islower() and len(words) >= min_prose_words:
+            reasons.append("lowercase_prose")
+        if label.count("(") != label.count(")"):
+            reasons.append("unbalanced_parens")
+        if reasons:
+            flagged.append(
+                {
+                    "label": label[:80],
+                    "target": m.group("target")[:80],
+                    "reasons": reasons,
+                }
+            )
+    return CheckOutcome(
+        passed=len(flagged) == 0,
+        metadata={
+            "garbled_anchor_count": len(flagged),
+            "total_links": total,
+            "offenders": flagged[:20],
         },
     )
 

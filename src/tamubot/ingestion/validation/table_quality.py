@@ -334,6 +334,69 @@ def compute_table_capture(
     )
 
 
+def check_tables_survive_view(
+    blocks: list[dict[str, Any]],
+    chunk_view: str,
+    *,
+    max_missing_rate: float = 0.5,
+    min_table_tokens: int = 3,
+) -> CheckOutcome:
+    """End-to-end FID_TABLE_LOST gate at the **chunk view**: every bronze ``table``
+    block's cell content must reach the concatenated chunk text RAG retrieves.
+
+    Distinct from the two existing table gates, which both stop short of the chunk view:
+      * bronze ``compute_table_capture`` compares *PDF -> Docling grid* (did TableFormer
+        drop a cell?);
+      * silver_modal ``check_no_table_lost`` runs on the *modal blocks* (a no-op by
+        default), asking whether the degradation ladder produced rows.
+    Neither confirms the rows actually survived the merge + chunk steps into a retrievable
+    chunk. This one does: for each table block it builds the content-token set of its grid
+    cells + caption and measures how many are absent from the chunk view. A table whose
+    tokens are mostly gone was dropped between bronze and the chunk RAG sees.
+
+    Conservative: tables with fewer than ``min_table_tokens`` content tokens (tiny/empty
+    grids) are skipped, and a table flags only when ``> max_missing_rate`` of its tokens
+    are missing (default 50% — well clear of the token-normalization noise that leaves
+    coverage at ~0.98 on healthy tables). ``offenders`` names the dropped cells. Shipped
+    WARN — promote to blocking once the pass rate is confirmed across the golden set."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    view_tokens = content_tokens(chunk_view)
+    offenders: list[dict[str, Any]] = []
+    evaluated = 0
+    for b in blocks:
+        if b.get("type") != "table":
+            continue
+        cells = " ".join(c for row in (b.get("table_body") or []) for c in row if c)
+        caption = b.get("table_caption") or ""
+        toks = content_tokens(f"{cells} {caption}")
+        if len(toks) < min_table_tokens:
+            continue
+        evaluated += 1
+        missing = toks - view_tokens
+        rate = len(missing) / len(toks)
+        if rate > max_missing_rate:
+            offenders.append(
+                {
+                    "page_idx": b.get("page_idx") or 0,
+                    "missing_rate": round(rate, 4),
+                    "missing_count": len(missing),
+                    "table_tokens": len(toks),
+                    "sample_missing": sorted(missing)[:8],
+                }
+            )
+    offenders.sort(key=lambda o: o["missing_rate"], reverse=True)
+    return CheckOutcome(
+        passed=len(offenders) == 0,
+        metadata={
+            "lost_table_count": len(offenders),
+            "evaluated_tables": evaluated,
+            "max_missing_rate": max_missing_rate,
+            "offenders": offenders[:20],
+        },
+    )
+
+
 def check_no_table_lost(blocks: list[dict[str, Any]]) -> CheckOutcome:
     """The FID_TABLE_LOST gate: every table block must contribute >=1 row to the
     merged markdown via *some* tier of the ladder. Shipped as WARN; promote to

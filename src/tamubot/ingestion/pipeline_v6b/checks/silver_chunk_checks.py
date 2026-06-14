@@ -16,8 +16,17 @@ from tamubot.ingestion.validation.baseline_diff import (
     describe_delta,
     read_metadata_history,
 )
+from tamubot.ingestion.validation.image_quality import check_no_bare_image_markers
 from tamubot.ingestion.validation.schema_validation import check_chunks_schema_valid
-from tamubot.ingestion.validation.table_quality import check_no_grading_weight_drift
+from tamubot.ingestion.validation.table_quality import (
+    check_no_grading_weight_drift,
+    check_tables_survive_view,
+)
+from tamubot.ingestion.validation.text_coverage import compute_text_coverage
+from tamubot.ingestion.validation.text_quality import (
+    check_no_replacement_chars,
+    find_garbled_link_anchors,
+)
 from tamubot.ingestion.validation.token_distribution import (
     check_chunk_count_nonzero,
     check_low_no_header_rate,
@@ -29,6 +38,38 @@ from tamubot.ingestion.validation.token_distribution import (
 def _load_chunks(stem: str) -> list[dict]:
     data = json.loads(paths.silver_chunk_semantic_path(stem).read_text(encoding="utf-8"))
     return data["chunks"]
+
+
+def _chunk_view_text(chunks: list[dict]) -> str:
+    """The text RAG actually retrieves: every chunk's ``content`` concatenated in order.
+    This is what the end-to-end fidelity gates below compare against the source — loss
+    introduced *after* bronze (the silver_modal merge, the chunker) is only visible here."""
+    return "\n".join(c.get("content") or "" for c in chunks)
+
+
+def _bronze_blocks(stem: str) -> list[dict]:
+    """Bronze block list for cross-checking what reached the chunk view. Returns [] if the
+    bronze artifact is absent (the per-block gates then trivially pass)."""
+    p = paths.bronze_blocks_path(stem)
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+
+
+def _pdf_plaintext(pdf_path) -> str:
+    """Full PDF text layer via PyMuPDF — ground truth for the chunk-view coverage gate.
+    Returns "" if PyMuPDF is unavailable or the open fails (the check then trivially
+    passes rather than erroring). Mirrors the helper in ``bronze_blocks_checks``."""
+    try:
+        import pymupdf
+    except ImportError:
+        return ""
+    try:
+        doc = pymupdf.open(str(pdf_path))
+    except Exception:
+        return ""
+    try:
+        return "\n".join(page.get_text() for page in doc)  # type: ignore[arg-type]
+    finally:
+        doc.close()
 
 
 @asset_check(asset="v6b_silver_chunk_semantic", blocking=True, partitions_def=stem_partitions)
@@ -198,5 +239,151 @@ def v6b_silver_chunk_flagged_rate_vs_baseline(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
         description="flagged_rate " + describe_delta(outcome.metadata),
+        metadata=outcome.metadata,
+    )
+
+
+# ── End-to-end chunk-view fidelity gates ──────────────────────────────────────
+# Every fidelity gate upstream sits at bronze (vs PDF) or the no-op silver_modal —
+# nothing confirms content survived the merge + chunk steps into the chunk view RAG
+# actually retrieves. These four close that gap at the last stage before embedding.
+
+
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_chunk_no_bare_image_markers(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """FID_IMAGE_LOST gate at the chunk view (G-A): a bare ``<!-- image -->`` that reached
+    a chunk is a figure RAG retrieves with zero recoverable content. Confirmatory
+    counterpart to the bronze ``no_content_image_lost`` gate (which is predictive on bbox
+    area) — this counts markers that actually survived chunking. WARN; expected non-zero
+    while modal is disabled."""
+    stem = context.partition_key
+    chunks = _load_chunks(stem)
+    view = _chunk_view_text(chunks)
+    image_blocks = sum(1 for b in _bronze_blocks(stem) if b.get("type") == "image")
+    outcome = check_no_bare_image_markers(view, bronze_image_count=image_blocks)
+    n = outcome.metadata["bare_image_markers"]
+    rate = outcome.metadata.get("bare_marker_rate")
+    detail = f" ({rate:.0%} of {image_blocks} image block(s))" if rate is not None and image_blocks else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            "no bare image markers in the chunk view"
+            if outcome.passed
+            else f"{n} bare <!-- image --> marker(s) reached the chunk view{detail} — content not transcribed"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_chunk_tables_survive_view(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """FID_TABLE_LOST gate at the chunk view (G-B): every bronze table block's cell
+    content must appear in the concatenated chunk text RAG retrieves. Catches loss between
+    bronze and the chunk view (the merge/chunk steps) that the bronze ``table_cell_capture``
+    (PDF→grid) and the no-op modal ``no_table_lost`` cannot see. WARN — calibrate before
+    promoting to blocking."""
+    stem = context.partition_key
+    chunks = _load_chunks(stem)
+    view = _chunk_view_text(chunks)
+    outcome = check_tables_survive_view(_bronze_blocks(stem), view)
+    n = outcome.metadata["lost_table_count"]
+    evaluated = outcome.metadata["evaluated_tables"]
+    offenders = outcome.metadata["offenders"]
+    detail = (
+        f"; e.g. page {offenders[0]['page_idx']} missing {offenders[0]['sample_missing'][:3]}"
+        if n and offenders
+        else ""
+    )
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            f"all {evaluated} table(s) survived into the chunk view"
+            if outcome.passed
+            else f"{n}/{evaluated} table(s) lost between bronze and the chunk view{detail}"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_chunk_view_text_coverage(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """FID_CONTENT_DROPPED gate at the chunk view (G-C): fraction of the source PDF's
+    content tokens that survived all the way into the chunk view RAG retrieves. The bronze
+    ``text_coverage`` gate stops at bronze; this one extends the same token-recall measure
+    end-to-end, so loss introduced by the silver_modal merge or the chunker shows up.
+    Threshold is deliberately loose (gross loss only); ``sample_missing`` is the triage
+    aid. WARN — calibrate before promoting to blocking."""
+    stem = context.partition_key
+    chunks = _load_chunks(stem)
+    view = _chunk_view_text(chunks)
+    pdf_text = _pdf_plaintext(paths.raw_path(stem))
+    outcome = compute_text_coverage(pdf_text, view, max_missing_rate=0.10)
+    cov = outcome.metadata["coverage"]
+    miss = outcome.metadata["missing_count"]
+    sample = outcome.metadata["sample_missing"]
+    detail = f"; e.g. {', '.join(sample[:5])}" if miss else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=f"{cov:.1%} of PDF content tokens survived into the chunk view ({miss} dropped{detail})",
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_chunk_no_replacement_chars(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """FID_REPLACEMENT_CHARS gate at the chunk view (G-D, part 1): no U+FFFD replacement
+    char should reach a retrievable chunk. The bronze gate scans block ``text`` fields
+    only; this scans the rendered chunk content (including table markdown and link labels),
+    catching garbage that the merge re-introduced. WARN."""
+    stem = context.partition_key
+    view = _chunk_view_text(_load_chunks(stem))
+    outcome = check_no_replacement_chars(view)
+    count = outcome.metadata["replacement_char_count"]
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            "no U+FFFD replacement chars in the chunk view"
+            if outcome.passed
+            else f"{count} U+FFFD replacement char(s) reached the chunk view"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_chunk_no_garbled_anchors(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """Broken-hyperlink gate at the chunk view (G-D, part 2): a markdown link whose anchor
+    text is a truncated/garbled prose fragment (``[ms can do so within FERPA Notice to
+    webpage.](…)``) — the signature of PDF text-layer damage that sliced body prose into a
+    link label. WARN — promote to blocking once confirmed across the golden set."""
+    stem = context.partition_key
+    view = _chunk_view_text(_load_chunks(stem))
+    outcome = find_garbled_link_anchors(view)
+    n = outcome.metadata["garbled_anchor_count"]
+    total = outcome.metadata["total_links"]
+    offenders = outcome.metadata["offenders"]
+    detail = f"; e.g. [{offenders[0]['label']}]" if n and offenders else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            f"all {total} chunk-view link(s) have clean anchor text"
+            if outcome.passed
+            else f"{n}/{total} link(s) have garbled/truncated anchor text{detail}"
+        ),
         metadata=outcome.metadata,
     )
