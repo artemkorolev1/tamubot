@@ -95,14 +95,42 @@ def _caption_text(item, doc) -> str:
     return (fn or "").strip()
 
 
+def _line_containing_rect(page, rect) -> str:
+    """The full visual text line whose bbox vertically contains ``rect`` (a link
+    annotation). Lets URL recovery emit the whole instructional line
+    (``Also, check daily: https://canvas.tamu.edu/``) instead of just the bare
+    link-text, so a dropped prose prefix/suffix survives. Returns "" when no
+    single line cleanly contains the link (overlapping/multi-line link)."""
+    link_cy = (float(rect.y0) + float(rect.y1)) / 2
+    try:
+        blocks = page.get_text("dict").get("blocks", [])
+    except Exception:
+        return ""
+    for blk in blocks:
+        for ln in blk.get("lines", []):
+            bb = ln.get("bbox")
+            if not bb:
+                continue
+            # line vertically contains the link centre (small tolerance)
+            if not (float(bb[1]) - 1.0 <= link_cy <= float(bb[3]) + 1.0):
+                continue
+            t = " ".join(sp.get("text", "") for sp in ln.get("spans", []))
+            t = " ".join(t.split())
+            if t:
+                return t
+    return ""
+
+
 def _recover_urls_by_page(pdf_path: Path) -> tuple[Dict[int, List[tuple]], Dict[int, float]]:
     """Recover PDF link annotations Docling drops during text extraction.
 
     Returns ``(urls_by_page, page_heights)`` where ``urls_by_page`` maps a
-    1-indexed page to ``[(link_text, uri, link_cy_top), ...]`` — ``link_cy_top``
-    is the annotation's vertical centre measured from the page top (PyMuPDF
-    frame), used to place a recovered URL line where it actually sits on the
-    page. ``page_heights`` maps page -> height (points), needed to convert
+    1-indexed page to ``[(link_text, uri, link_cy_top, full_line), ...]`` —
+    ``link_cy_top`` is the annotation's vertical centre measured from the page
+    top (PyMuPDF frame), used to place a recovered URL line where it actually
+    sits on the page; ``full_line`` is the entire visual text line that contains
+    the link (so a dropped prose prefix/suffix can be recovered alongside the
+    URL). ``page_heights`` maps page -> height (points), needed to convert
     Docling's bottom-origin block geometry into the same top-origin frame.
 
     Docling drops URL annotations during text extraction; v6's Gemini-VLM
@@ -140,7 +168,8 @@ def _recover_urls_by_page(pdf_path: Path) -> tuple[Dict[int, List[tuple]], Dict[
                 # "Click Here" in the Docling markdown.
                 text = " ".join(text.split())
                 link_cy = (float(rect.y0) + float(rect.y1)) / 2  # centre, from top
-                entries.append((text, uri, link_cy))
+                full_line = _line_containing_rect(page, rect)
+                entries.append((text, uri, link_cy, full_line))
             if entries:
                 out[pno] = entries
                 heights[pno] = float(page.rect.height)
@@ -193,6 +222,7 @@ def _append_orphan_urls(
     stem: str,
     tops_by_blockid: Optional[Dict[str, float]] = None,
     page_heights: Optional[Dict[int, float]] = None,
+    bronze_tokens: Optional[set] = None,
 ) -> int:
     """Tier 2 of URL recovery: insert URLs that matched no block as new text
     blocks. Docling sometimes drops a URL's whole line (e.g. ``Webpage: <url>`` /
@@ -201,16 +231,37 @@ def _append_orphan_urls(
     (taxonomy ``FID_CONTENT_DROPPED``). The recovered line is placed by vertical
     position so it doesn't masquerade as a neighbouring field's value. Skips a URL
     whose uri or link-text is already present in some block (don't duplicate one
-    Docling did keep)."""
+    Docling did keep).
+
+    When the entry carries the full visual line that contained the link (4th
+    tuple element) and that line wraps the URL in prose Docling dropped
+    (``Also, check daily: <url>``), the WHOLE line is emitted instead of the bare
+    URL — but only when the prose carries a content token (len >= 4) absent from
+    ``bronze_tokens``, so a value Docling already kept is never duplicated and a
+    bare-URL line (no surrounding prose) still emits just the URL."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
     tops_by_blockid = tops_by_blockid or {}
     page_heights = page_heights or {}
+    bronze_tokens = bronze_tokens if bronze_tokens is not None else _all_block_tokens(blocks)
     appended = 0
     for page, queue in pending.items():
         for entry in queue:
             link_text, uri = entry[0], entry[1]
             link_cy = entry[2] if len(entry) > 2 else None
+            full_line = entry[3] if len(entry) > 3 else ""
             if not uri:
                 continue
+            # Don't fabricate a mailto: link when Docling already kept the bare
+            # address as plain text — the dropped annotation's link_text is often
+            # a mangled variant ("addr; ?pwd=...") that won't substring-match the
+            # clean plain-text copy below, so guard on the address itself.
+            if uri.lower().startswith("mailto:"):
+                email = uri[len("mailto:"):].strip()
+                if email and any(
+                    b.get("type") == "text" and email in b.get("text", "") for b in blocks
+                ):
+                    continue
             if any(
                 b.get("type") == "text" and (uri in b.get("text", "") or (link_text and link_text in b.get("text", "")))
                 for b in blocks
@@ -226,6 +277,17 @@ def _append_orphan_urls(
                 line = f"[{link_text}]({uri})"
             else:
                 line = uri
+            # If the link sat inside a fuller visual line whose extra prose
+            # (beyond the bare URL/link-text) is itself missing from bronze, emit
+            # the WHOLE line so the dropped prefix/suffix is recovered too
+            # ("Also, check daily: https://canvas.tamu.edu/"). Gate on a novel
+            # content token so we never duplicate prose Docling already kept and a
+            # bare-URL line stays bare.
+            if full_line and full_line != line:
+                extra = content_tokens(full_line) - content_tokens(line)
+                if any(tok not in bronze_tokens and len(tok) >= 4 for tok in extra):
+                    line = full_line
+                    bronze_tokens |= content_tokens(full_line)
             new_block = {
                 "type": "text",
                 "text": line,
@@ -265,7 +327,12 @@ def _inject_urls_into_blocks(
     if not urls_by_page:
         return (0, 0)
 
-    # Per-page queue of (link_text, uri[, link_cy]) entries still to consume.
+    # Token set of everything Docling kept — captured before wrapping so the
+    # full-line substitution in _append_orphan_urls only fires for genuinely
+    # dropped prose, never text already present elsewhere in bronze.
+    bronze_tokens = _all_block_tokens(blocks)
+
+    # Per-page queue of (link_text, uri[, link_cy[, full_line]]) entries to consume.
     pending = {pno: list(items) for pno, items in urls_by_page.items()}
     wrapped = 0
 
@@ -297,7 +364,7 @@ def _inject_urls_into_blocks(
         pending[page] = remaining
         block["text"] = text
 
-    appended = _append_orphan_urls(blocks, pending, stem, tops_by_blockid, page_heights)
+    appended = _append_orphan_urls(blocks, pending, stem, tops_by_blockid, page_heights, bronze_tokens)
     return (wrapped, appended)
 
 
@@ -361,20 +428,95 @@ def _extend_labels_with_values(
     return recovered
 
 
-def _recover_dropped_label_values(pdf_path: Path, blocks: List[Dict[str, Any]]) -> int:
-    """PyMuPDF wrapper for ``_extend_labels_with_values``: read each page's visual
-    lines and re-attach values Docling dropped from ``Label:`` blocks."""
+def _norm_line(s: str) -> str:
+    """Whitespace- and dash-normalized form of a visual line, KEEPING word spacing.
+
+    Unlike :func:`_match_key` (which deletes all whitespace for an exact paired-value
+    match), this collapses runs of whitespace to a single space and folds en/em dashes
+    to a hyphen — so a Docling fragment that differs from the PyMuPDF line only in
+    internal spacing and dash glyph can still be recognised as a contiguous tail of it
+    (``- 2:10 PM;   506/606…`` is a suffix of ``505/605: T 12:20 PM – 2:10 PM; 506/606…``)."""
+    return re.sub(r"\s+", " ", (s or "").strip()).replace("–", "-").replace("—", "-")
+
+
+def _recover_orphaned_line_prefixes(
+    blocks: List[Dict[str, Any]],
+    lines_by_page: Dict[int, List[str]],
+    bronze_tokens: set,
+    min_fragment_len: int = 12,
+) -> int:
+    """Recover a leading segment Docling chopped off a free-text line, re-attaching it
+    to the orphan tail block (the FID_CONTENT_DROPPED mid-value-split class).
+
+    Docling sometimes mangles a long value line and emits only its tail — e.g. the lab
+    line ``505/605: T 12:20 PM – 2:10 PM; 506/606: T 3:00 PM – 4:50 PM`` survives only as
+    ``- 2:10 PM; 506/606: T 3:00 PM – 4:50 PM``, dropping the section label + start time.
+    The existing label recoverers don't engage: the broken block is not a bare ``…:``
+    label but a free-text fragment ending mid-value.
+
+    For each TEXT block whose normalized text (:func:`_norm_line`) is a strict, contiguous
+    SUFFIX of a PyMuPDF visual line on the SAME page, replace the fragment with that full
+    line — but only under hard gates so this is provably add-only and localized:
+
+      * **Exactly one** matching visual line (skip on 0 or >1 candidates — an ambiguous
+        match could splice the wrong prefix on).
+      * The fragment is a true contiguous tail (suffix), not a loose token overlap.
+      * The recovered prefix (the part of the line before the fragment) carries a content
+        token (len >= 4) absent from ``bronze_tokens`` — so a value Docling already kept
+        elsewhere is never duplicated, and a fragment that is the whole line gains nothing.
+      * A length floor (``min_fragment_len``) so a short generic fragment (``- 2:10 PM``
+        alone, a bare ``and``) can't trigger a splice.
+
+    Pure — host-testable. Returns the number of fragments repaired."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    recovered = 0
+    for b in blocks:
+        if b.get("type") != "text":
+            continue
+        bt = b.get("text")
+        if not isinstance(bt, str):
+            continue
+        nfrag = _norm_line(bt)
+        if len(nfrag) < min_fragment_len:
+            continue
+        page = b.get("page_idx") or 0
+        # Collect every same-page visual line that strictly ends with the fragment.
+        matches = [
+            line
+            for line in lines_by_page.get(page, ())
+            if (nline := _norm_line(line)) != nfrag
+            and nline.endswith(nfrag)
+            and len(nline) > len(nfrag)
+        ]
+        if len(matches) != 1:
+            continue  # 0 or ambiguous (>1) -> never splice
+        line = matches[0]
+        prefix = _norm_line(line)[: -len(nfrag)]
+        prefix_tokens = content_tokens(prefix)
+        if not any(tok not in bronze_tokens and len(tok) >= 4 for tok in prefix_tokens):
+            continue  # nothing novel to recover (would just duplicate kept text)
+        b["text"] = line
+        b["recovered_line_prefix"] = True
+        bronze_tokens |= content_tokens(line)
+        recovered += 1
+    return recovered
+
+
+def _visual_lines_by_page(pdf_path: Path) -> Dict[int, List[str]]:
+    """Every page's whitespace-collapsed visual text lines, 1-indexed by page. The
+    shared PyMuPDF line source for the label-value and orphaned-prefix recoverers."""
     try:
         import pymupdf
     except ImportError:
-        return 0
+        return {}
     try:
         doc = pymupdf.open(str(pdf_path))
     except Exception as exc:
-        log.warning("label-value recovery: pymupdf failed to open %s: %s", pdf_path, exc)
-        return 0
+        log.warning("line recovery: pymupdf failed to open %s: %s", pdf_path, exc)
+        return {}
+    out: Dict[int, List[str]] = {}
     try:
-        lines_by_page: Dict[int, List[str]] = {}
         for pno, page in enumerate(doc, 1):  # type: ignore[var-annotated,arg-type]
             lines: List[str] = []
             for blk in page.get_text("dict").get("blocks", []):
@@ -384,10 +526,28 @@ def _recover_dropped_label_values(pdf_path: Path, blocks: List[Dict[str, Any]]) 
                     if t:
                         lines.append(t)
             if lines:
-                lines_by_page[pno] = lines
+                out[pno] = lines
     finally:
         doc.close()
+    return out
+
+
+def _recover_dropped_label_values(pdf_path: Path, blocks: List[Dict[str, Any]]) -> int:
+    """PyMuPDF wrapper for ``_extend_labels_with_values``: read each page's visual
+    lines and re-attach values Docling dropped from ``Label:`` blocks."""
+    lines_by_page = _visual_lines_by_page(pdf_path)
+    if not lines_by_page:
+        return 0
     return _extend_labels_with_values(blocks, lines_by_page, _all_block_tokens(blocks))
+
+
+def _recover_orphaned_prefixes(pdf_path: Path, blocks: List[Dict[str, Any]]) -> int:
+    """PyMuPDF wrapper for ``_recover_orphaned_line_prefixes``: read each page's visual
+    lines and re-attach a leading segment Docling chopped off a free-text value line."""
+    lines_by_page = _visual_lines_by_page(pdf_path)
+    if not lines_by_page:
+        return 0
+    return _recover_orphaned_line_prefixes(blocks, lines_by_page, _all_block_tokens(blocks))
 
 
 def _match_key(s: str) -> str:
@@ -946,6 +1106,7 @@ def docling_to_blocks(
                     "text": text,
                     "level": 1,
                     "page_idx": page,
+                    "bbox": list(bbox) if bbox else None,
                     "block_id": block_id,
                 }
             )
@@ -960,6 +1121,7 @@ def docling_to_blocks(
                     "text": text,
                     "level": int(getattr(item, "level", 1) or 1),
                     "page_idx": page,
+                    "bbox": list(bbox) if bbox else None,
                     "block_id": block_id,
                 }
             )
@@ -975,6 +1137,7 @@ def docling_to_blocks(
                     "image_caption": _caption_text(item, result_obj.document),
                     "image_footnote": "",
                     "page_idx": page,
+                    "bbox": list(bbox) if bbox else None,
                     "block_id": block_id,
                 }
             )
@@ -991,6 +1154,7 @@ def docling_to_blocks(
                     "table_footnote": "",
                     "table_body": _extract_table_body(item),
                     "page_idx": page,
+                    "bbox": list(bbox) if bbox else None,
                     "block_id": block_id,
                 }
             )
@@ -1013,6 +1177,7 @@ def docling_to_blocks(
                     "type": "text",
                     "text": text,
                     "page_idx": page,
+                    "bbox": list(bbox) if bbox else None,
                     "block_id": block_id,
                 }
             )
@@ -1044,6 +1209,14 @@ def docling_to_blocks(
     values = _recover_dropped_label_values(pdf_path, blocks)
     if values:
         log.info("v6b label-value recovery for %s: re-attached %d dropped value(s)", stem, values)
+
+    # Re-attach a leading segment Docling chopped off a free-text value line, leaving
+    # only its orphan tail (e.g. a lab line that dropped its `505/605: T 12:20 PM`
+    # section-label + start-time). The mid-value-split FID_CONTENT_DROPPED class the
+    # bare-`Label:` recoverers above can't see.
+    prefixes = _recover_orphaned_prefixes(pdf_path, blocks)
+    if prefixes:
+        log.info("v6b orphaned-prefix recovery for %s: re-attached %d dropped prefix(es)", stem, prefixes)
 
     # Re-pair two-column `Label: value` blocks whose value Docling orphaned far from
     # its label (column-first reading order). FID_HEADER_BROKEN fix.

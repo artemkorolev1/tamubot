@@ -4,7 +4,53 @@ from tamubot.ingestion.validation.text_quality import (
     check_letter_drops,
     check_no_replacement_chars,
     count_unanswered_labels,
+    find_fabricated_links,
 )
+
+
+# --- Check 1: fabricated mailto/URL links (FID_HALLUCINATION / ISEN_633) -------
+
+
+def test_fabricated_link_flags_mailto_already_in_plain_text():
+    """The ISEN_633 signature: a [label](mailto:X) link whose target already appears
+    as plain text in another block -> fabricated."""
+    blocks = [
+        {"type": "text", "text": "Contact the instructor at jiang@tamu.edu for questions."},
+        {"type": "text", "text": "Email: [jiang@tamu.edu](mailto:jiang@tamu.edu)"},
+    ]
+    out = find_fabricated_links(blocks)
+    assert not out.passed
+    assert out.metadata["fabricated_link_count"] == 1
+    assert "jiang@tamu.edu" in out.metadata["sample_fabricated"][0]
+
+
+def test_fabricated_link_flags_url_already_in_plain_text():
+    blocks = [
+        {"type": "text", "text": "See the rules at student-rules.tamu.edu/rule07 before submitting."},
+        {"type": "text", "text": "[Student Rule 7](https://student-rules.tamu.edu/rule07)"},
+    ]
+    out = find_fabricated_links(blocks)
+    assert not out.passed
+    assert out.metadata["fabricated_link_count"] == 1
+
+
+def test_genuine_link_not_in_plain_text_passes():
+    """A real link whose target appears nowhere else as plain text is legitimate."""
+    blocks = [
+        {"type": "text", "text": "Course homepage: [Canvas](https://canvas.tamu.edu/courses/12345)"},
+        {"type": "text", "text": "Office hours are Tuesdays."},
+    ]
+    out = find_fabricated_links(blocks)
+    assert out.passed
+    assert out.metadata["fabricated_link_count"] == 0
+    assert out.metadata["total_links"] == 1
+
+
+def test_no_links_at_all_passes():
+    blocks = [{"type": "text", "text": "Plain prose with no markdown links at all."}]
+    out = find_fabricated_links(blocks)
+    assert out.passed
+    assert out.metadata["total_links"] == 0
 
 
 def test_unanswered_labels_flags_orphaned_run():

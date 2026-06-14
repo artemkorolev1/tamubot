@@ -11,6 +11,8 @@ heading-level sequences of the three documents that were dropped in a prior run
 
 from __future__ import annotations
 
+import re
+
 from tamubot.ingestion.chunker_v4 import chunk_semantic
 from tamubot.ingestion.validation.header_hierarchy import (
     count_level_skips,
@@ -191,6 +193,58 @@ def test_all_sub_min_doc_keeps_content():
     assert log["dropped_tiny"] == 0
 
 
+# Body-less campus-policy headers ("Campus-Specific Policies", a repeated
+# "Texas A&M at Galveston") stranded between real subsections. With an oversized
+# parent the chunker recurses into level-3 children; each bare header is sub-floor
+# and was merged BACKWARD onto the previous chunk's tail (CHUNK_ORPHAN_HEADER,
+# STAT_620). The orphan-header guard must drop them, never glue them to a tail.
+_FILLER = "word " * 130
+_MD_ORPHAN_HEADER = (
+    "# University Policies\n\n"
+    "## Texas A&M at Galveston\n\n"
+    "### Texas A&M College Station\n\n" + _FILLER + "\n\n"
+    "### Campus-Specific Policies\n\n"
+    "### Texas A&M at Galveston\n\n"
+    "### Classroom Access and Inclusion Statement\n\n" + _FILLER + "\n"
+)
+
+_HEADER_LINE_RE = re.compile(r"^#{1,6}\s")
+
+
+def test_orphan_header_not_stranded_at_chunk_tail():
+    chunks, log = chunk_semantic(
+        _MD_ORPHAN_HEADER,
+        flag_threshold=200,
+        min_chunk_tokens=15,
+        drop_metadata_sections=False,
+    )
+    # No chunk may be header-only, and none may END on a bare header line.
+    for c in chunks:
+        lines = [ln for ln in c["content"].splitlines() if ln.strip()]
+        assert lines, "empty chunk"
+        assert not all(_HEADER_LINE_RE.match(ln) for ln in lines), "header-only chunk"
+        assert not _HEADER_LINE_RE.match(lines[-1]), f"orphan header at tail: {lines[-1]!r}"
+    # The body-less navigation headers were dropped, not merged onto a tail.
+    assert log["dropped_orphan_header"] >= 2
+    # A real titled section keeps its header (we only drop the body-less ones).
+    text = "\n".join(c["content"] for c in chunks)
+    assert "Classroom Access and Inclusion Statement" in text
+
+
+def test_header_with_body_is_never_dropped_as_orphan():
+    # Guard must not touch a normal section that has a body.
+    md = (
+        "# Email Policy\n\n"
+        "You will not get any reply unless the subject starts with the course "
+        "code. This helps me find emails quickly; please wait 24 hours before a "
+        "reminder.\n"
+    )
+    chunks, log = chunk_semantic(md, drop_metadata_sections=False)
+    text = "\n".join(c["content"] for c in chunks)
+    assert "Email Policy" in text
+    assert log["dropped_orphan_header"] == 0
+
+
 # ── Issue 2: table degeneracy + graceful-degradation ladder ─────────────────
 
 
@@ -263,6 +317,49 @@ def test_ladder_keeps_vlm_when_complete():
     md, outcome = render_table_markdown(block)
     assert outcome == OUTCOME_TRANSCRIBED
     assert table_row_count(md) == 12
+
+
+def test_vlm_table_rejected_when_it_drops_a_grid_row():
+    # The ECEN_688 bug: a full-width spanned row ("Mid-term exam ... October 15")
+    # survives in Docling's 15-row grid but the VLM transcription drops it (14 rows).
+    # 14 >= 15*0.8 (=12.0), so row-count conservation alone WOULD accept the VLM
+    # table. The content-token superset guard must reject it and fall back to the
+    # grid so the dropped mid-term row reaches RAG.
+    grid = (
+        [["Week", "Topic"]]
+        + [[str(i), f"Module {i}"] for i in range(1, 15)]
+        + [["Mid-term exam: Thursday, October 15th during class", ""]]
+    )
+    # VLM emits every Module row but silently omits the spanned mid-term row.
+    vlm_md = "| Week | Topic |\n| --- | --- |\n" + "\n".join(
+        f"| {i} | Module {i} |" for i in range(1, 15)
+    )
+    block = {"type": "table", "table_body": grid, "modal_result": {"table_markdown": vlm_md}}
+    md, outcome = render_table_markdown(block)
+    assert outcome == OUTCOME_GRID_FALLBACK
+    # The dropped content must survive via the grid fallback.
+    assert "Mid-term exam" in md
+    assert "October 15" in md
+
+
+def test_vlm_table_accepted_when_complete():
+    # No regression: a VLM table that contains every grid content token (here also
+    # the spanned mid-term row, reformatted) is still accepted — the superset guard
+    # only rejects genuine drops, not reformatting.
+    grid = (
+        [["Week", "Topic"]]
+        + [[str(i), f"Module {i}"] for i in range(1, 15)]
+        + [["Mid-term exam: Thursday, October 15th during class", ""]]
+    )
+    vlm_md = (
+        "| Week | Topic |\n| --- | --- |\n"
+        + "\n".join(f"| {i} | Module {i} |" for i in range(1, 15))
+        + "\n| Mid-term exam: Thursday, October 15th during class | |"
+    )
+    block = {"type": "table", "table_body": grid, "modal_result": {"table_markdown": vlm_md}}
+    md, outcome = render_table_markdown(block)
+    assert outcome == OUTCOME_TRANSCRIBED
+    assert md == vlm_md
 
 
 def test_summary_counts_vlm_truncation():
@@ -339,6 +436,28 @@ def test_merge_suppresses_failure_marker_caption_but_keeps_grid_rows():
     md = mod._merge_to_markdown(blocks)
     assert "processing failed" not in md
     assert "| Q-learning | 4 |" in md
+
+
+def test_failed_image_caption_degrades_to_clean_marker():
+    # A failed image fetch leaks `[image processing failed: [Errno 111] …]`
+    # into the caption; the merge must scrub it and emit a neutral marker
+    # instead of `![…](#)` or the raw errno string.
+    from tamubot.ingestion.pipeline_v6b.assets import silver_modal as mod
+
+    blocks = [
+        {
+            "type": "image",
+            "image_caption": "[image processing failed: [Errno 111] Connection refused]",
+            "modal_result": {
+                "caption": "[image processing failed: [Errno 111] Connection refused]",
+                "description": "",
+            },
+        }
+    ]
+    md = mod._merge_to_markdown(blocks)
+    assert "processing failed" not in md
+    assert "Errno" not in md
+    assert "<!-- image -->" in md
 
 
 def test_summarize_outcomes():

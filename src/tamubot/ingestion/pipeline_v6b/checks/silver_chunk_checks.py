@@ -17,9 +17,11 @@ from tamubot.ingestion.validation.baseline_diff import (
     read_metadata_history,
 )
 from tamubot.ingestion.validation.schema_validation import check_chunks_schema_valid
+from tamubot.ingestion.validation.table_quality import check_no_grading_weight_drift
 from tamubot.ingestion.validation.token_distribution import (
     check_chunk_count_nonzero,
     check_low_no_header_rate,
+    check_no_header_only_chunks,
     check_no_oversized_chunks,
 )
 
@@ -79,6 +81,57 @@ def v6b_silver_chunk_low_no_header_rate(
             f"no-header rate {rate:.0%} within max {mx:.0%}"
             if outcome.passed
             else f"no-header rate {rate:.0%} exceeds max {mx:.0%} — too many headerless chunks"
+        ),
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_chunk_no_header_only(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """CHUNK_ORPHAN_HEADER gate (STAT_620 class): a chunk whose content is ONLY header
+    lines (every non-blank line starts with ``#``) — a body-less orphan header. The
+    INVERSE of low_no_header_rate (which flags header-LESS chunks). WARN for now;
+    promote to blocking once the pass rate is confirmed across the golden set."""
+    chunks = _load_chunks(context.partition_key)
+    outcome = check_no_header_only_chunks(chunks)
+    n = outcome.metadata["header_only_count"]
+    total = outcome.metadata["total"]
+    paths_sample = outcome.metadata["offending_header_paths"]
+    detail = f"; e.g. {', '.join(p for p in paths_sample[:3] if p)}" if n else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=f"{n}/{total} chunk(s) are header-only orphans{detail}",
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_silver_chunk_semantic", blocking=False, partitions_def=stem_partitions)
+def v6b_silver_chunk_grading_weights_sum_100(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """FID_TABLE_LOST domain gate (ECEN_688 / CSCE_689 class): a grading-weight table
+    whose row percentages don't sum to ~100% (a clean ``95`` = a dropped 5% row).
+    Conservative — only evaluates chunks that are clearly grading breakdowns (grading/
+    weight context AND >=3 percentage rows). WARN for now; promote to blocking once the
+    pass rate is confirmed across the golden set."""
+    chunks = _load_chunks(context.partition_key)
+    outcome = check_no_grading_weight_drift(chunks)
+    n = outcome.metadata["offending_count"]
+    evaluated = outcome.metadata["evaluated_grading_tables"]
+    offenders = outcome.metadata["offenders"]
+    detail = (
+        f"; e.g. {offenders[0]['header_path']} sums to {offenders[0]['grading_sum']}%" if n and offenders else ""
+    )
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=(
+            f"all {evaluated} grading table(s) sum to ~100%"
+            if outcome.passed
+            else f"{n}/{evaluated} grading table(s) miss 100±{outcome.metadata['tolerance']:.0f}%{detail}"
         ),
         metadata=outcome.metadata,
     )

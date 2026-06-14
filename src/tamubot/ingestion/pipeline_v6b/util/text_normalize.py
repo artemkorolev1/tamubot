@@ -16,6 +16,37 @@ _WS_RE = re.compile(r"\s+")
 _NUM_PERM = 128
 _NGRAM_N = 5
 
+# Header-anchored boilerplate fallback (see ReferenceIndex.match_by_header).
+# A header only joins the allow-list if its cluster is a genuine cross-corpus
+# policy: present in at least this many distinct departments. The real
+# university-policy clusters span all 4 depts (doc_freq 53-105); low-frequency
+# one-offs (e.g. a course-specific "Attendance Policy" seen in df=6, 3 depts)
+# stay out, so a same-titled course section is never header-flagged.
+HEADER_ALLOWLIST_MIN_DEPTS = 4
+# The header match is the dominant signal, but the body floor must still reject a
+# same-titled COURSE-CONFIGURABLE section (e.g. an instructor's own "Late Work
+# Policy" / "Makeup Work Policy") whose body diverges from the standard wording.
+# Observed: ECEN_749's course-specific late-homework rules scored 0.055 (false
+# positive at 0.05); STAT_651's genuine-but-OCR-damaged Mental Health statement
+# scored 0.094. 0.12 rejects the former (over-hide) while keeping real policy
+# variants (>=0.125); the two too-damaged STAT_651 statements (0.086/0.094) fall
+# back to a BP_MISSED miss rather than risk hiding course content.
+HEADER_BODY_JACCARD_FLOOR = 0.12
+
+
+def normalize_header(text: str) -> str:
+    """Normalize a chunk/cluster leading header for allow-list comparison.
+
+    Strips a leading markdown header run (``#``/``##``/...), a trailing colon,
+    then applies :func:`normalize_text` (lowercase, drop punctuation, collapse
+    whitespace). The ligature-loss OCR damage ("Ofce", "confdentiality") that
+    shreds bodies is mostly absent from these short policy headers, so no
+    special ligature repair is needed here.
+    """
+    first_line = text.lstrip().split("\n", 1)[0]
+    stripped = first_line.lstrip("#").strip().rstrip(":").strip()
+    return normalize_text(stripped)
+
 
 def normalize_text(text: str) -> str:
     """Lowercase, strip ASCII punctuation, collapse whitespace. Idempotent."""
@@ -77,8 +108,15 @@ class ReferenceIndex:
         self._exact: dict[str, str] = {}
         self._lsh: MinHashLSH = MinHashLSH(threshold=0.80, num_perm=_NUM_PERM)
         self._cluster_to_signature: dict[str, MinHash] = {}
+        # normalized policy header -> cluster_id, for the header-anchored fallback.
+        self._header_to_cluster: dict[str, str] = {}
 
         df = pd.read_parquet(parquet_path)
+        has_depts = "distinct_depts" in df.columns
+        has_freq = "doc_frequency" in df.columns
+        # Keep the highest-doc_frequency cluster per normalized header, so a
+        # header maps to its most representative policy text.
+        header_freq: dict[str, int] = {}
         for row in df.itertuples(index=False):
             cluster_id = str(row.cluster_id)
             rep_text = str(row.representative_text)
@@ -89,6 +127,19 @@ class ReferenceIndex:
             if cluster_id not in self._lsh:
                 self._lsh.insert(cluster_id, sig)
 
+            # Dynamic header allow-list: only genuine cross-corpus policies
+            # (seen across >= HEADER_ALLOWLIST_MIN_DEPTS departments).
+            distinct_depts = int(getattr(row, "distinct_depts", 0)) if has_depts else 0
+            doc_freq = int(getattr(row, "doc_frequency", 0)) if has_freq else 0
+            if distinct_depts < HEADER_ALLOWLIST_MIN_DEPTS:
+                continue
+            header = normalize_header(rep_text)
+            if not header:
+                continue
+            if header not in header_freq or doc_freq > header_freq[header]:
+                header_freq[header] = doc_freq
+                self._header_to_cluster[header] = cluster_id
+
     @classmethod
     def empty(cls) -> "ReferenceIndex":
         """Empty index — used when the parquet does not yet exist."""
@@ -96,6 +147,7 @@ class ReferenceIndex:
         inst._exact = {}
         inst._lsh = MinHashLSH(threshold=0.80, num_perm=_NUM_PERM)
         inst._cluster_to_signature = {}
+        inst._header_to_cluster = {}
         return inst
 
     def match(
@@ -122,3 +174,32 @@ class ReferenceIndex:
         if best_id is None:
             return None, None
         return best_id, best_score
+
+    def match_by_header(
+        self, content: str, body_floor: float = HEADER_BODY_JACCARD_FLOOR
+    ) -> tuple[str | None, float | None]:
+        """Header-anchored boilerplate fallback for below-threshold policy variants.
+
+        When a chunk's leading header, normalized, equals a known cross-corpus
+        policy header (the dynamically-derived allow-list), AND its body shares
+        at least ``body_floor`` MinHash-Jaccard with that cluster, return that
+        cluster. The header equality is the dominant signal; the floor only
+        rejects a same-titled but genuinely course-specific section that has no
+        real overlap with the canonical policy text.
+
+        Returns ``(cluster_id, body_jaccard)`` or ``(None, None)``. Callers
+        should treat this as a *fallback* after :meth:`match` declines.
+        """
+        header = normalize_header(content)
+        if not header:
+            return None, None
+        cluster_id = self._header_to_cluster.get(header)
+        if cluster_id is None:
+            return None, None
+        cand_sig = self._cluster_to_signature.get(cluster_id)
+        if cand_sig is None:
+            return None, None
+        score = minhash_of(content).jaccard(cand_sig)
+        if score < body_floor:
+            return None, None
+        return cluster_id, score

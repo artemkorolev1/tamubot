@@ -176,6 +176,17 @@ def _node_text(node: SectionNode, include_children: bool = True) -> str:
     return "\n\n".join(parts)
 
 
+def _has_body_in_subtree(node: SectionNode) -> bool:
+    """True if *node* or any descendant carries body text.
+
+    A node that is a header (or a tree of headers) with no body anywhere is a
+    bare navigation/orphan header — there is nothing for retrieval to anchor to.
+    """
+    if node.body.strip():
+        return True
+    return any(_has_body_in_subtree(child) for child in node.children)
+
+
 def _walk(
     node: SectionNode,
     ancestors: list[str],
@@ -421,6 +432,7 @@ def chunk_semantic(
         "total_sections": _count_sections(root),
         "kept": 0,
         "dropped_metadata": 0,
+        "dropped_orphan_header": 0,
         "dropped_tiny": 0,
         "merged_tiny": 0,
         "merged_forward": 0,
@@ -492,6 +504,16 @@ def chunk_semantic(
             # nested under a metadata/title header
             for child in node.children:
                 _process_node(child, ancestors + [child.header])
+            return
+
+        # Orphan-header guard: a node that is a header (or a tree of bare headers)
+        # with no body anywhere in its subtree carries no retrievable content.
+        # Dropping it here prevents it from falling into the sub-floor backward
+        # merge below, where it would otherwise be glued onto the *previous*
+        # chunk's tail as a stranded "## Header" (the CHUNK_ORPHAN_HEADER bug:
+        # e.g. body-less "Campus-Specific Policies" / "Texas A&M at Galveston").
+        if node.header and not _has_body_in_subtree(node):
+            log["dropped_orphan_header"] += 1
             return
 
         text = _node_text(node, include_children=True).strip()

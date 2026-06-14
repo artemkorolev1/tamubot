@@ -46,6 +46,68 @@ def check_letter_drops(text: str, threshold: int = 0) -> CheckOutcome:
     )
 
 
+# A synthesized markdown link: [label](target) where target is a mailto: or http(s) URL.
+# Catches the FID_HALLUCINATION class — bronze fabricated a clickable link for a value
+# that was already present as plain text in some block.
+_MD_LINK_RE = re.compile(r"\[(?P<label>[^\]]+)\]\((?P<target>(?:mailto:|https?://)[^)\s]+)\)")
+
+
+def _link_target_value(target: str) -> str:
+    """The bare value a link target points at, stripped of the mailto:/scheme so it
+    can be matched against plain text. ``mailto:jiang@tamu.edu`` -> ``jiang@tamu.edu``;
+    ``https://cesg.tamu.edu/x`` -> ``cesg.tamu.edu/x`` (scheme + trailing slash removed)."""
+    t = target.strip()
+    if t.lower().startswith("mailto:"):
+        return t[len("mailto:") :].strip()
+    t = re.sub(r"^https?://", "", t, flags=re.IGNORECASE)
+    return t.rstrip("/").strip()
+
+
+def find_fabricated_links(blocks: list) -> CheckOutcome:
+    """Detect synthesized markdown links whose target was *already present as plain
+    text* somewhere in the document (the ``FID_HALLUCINATION`` signature — bronze
+    fabricated a ``[label](mailto:X)`` / ``[label](http…)`` link for a value that
+    already appeared verbatim, so the link adds nothing real and risks a wrong target).
+
+    Pure over ``blocks: list[dict]``. For every text block, find markdown links to a
+    ``mailto:`` / ``http(s)`` target; FLAG a link when its bare target value (scheme
+    stripped) appears as a plain-text substring in *some* block's text that is NOT
+    itself a markdown link to that same target. ``sample`` gives ``label -> target``
+    examples. Shipped WARN — promote to blocking once the pass rate is confirmed
+    across the golden set.
+    """
+    # Gather all link occurrences and the full plain-text corpus (links stripped, so a
+    # link doesn't count as "plain text" evidence for itself).
+    link_hits: list[tuple[str, str]] = []  # (label, bare_target)
+    plain_parts: list[str] = []
+    for b in blocks:
+        t = b.get("text")
+        if not isinstance(t, str) or not t:
+            continue
+        for m in _MD_LINK_RE.finditer(t):
+            link_hits.append((m.group("label"), _link_target_value(m.group("target"))))
+        # Plain text = this block with every markdown link removed, so a value that
+        # only ever appears *inside* a link is not mistaken for pre-existing plain text.
+        plain_parts.append(_MD_LINK_RE.sub(" ", t))
+    plain_text = "\n".join(plain_parts)
+
+    fabricated = 0
+    samples: list[str] = []
+    for label, value in link_hits:
+        if value and value in plain_text:
+            fabricated += 1
+            if len(samples) < 20:
+                samples.append(f"[{label}] -> {value}")
+    return CheckOutcome(
+        passed=fabricated == 0,
+        metadata={
+            "fabricated_link_count": fabricated,
+            "total_links": len(link_hits),
+            "sample_fabricated": samples,
+        },
+    )
+
+
 def count_unanswered_labels(
     blocks: list,
     *,

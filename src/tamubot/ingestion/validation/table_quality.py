@@ -8,9 +8,16 @@ silently dropped whole tables (taxonomy ``FID_TABLE_LOST``).
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from tamubot.ingestion.validation.types import CheckOutcome
+
+# A percentage value in a table cell, e.g. ``40%`` / ``15 %`` / ``12.5%``.
+_PCT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*%")
+# Signals that a chunk is a grading/weight breakdown rather than some other %-bearing
+# table (e.g. an attendance-policy table). Matched against header_path + content.
+_GRADING_KEYWORDS = ("grad", "weight", "assessment", "evaluation")
 
 # Per-table outcome labels (best -> worst), recorded for observability.
 OUTCOME_TRANSCRIBED = "transcribed"  # VLM markdown accepted
@@ -125,12 +132,59 @@ def table_body_to_gfm(rows: list[list[str]]) -> str:
     return "\n".join(out)
 
 
+def _grid_rows_as_data(rows: list[list[str]], width: int) -> list[str]:
+    """Render every row of a grid as GFM *data* rows (no header/separator line).
+
+    Used to splice a continuation table's rows onto the preceding table. Each row
+    is padded/truncated to ``width`` so it lines up with the table it merges into.
+    Returns ``[]`` for an empty grid."""
+    out: list[str] = []
+    for row in rows:
+        if not row:
+            continue
+        cleaned = [(c or "").strip().replace("|", "\\|").replace("\n", " ") for c in row]
+        cleaned = (cleaned + [""] * width)[:width]
+        out.append("| " + " | ".join(cleaned) + " |")
+    return out
+
+
+def is_continuation_table(prev_grid: list[list[str]], grid: list[list[str]]) -> bool:
+    """True when ``grid`` is a page-break continuation of ``prev_grid``.
+
+    Docling splits a table that spans a page boundary into two consecutive table
+    blocks; the second is often a single "header-only" row the degradation ladder
+    scores as 0 data rows and loses (taxonomy ``FID_TABLE_LOST``). A continuation
+    is recognised structurally: both grids are non-empty and share the same column
+    width. Kept deliberately narrow (same-width only) so an unrelated adjacent
+    table is never merged in."""
+    if not prev_grid or not grid:
+        return False
+    pw = len(prev_grid[0]) if prev_grid[0] else 0
+    gw = len(grid[0]) if grid[0] else 0
+    return pw > 0 and pw == gw
+
+
 # Keep the VLM transcription only if it preserves at least this fraction of the
 # rows the Docling grid found. Below it the VLM almost certainly *truncated* the
 # table (its rows are a prefix of the grid) — a clean-but-short transcription
 # that is NOT degenerate-by-repetition and so would otherwise shadow the fuller
 # grid. Row-count conservation: never let the shorter representation win.
 _VLM_ROW_COMPLETENESS = 0.8
+
+
+def _grid_tokens_covered(table_md: str, table_body: list[list[str]]) -> bool:
+    """True when every content token in the Docling grid also appears in the VLM
+    ``table_markdown`` — i.e. the VLM dropped no real cell/row content. Uses the
+    same content-token normalization as ``text_coverage`` (lowercased words /
+    numbers, punctuation and layout ignored) so reformatting never reads as a drop.
+    The guard that stops a single dropped spanned row from sneaking under the
+    row-count completeness threshold."""
+    from tamubot.ingestion.validation.text_coverage import content_tokens
+
+    grid_tokens = content_tokens(" ".join(c for row in table_body for c in row if c))
+    if not grid_tokens:
+        return True
+    return grid_tokens <= content_tokens(table_md)
 
 
 def render_table_markdown(block: dict[str, Any]) -> tuple[str, str]:
@@ -150,7 +204,8 @@ def render_table_markdown(block: dict[str, Any]) -> tuple[str, str]:
     """
     modal = block.get("modal_result") or {}
     table_md = (modal.get("table_markdown") or "").strip()
-    grid_md = table_body_to_gfm(block.get("table_body") or [])
+    table_body = block.get("table_body") or []
+    grid_md = table_body_to_gfm(table_body)
 
     vlm_ok = bool(table_md) and not is_degenerate_table(table_md)
     vlm_rows = table_row_count(table_md) if vlm_ok else 0
@@ -158,8 +213,15 @@ def render_table_markdown(block: dict[str, Any]) -> tuple[str, str]:
 
     # 1. Accept the VLM transcription only when it is at least as complete as the
     #    grid (better cell formatting) — otherwise it truncated and the grid wins.
+    #    Row-count conservation alone misses a single dropped spanned row that
+    #    still clears the 0.8 guard (ECEN_688 mid-term row), so also require the
+    #    VLM markdown to be a content-token SUPERSET of the grid: if any grid
+    #    content token is absent from the VLM output the VLM dropped real content
+    #    and the grid wins. Compares content tokens (words/numbers), so normal
+    #    reformatting (whitespace, casing, pipes) never counts as a drop.
     if vlm_rows and (grid_rows == 0 or vlm_rows >= grid_rows * _VLM_ROW_COMPLETENESS):
-        return table_md, OUTCOME_TRANSCRIBED
+        if grid_rows == 0 or _grid_tokens_covered(table_md, table_body):
+            return table_md, OUTCOME_TRANSCRIBED
 
     # 2. Docling grid fallback — fuller than a truncated/degenerate VLM table.
     if grid_rows >= 1:
@@ -377,3 +439,126 @@ def mean_table_confidence(blocks: list[dict[str, Any]]) -> float | None:
     if not confs:
         return None
     return sum(confs) / len(confs)
+
+
+def _gfm_table_blocks(content: str) -> list[list[str]]:
+    """Split chunk content into contiguous runs of GFM table rows (lines that, after
+    stripping, start with ``|``). Each run is one logical table."""
+    tables: list[list[str]] = []
+    current: list[str] = []
+    for line in content.splitlines():
+        if line.strip().startswith("|"):
+            current.append(line)
+        elif current:
+            tables.append(current)
+            current = []
+    if current:
+        tables.append(current)
+    return tables
+
+
+def _row_weight_percent(row: str) -> float | None:
+    """The single weight percentage a grading-table data row contributes.
+
+    A grading row like ``| Homework | 4 | report | 40% (10% each) |`` carries the row
+    weight as the FIRST percentage in the row (``40%``); the parenthetical ``10% each``
+    is a per-item breakdown, not an additional row. So we take only the first ``%`` per
+    row. Returns ``None`` for a row with no percentage (header / separator / label row)."""
+    m = _PCT_RE.search(row)
+    return float(m.group(1)) if m else None
+
+
+def _looks_like_grading_context(header_path: str, content: str) -> bool:
+    hp = (header_path or "").lower()
+    body = (content or "").lower()
+    return any(k in hp for k in _GRADING_KEYWORDS) or any(k in body for k in _GRADING_KEYWORDS)
+
+
+def check_grading_weights_sum_to_100(
+    chunk: dict[str, Any],
+    *,
+    tolerance: float = 5.0,
+    min_rows: int = 3,
+) -> CheckOutcome:
+    """The FID_TABLE_LOST domain gate (ECEN_688 / CSCE_689 class): a grading-weight
+    table whose row percentages do NOT sum to ~100% — the signature of a dropped
+    weight row (a clean ``95`` with a tolerance-of-5 miss is exactly a vanished ``5%``
+    row).
+
+    Conservative by design — only evaluates a chunk that is *clearly* a grading
+    breakdown: its ``header_path``/``content`` mentions grading/weight AND it has a GFM
+    table with ``>= min_rows`` rows each carrying a percentage. Non-grading %-tables
+    (e.g. a single attendance-threshold row) never reach the sum check. When evaluated,
+    FLAG if the summed weights miss 100 by ``>= tolerance`` (strict, so a clean ``95`` =
+    a dropped 5% row lands on the boundary and flags). Reports the computed
+    sum + the per-row weights. Shipped WARN — promote to blocking once confirmed on the
+    golden set.
+
+    ``passed`` is True (vacuously) for any chunk that is not a gradeable table, so it is
+    safe to map over every chunk.
+    """
+    content = chunk.get("content") or ""
+    header_path = chunk.get("header_path") or ""
+    base_meta = {
+        "evaluated": False,
+        "grading_sum": None,
+        "row_weights": [],
+        "tolerance": tolerance,
+    }
+    if not _looks_like_grading_context(header_path, content):
+        return CheckOutcome(passed=True, metadata=base_meta)
+
+    # Pick the table with the most percentage rows (the grading breakdown), if any.
+    best_weights: list[float] = []
+    for table in _gfm_table_blocks(content):
+        weights = [w for w in (_row_weight_percent(r) for r in table if not _is_separator_row(r)) if w is not None]
+        if len(weights) > len(best_weights):
+            best_weights = weights
+    if len(best_weights) < min_rows:
+        return CheckOutcome(passed=True, metadata=base_meta)
+
+    total = round(sum(best_weights), 2)
+    # Strict ``<`` (not ``<=``): a sum landing EXACTLY on a clean multiple short of 100
+    # (e.g. 95 = a dropped 5% row, the ECEN_688/CSCE_689 signature) sits right on the
+    # tolerance boundary and must FLAG; only rounding noise strictly inside the band passes.
+    passed = abs(total - 100.0) < tolerance
+    return CheckOutcome(
+        passed=passed,
+        metadata={
+            "evaluated": True,
+            "grading_sum": total,
+            "row_weights": best_weights,
+            "tolerance": tolerance,
+            "header_path": header_path,
+        },
+    )
+
+
+def check_no_grading_weight_drift(chunks: list[dict[str, Any]], *, tolerance: float = 5.0) -> CheckOutcome:
+    """Document-level rollup of ``check_grading_weights_sum_to_100`` over all chunks:
+    FLAG if ANY clearly-grading chunk's weights miss 100 +/- tolerance. Reports the
+    count of offending chunks with their sums + header paths."""
+    offenders: list[dict[str, Any]] = []
+    evaluated = 0
+    for c in chunks:
+        out = check_grading_weights_sum_to_100(c, tolerance=tolerance)
+        if not out.metadata.get("evaluated"):
+            continue
+        evaluated += 1
+        if not out.passed:
+            offenders.append(
+                {
+                    "header_path": out.metadata.get("header_path"),
+                    "grading_sum": out.metadata.get("grading_sum"),
+                    "row_weights": out.metadata.get("row_weights"),
+                }
+            )
+    return CheckOutcome(
+        passed=len(offenders) == 0,
+        metadata={
+            "offending_count": len(offenders),
+            "evaluated_grading_tables": evaluated,
+            "offenders": offenders[:20],
+            "tolerance": tolerance,
+        },
+    )

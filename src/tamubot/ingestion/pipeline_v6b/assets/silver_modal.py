@@ -31,12 +31,16 @@ from tamubot.ingestion.pipeline_v5.util import code_version_of, dept_from_stem
 from tamubot.ingestion.pipeline_v6b import paths
 from tamubot.ingestion.pipeline_v6b.partitions import stem_partitions
 from tamubot.ingestion.validation.table_quality import (
+    OUTCOME_LOST,
     OUTCOME_PARTIAL_KEPT,
+    _grid_rows_as_data,
+    is_continuation_table,
     is_failure_marker,
     mean_table_confidence,
     render_table_markdown,
     summarize_table_outcomes,
 )
+from tamubot.ingestion.validation.text_coverage import content_tokens
 from tamubot.ingestion.validation.table_quality import (
     table_body_to_gfm as _table_body_to_gfm,
 )
@@ -99,6 +103,10 @@ def _merge_to_markdown(blocks: list[dict]) -> str:
     — so a degenerate VLM run can never silently drop a whole table.
     """
     lines: list[str] = []
+    # Track the last rendered table so a page-break continuation table (which the
+    # ladder scores as 0 data rows and would otherwise drop — FID_TABLE_LOST) can
+    # be spliced onto it. (grid, line_index_of_last_row) or None.
+    prev_table: Optional[tuple[list[list[str]], int]] = None
     for b in blocks:
         btype = b.get("type")
         if btype == "heading":
@@ -112,10 +120,23 @@ def _merge_to_markdown(blocks: list[dict]) -> str:
             modal = b.get("modal_result") or {}
             caption = modal.get("caption") or b.get("image_caption") or ""
             description = modal.get("description") or ""
+            # Never emit the VLM's `[image processing failed: …]` error string —
+            # mirror the table branch's failure-marker guard so an errno caption
+            # (e.g. `[Errno 111] Connection refused`) can't leak into the chunk.
+            if is_failure_marker(caption):
+                caption = b.get("image_caption") or ""
+                if is_failure_marker(caption):
+                    caption = ""
+            if is_failure_marker(description):
+                description = ""
             if description:
                 lines.append(f"![{caption}](#) <!-- {description} -->")
             elif caption:
                 lines.append(f"![{caption}](#)")
+            else:
+                # Both empty (or scrubbed): keep the image's position as a neutral,
+                # non-citable marker instead of dropping it entirely.
+                lines.append("<!-- image -->")
             lines.append("")
         elif btype == "table":
             modal = b.get("modal_result") or {}
@@ -128,6 +149,37 @@ def _merge_to_markdown(blocks: list[dict]) -> str:
                 if is_failure_marker(caption):
                     caption = ""
             table_md, outcome = render_table_markdown(b)
+            grid = b.get("table_body") or []
+
+            # Page-break continuation rescue: when a table block is scored LOST
+            # (its lone row was consumed as a header → 0 data rows) but still
+            # carries real cells, splice those rows onto the immediately preceding
+            # table when the column widths match. Gated add-only on the rows'
+            # content tokens being MISSING from what's already rendered, so a row
+            # already present is never duplicated. Mirrors the adapter's
+            # `_recover_dropped_table_cells` family.
+            if outcome == OUTCOME_LOST and grid and prev_table is not None:
+                prev_grid, prev_last_idx = prev_table
+                if is_continuation_table(prev_grid, grid):
+                    rendered_tokens = content_tokens("\n".join(lines))
+                    new_rows = [
+                        r
+                        for r in grid
+                        if content_tokens(" ".join(c for c in r if c)) - rendered_tokens
+                    ]
+                    if new_rows:
+                        data_rows = _grid_rows_as_data(new_rows, len(prev_grid[0]))
+                        # Insert right after the preceding table's last row.
+                        for off, dr in enumerate(data_rows):
+                            lines.insert(prev_last_idx + 1 + off, dr)
+                        prev_table = (
+                            prev_grid + new_rows,
+                            prev_last_idx + len(data_rows),
+                        )
+                    # Continuation consumed (whether or not new rows were added):
+                    # do not emit it as its own table.
+                    continue
+
             if caption:
                 lines.append(f"<!-- table: {caption} -->")
             if outcome == OUTCOME_PARTIAL_KEPT:
@@ -136,7 +188,16 @@ def _merge_to_markdown(blocks: list[dict]) -> str:
                 lines.append("<!-- table (unverified) -->")
             if table_md:
                 lines.append(table_md)
+                # Remember this table's last-row line index for a possible
+                # continuation splice on the next block.
+                prev_table = (grid, len(lines) - 1)
+            else:
+                prev_table = None
             lines.append("")
+            continue
+
+        # Any non-table block breaks an in-progress table run.
+        prev_table = None
     return "\n".join(lines).rstrip() + "\n"
 
 

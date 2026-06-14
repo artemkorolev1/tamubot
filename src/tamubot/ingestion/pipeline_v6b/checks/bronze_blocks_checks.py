@@ -26,7 +26,11 @@ from tamubot.ingestion.validation.header_hierarchy import (
 from tamubot.ingestion.validation.pdf_integrity import check_pdf_integrity, count_pdf_pages
 from tamubot.ingestion.validation.table_quality import compute_table_capture
 from tamubot.ingestion.validation.text_coverage import compute_text_coverage
-from tamubot.ingestion.validation.text_quality import check_no_replacement_chars, count_unanswered_labels
+from tamubot.ingestion.validation.text_quality import (
+    check_no_replacement_chars,
+    count_unanswered_labels,
+    find_fabricated_links,
+)
 from tamubot.ingestion.validation.types import CheckOutcome
 
 
@@ -280,6 +284,29 @@ def v6b_bronze_blocks_no_orphaned_labels(
         passed=outcome.passed,
         severity=AssetCheckSeverity.WARN,
         description=f"{n}/{total} field labels have no value beside them{detail}",
+        metadata=outcome.metadata,
+    )
+
+
+@asset_check(asset="v6b_bronze_blocks", blocking=False, partitions_def=stem_partitions)
+def v6b_bronze_blocks_no_fabricated_links(
+    context: AssetCheckExecutionContext,
+) -> AssetCheckResult:
+    """FID_HALLUCINATION gate (ISEN_633 class): a synthesized ``[label](mailto:X)`` /
+    ``[label](http…)`` link whose target already appears as plain text elsewhere — the
+    signature of a fabricated link for a value that was already present. WARN for now;
+    promote to blocking once the pass rate is confirmed across the golden set."""
+    stem = context.partition_key
+    blocks = json.loads(paths.bronze_blocks_path(stem).read_text(encoding="utf-8"))
+    outcome = find_fabricated_links(blocks)
+    n = outcome.metadata["fabricated_link_count"]
+    total = outcome.metadata["total_links"]
+    sample = outcome.metadata["sample_fabricated"]
+    detail = f"; e.g. {', '.join(sample[:3])}" if n else ""
+    return AssetCheckResult(
+        passed=outcome.passed,
+        severity=AssetCheckSeverity.WARN,
+        description=f"{n}/{total} link(s) fabricated for already-present plain text{detail}",
         metadata=outcome.metadata,
     )
 

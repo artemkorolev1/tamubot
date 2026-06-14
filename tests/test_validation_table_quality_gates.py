@@ -6,7 +6,9 @@ and the modal-quality scalars used by the run-over-run drift check.
 
 from tamubot.ingestion.validation.table_quality import (
     check_confidence_floor,
+    check_grading_weights_sum_to_100,
     check_no_failure_markers,
+    check_no_grading_weight_drift,
     check_no_truncated_tables,
     compute_table_capture,
     count_failure_markers,
@@ -166,3 +168,75 @@ def test_mean_table_confidence():
 
 def test_mean_table_confidence_none_when_no_tables():
     assert mean_table_confidence([{"type": "text", "text": "hi"}]) is None
+
+
+# --- Check 3: grading-weight table sums to ~100% (FID_TABLE_LOST / ECEN_688) ---
+
+_GRADING_OK = (
+    "## Grading\n\n"
+    "| Item | Percent |\n| --- | --- |\n"
+    "| Exam 1 | 15% |\n| Exam 2 | 15% |\n| Labs | 40% |\n| Activities | 30% |\n"
+)
+# A dropped 5% row: the table sums to 95, not 100.
+_GRADING_DROPPED = (
+    "## Grading\n\n"
+    "| Item | Percent |\n| --- | --- |\n"
+    "| Homework | 40% |\n| Midterms | 45% |\n| Quizzes | 10% |\n"
+)
+
+
+def test_grading_weights_sum_100_passes():
+    chunk = {"header_path": "Grading Policy", "content": _GRADING_OK}
+    out = check_grading_weights_sum_to_100(chunk)
+    assert out.metadata["evaluated"]
+    assert out.passed
+    assert out.metadata["grading_sum"] == 100.0
+
+
+def test_grading_weights_dropped_row_flagged():
+    """ECEN_688 class: a grading table summing to 95% (a dropped 5% row)."""
+    chunk = {"header_path": "Grading", "content": _GRADING_DROPPED}
+    out = check_grading_weights_sum_to_100(chunk)
+    assert out.metadata["evaluated"]
+    assert out.passed is False
+    assert out.metadata["grading_sum"] == 95.0
+
+
+def test_grading_weights_uses_first_percent_per_row():
+    """`40% (10% each)` contributes 40, not 40+10 — the parenthetical is a breakdown."""
+    content = (
+        "## Grading\n\n"
+        "| Item | Percent |\n| --- | --- |\n"
+        "| Homework | 40% (10% each) |\n| Midterms | 45% (15% each) |\n| Quizzes | 15% (5% each) |\n"
+    )
+    out = check_grading_weights_sum_to_100({"header_path": "Grading", "content": content})
+    assert out.metadata["grading_sum"] == 100.0
+    assert out.passed
+
+
+def test_non_grading_percent_table_not_evaluated():
+    """An attendance table with a single % threshold is not a grading breakdown."""
+    content = "## Attendance\n\n| Rule | Threshold |\n| --- | --- |\n| Min attendance | 90% |\n"
+    out = check_grading_weights_sum_to_100({"header_path": "Attendance Policy", "content": content})
+    assert out.metadata["evaluated"] is False
+    assert out.passed  # vacuously
+
+
+def test_grading_context_but_too_few_rows_not_evaluated():
+    """Grading context with <3 percent rows is too sparse to judge — not evaluated."""
+    content = "## Grading\n\n| Item | Percent |\n| --- | --- |\n| Final | 100% |\n"
+    out = check_grading_weights_sum_to_100({"header_path": "Grading", "content": content})
+    assert out.metadata["evaluated"] is False
+    assert out.passed
+
+
+def test_grading_weight_drift_rollup():
+    chunks = [
+        {"header_path": "Grading", "content": _GRADING_OK},
+        {"header_path": "Grading", "content": _GRADING_DROPPED},
+        {"header_path": "Attendance", "content": "Just prose, no table."},
+    ]
+    out = check_no_grading_weight_drift(chunks)
+    assert out.passed is False
+    assert out.metadata["offending_count"] == 1
+    assert out.metadata["evaluated_grading_tables"] == 2

@@ -19,6 +19,7 @@ from tamubot.ingestion.pipeline_v6b.util.text_normalize import (
     minhash_of,
     normalize_text,
 )
+from tamubot.ingestion.validation.boilerplate_quality import find_course_specific_signal
 
 BP_THRESHOLD = 0.80
 WITHIN_SYL_THRESHOLD = 0.92
@@ -27,11 +28,28 @@ CROSS_SYL_THRESHOLD = 0.95
 
 def flag_boilerplate(chunks: list[dict], reference_index: ReferenceIndex) -> None:
     for c in chunks:
-        cluster_id, conf = reference_index.match(c.get("content", ""), threshold=BP_THRESHOLD)
+        content = c.get("content", "")
+        cluster_id, conf = reference_index.match(content, threshold=BP_THRESHOLD)
+        match_source = "body_jaccard"
+        if cluster_id is None:
+            # Header-anchored fallback: a known cross-corpus policy header whose
+            # body Jaccard fell below BP_THRESHOLD (genuine policy variant +/-
+            # OCR ligature loss). BP_THRESHOLD itself is NOT lowered.
+            cluster_id, conf = reference_index.match_by_header(content)
+            match_source = "header_anchored"
+            # A true fixed-wording university policy never carries an instructor's
+            # own grade percentage or concrete due date. When the body holds such a
+            # course-specific signal, this is a CUSTOMIZED section under a standard
+            # header (e.g. a course's own "Late Work Policy … 20% penalty") and
+            # header-anchoring would OVER-HIDE it — reject the match. The body-
+            # Jaccard path above (>= BP_THRESHOLD) is trusted as-is and not gated.
+            if cluster_id is not None and find_course_specific_signal(content):
+                cluster_id, conf = None, 0.0
         if cluster_id is not None:
             c["is_boilerplate"] = True
             c["boilerplate_cluster"] = cluster_id
             c["cluster_confidence"] = conf
+            c["boilerplate_match_source"] = match_source
 
 
 def build_local_signatures(chunks: list[dict]) -> dict[int, MinHash]:

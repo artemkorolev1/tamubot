@@ -27,34 +27,40 @@ open history. Newest first; one entry per distinct failure mode.
 
 ### 2026-06-09 · Orphan mailto recovery fabricates a `[label](mailto:)` block · FID_HALLUCINATION
   impact: RAG sees a synthesized contact line absent from the PDF — here a Zoom `?pwd=` fragment spliced into a fake email link; a hallucinated, citable-looking source
-  fix:    open — guard `_append_orphan_urls` to skip a `mailto:` orphan whose address already appears as text (`docling_block_adapter.py`); regression introduced by ac3edc1
-  status: 🔲 open  ·  ISEN_633_600 processed L27 `[niosh@tamu.edu; ?pwd=ooFUavFzL](mailto:niosh@tamu.edu)` (email already plain on L25)
+  fix:    APPLIED — `_append_orphan_urls` now skips a `mailto:` orphan whose bare address already appears as text (`docling_block_adapter.py`); regression introduced by ac3edc1. Unit test `test_skips_mailto_orphan_when_email_already_plain_text` (38 passed, 0 regr)
+  status: 🟢 CONFIRMED end-to-end (rebuilt 2026-06-10)  ·  ISEN_633_600 — fabricated `[…](mailto:…)` link GONE from RAG-visible output; real `niosh@tamu.edu` retained; the genuine Zoom link `…?pwd=ooFUavFzL…` correctly survives in the visible TA section
 
 ### 2026-06-09 · Disabled-modal image fetch leaks errno string into RAG text · FID_TABLE_LOST / FID_IMAGE_LOST
   impact: `![[image processing failed: [Errno 111] Connection refused]](#)` literal shown in processed text; when the image was a content table the table is silently lost
-  fix:    open — degrade a failed image to a clean `<!-- image -->` marker, never bake the exception string (`assets/silver_modal.py` / `docling_block_adapter.py`); real table recovery for ISEN_665 needs a GPU modal pass (gpu-ops)
-  status: 🔲 open  ·  ISEN_665_600 ×4 (schedule "Topical outline" table pp.6-8 lost); contributes to FID_IMAGE_LOST ×23 corpus-wide
+  fix:    APPLIED — `silver_modal._merge_to_markdown` image branch guards `is_failure_marker(caption/description)` and degrades to a clean `<!-- image -->` (mirrors the table branch); never serializes the errno string (26 tests, 0 regr)
+  status: 🟢 CONFIRMED end-to-end (rebuilt 2026-06-10)  ·  ISEN_665_600 — `processing failed`/`Errno` strings GONE from RAG-visible output, clean `<!-- image -->` present. NB the lost schedule TABLE itself (it was an image) still needs a GPU modal pass — only the errno-string LEAK is closed here; FID_IMAGE_LOST ×23 corpus-wide remains a modal-disabled artifact
 
 ### 2026-06-09 · New bronze line/row drops on the holdout · FID_CONTENT_DROPPED
   impact: lab time, "check daily: canvas.tamu.edu", seminar/final-project grading, a midterm row absent from ORIGINAL+PROCESSED — confidently-wrong answers to high-frequency questions
-  fix:    open — Docling-drop variants the iter_06–08 detectors miss; needs per-variant triage in recovery (`docling_block_adapter.py` / `assets/bronze_blocks.py`)
-  status: 🔲 open  ·  ECEN_749_602 (lab time), CSCE_629_600 (canvas link), CSCE_704_600 (grading), ECEN_688_602 (midterm row)
+  fix:    per-stem triage done (4 distinct quirks, 2 families). ECEN_688 = VLM table transcription dropped a spanned row, slipped under the 80% row-conservation guard → owner is `validation/table_quality.py` NOT the adapter. CSCE_629/ECEN_749 = adapter URL/two-column recovery misses (need PyMuPDF visual-line threading). CSCE_704 = wholesale ~25-line region drop, NO existing detector fits.
+  status: 🟢 2/4 CONFIRMED end-to-end · 🟡 1 partial · 🔲 1 deferred  (rebuilt 6 stems 2026-06-10, RAG-visible asserted)
+          ✔ ECEN_688_602 CONFIRMED — `table_quality.render_table_markdown` rejects a VLM table missing any grid content token → grid fallback (30+15 tests). Visible chunk 7 now carries `| Mid-term exam: Thursday, October 15 th during class |`
+          ✔ ECEN_749_602 CONFIRMED — new `_recover_orphaned_line_prefixes` (strict-suffix + novel-token + len floor; 47 tests). `505/605` + `12:20` now present
+          🟡 CSCE_629_600 PARTIAL/INEFFECTIVE — code applied (`_recover_urls_by_page` 4-tuple full_line + `_append_orphan_urls` gated substitution, 41 tests) BUT end-to-end the canvas line is STILL lost: (a) the "Also, check daily:" prose did NOT recover because its tokens (check/daily) appear elsewhere in bronze → novel-token gate didn't fire (unit test used synthetic novel prose = FALSE POSITIVE); (b) the bare `https://canvas.tamu.edu/` IS recovered but tagged is_duplicate (cross-section dup of CSCE_629_600_54978#3) → hidden. Real blocker is cross-syllabus dedup, ties to the #4 over-hide work. Code is add-only/harmless (helps genuinely-novel URL-line prose elsewhere) but does NOT close this stem.
+          🔲 DEFERRED CSCE_704_600 — wholesale ~25-line grading region drop. CONFIRMED unsafe for CPU/PyMuPDF region-recovery (2nd subagent attempt 2026-06-10 STOPPED, no code applied): page_idx 3 has NO text block in bronze — only an image block (60); the PDF page render is a blank/scrambled OCR-failure placeholder → the grading region is trapped in an un-OCR'd image. The region's anchors survived elsewhere as table cells (BlackBox/WhiteBox Defense on pp.4-5) + summary prose, and a 0.62-Jaccard near-twin of kept block 61 creates a duplication trap, so the contiguous-missing-run gate fragments into 7 disjoint runs with no same-page anchor. → recover ONLY via a GPU Docling/modal VLM re-pass on this stem (gpu-ops); not a host-adapter fix. Stays deferred.
 
-### 2026-06-09 · Course-specific grading row hidden as boilerplate/duplicate · FID_TABLE_LOST (over-hide)
-  impact: a unique grading-weight row present in ORIGINAL removed from PROCESSED by tag/dedup — answer looks complete, isn't
-  fix:    open — tighten tagging so a unique grading row isn't clustered as bp/dup (`util/tagging.py` / `util/boilerplate_clustering.py`)
-  status: 🔲 open  ·  CSCE_689_700 "Async Progress Check-in Posts" 5% row
+### 2026-06-09 · CSCE_689 grading row dropped — MIS-DIAGNOSED as over-hide, actually FID_TABLE_LOST (render) · FID_TABLE_LOST
+  impact: a unique grading-weight row present in ORIGINAL removed from PROCESSED — answer looks complete, isn't (table summed to 95%)
+  triage: NOT a tagging over-hide — the "Async Progress Check-in Posts | 5%" row is is_boilerplate=false/is_duplicate=false; tagging never touched it. It's a separate 1-data-row CONTINUATION table that `render_table_markdown` treated as header-only (0 data rows) → OUTCOME_LOST → empty markdown, dropped before chunking. iter_09 verdict agrees: FID_TABLE_LOST.
+  fix:    APPLIED — `table_quality.is_continuation_table` + `_merge_to_markdown` continuation-rescue: a same-width table scoring OUTCOME_LOST splices its rows into the preceding table, gated on rows' tokens missing from the rendered output (9+30+47 tests, 0 regr). Adapter untouched.
+  status: 🟢 CONFIRMED end-to-end (rebuilt 2026-06-10)  ·  CSCE_689_700 — grading table now carries all 8 rows (sums 100%), "Async Progress Check-in Posts … 5%" appears once in RAG-visible output. NB a SEPARATE Phase-2 schedule header-row loss in the same doc remains (orphaned header row before a heading) — out of scope, not yet fixed.
 
 ### 2026-06-09 · Stranded campus-policy headers at chunk tail · CHUNK_ORPHAN_HEADER
   impact: body-less "Campus-Specific Policies / Texas A&M at Galveston" headers end a chunk — retrieval noise, weak embeddings
-  fix:    open (`chunker_v4.py`)
+  fix:    APPLIED — `chunker_v4._process_node` drops a header whose entire subtree has no body (`_has_body_in_subtree`) before the sub-floor backward-merge can glue it onto the prev chunk's tail. Tests `test_orphan_header_not_stranded_at_chunk_tail` + `test_header_with_body_is_never_dropped_as_orphan` (28 passed, 0 regr)
   check:  orphan-header / `no_oversized` check should coincide — verify it fires on this stem
-  status: 🔲 open  ·  STAT_620_600
+  status: 🟢 CONFIRMED end-to-end (rebuilt 2026-06-10)  ·  STAT_620_600 — no body-less orphan header in any RAG-visible chunk; no stranded `Campus-Specific Policies`/`Texas A&M at Galveston` trailing header
 
 ### 2026-06-09 · University-policy boilerplate left untagged · BP_MISSED
   impact: standard TAMU policy text surfaced as course content — dilutes retrieval, repeats across the corpus
-  fix:    open (`util/tagging.py` / `util/boilerplate_clustering.py`)
-  status: 🔲 open  ·  STAT_651_600
+  triage: CODE not data-coverage — the boilerplate reference already spans 4 depts (the old "CSCE+STAT-only" note is stale). STAT's policy chunks match their CORRECT cluster but at body-Jaccard far below `BP_THRESHOLD=0.80` (Makeup 0.688, Acad Integrity 0.414, ADA 0.312, Mental Health 0.094, Title IX 0.086) — genuine policy variant + OCR ligature loss ("Ofce", "confdentiality") shreds the 5-gram MinHash. A threshold drop is IMPOSSIBLE (real course content sits at 0.648 → false-positive cliff).
+  fix:    APPLIED — header-anchored fallback in `flag_boilerplate`: a chunk whose normalized leading header matches a reference cluster present in ≥`HEADER_ALLOWLIST_MIN_DEPTS`=4 depts AND whose body-Jaccard clears `HEADER_BODY_JACCARD_FLOOR`=0.12 is flagged boilerplate (`boilerplate_match_source="header_anchored"`); `BP_THRESHOLD` + dedup thresholds untouched. TWO over-hide guards added after verification caught regressions: (1) floor raised 0.05→0.12 (ECEN_749 Late Work jac 0.055); (2) the header-anchored path now REJECTS any chunk whose body carries a course-specific signal (% or concrete date) via `find_course_specific_signal` — a fixed-wording univ policy never holds an instructor's own "20% penalty". (silver_tag 17 tests + boilerplate_quality tests, 0 regr.)
+  status: 🟢 CONFIRMED end-to-end (rebuilt 2026-06-10)  ·  STAT_651_600 — Makeup/Academic-Integrity/ADA now tagged boilerplate (jac 0.69/0.41/0.31). KNOWN residual: Mental Health (0.094) + Title IX (0.086) stay UNtagged — too OCR-damaged / differently-titled for the 0.12 floor; left as a BP_MISSED miss (visible) rather than risk over-hiding course content. FULL-CORPUS sweep (100 stems re-tagged 2026-06-10): 0 header-anchored chunks below 0.12, and 0 over-hides (boilerplate chunks carrying a course-specific signal) — down from 4 (all "Late Work Policy") before the signal gate. BP-rate corpus median 59%.
 
 ### 2026-06-09 · Docling drops PDF link-annotation URL lines · FID_CONTENT_DROPPED
   impact: "link to the instructor page / Canvas" returns nothing; no source to cite

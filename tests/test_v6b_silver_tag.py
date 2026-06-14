@@ -66,6 +66,26 @@ def _make_reference_index(tmp_path, entries: list[str]) -> ReferenceIndex:
     return ReferenceIndex(p)
 
 
+def _make_reference_index_rows(tmp_path, rows: list[dict]) -> ReferenceIndex:
+    """Build a reference parquet from explicit rows (to control distinct_depts)."""
+    df = pd.DataFrame(
+        [
+            {
+                "cluster_id": r["cluster_id"],
+                "representative_text": r["representative_text"],
+                "normalized_text": r["representative_text"].lower(),
+                "doc_frequency": r.get("doc_frequency", 80),
+                "distinct_depts": r.get("distinct_depts", 4),
+                "ngram_signature": [],
+            }
+            for r in rows
+        ]
+    )
+    p = tmp_path / "ref.parquet"
+    df.to_parquet(p, index=False)
+    return ReferenceIndex(p)
+
+
 # ---------- Boilerplate pass ----------
 
 def test_boilerplate_pass_flags_exact_match(tmp_path):
@@ -81,6 +101,131 @@ def test_boilerplate_pass_flags_exact_match(tmp_path):
 def test_boilerplate_pass_with_empty_reference_is_noop(tmp_path):
     ref = ReferenceIndex.empty()
     chunks = [_chunk(0, _AGGIE_HONOR)]
+    flag_boilerplate(chunks, ref)
+    assert chunks[0]["is_boilerplate"] is False
+
+
+# ---------- Header-anchored boilerplate fallback ----------
+#
+# A genuine cross-corpus university policy whose body has been mangled (OCR
+# ligature loss + a real STAT-style variant) drops the body-Jaccard far below
+# BP_THRESHOLD, so the standard body matcher declines. The header-anchored
+# fallback recovers it: the leading policy header equals a known multi-dept
+# policy header AND the body clears a low floor. BP_THRESHOLD is NOT lowered.
+
+# Canonical policy body the reference cluster carries.
+_MAKEUP_POLICY = (
+    "## Makeup Work Policy\n\n"
+    "Excused absences are governed by Student Rule 7. A student who is absent for an "
+    "excused reason is entitled to make up any quiz exam or other work missed and the "
+    "instructor will provide a reasonable opportunity to complete the missed work within "
+    "the timelines set out in the student rules and the university calendar for the term."
+)
+
+# Same policy as it appears in the STAT syllabus: single-# header, trailing
+# colon, an OCR ligature dropped ("definitions" -> "defnitions"), and reworded
+# enough that the 5-gram Jaccard lands below BP_THRESHOLD but above the floor.
+_MAKEUP_POLICY_VARIANT = (
+    "# Makeup Work Policy:\n\n"
+    "Excused absences are governed by Student Rule 7. A student who is absent for an "
+    "excused reason is entitled to make up any quiz exam or other work missed and the "
+    "instructor must provide a fair chance to finish the missed work soon under the "
+    "defnitions in the student rules for this term."
+)
+
+
+def test_header_anchored_flags_below_threshold_policy_variant(tmp_path):
+    ref = _make_reference_index_rows(
+        tmp_path,
+        [{"cluster_id": "bp_makeup", "representative_text": _MAKEUP_POLICY,
+          "doc_frequency": 105, "distinct_depts": 4}],
+    )
+    # Sanity: the body matcher alone declines (Jaccard < BP_THRESHOLD).
+    assert ref.match(_MAKEUP_POLICY_VARIANT, threshold=0.80)[0] is None
+    chunks = [_chunk(0, _MAKEUP_POLICY_VARIANT)]
+    flag_boilerplate(chunks, ref)
+    assert chunks[0]["is_boilerplate"] is True
+    assert chunks[0]["boilerplate_cluster"] == "bp_makeup"
+    assert chunks[0]["boilerplate_match_source"] == "header_anchored"
+    # Recorded confidence is the (below-threshold) body Jaccard, for audit.
+    assert 0.05 <= chunks[0]["cluster_confidence"] < 0.80
+
+
+def test_header_anchored_does_not_flag_unknown_header(tmp_path):
+    # NEGATIVE: a chunk whose header is NOT in the allow-list and whose body
+    # Jaccard is below BP_THRESHOLD must NOT be flagged (no false positive).
+    ref = _make_reference_index_rows(
+        tmp_path,
+        [{"cluster_id": "bp_makeup", "representative_text": _MAKEUP_POLICY,
+          "doc_frequency": 105, "distinct_depts": 4}],
+    )
+    course_chunk = (
+        "# Course Project Milestones:\n\n"
+        "Please refer to Student Rule 7 for excused absences including defnitions and the "
+        "related documentation and timelines while you plan your project milestones each term."
+    )
+    assert ref.match(course_chunk, threshold=0.80)[0] is None  # below BP_THRESHOLD
+    chunks = [_chunk(0, course_chunk)]
+    flag_boilerplate(chunks, ref)
+    assert chunks[0]["is_boilerplate"] is False
+
+
+def test_header_anchored_skips_one_off_low_dept_cluster(tmp_path):
+    # NEGATIVE: a policy-looking header whose only reference cluster spans too
+    # few departments is a one-off, not a real cross-corpus policy → no
+    # allow-list entry → not header-flagged even with matching header text.
+    ref = _make_reference_index_rows(
+        tmp_path,
+        [{"cluster_id": "bp_attend", "representative_text":
+          "## Attendance Policy\n\nThe instructor takes roll at the start of every lecture "
+          "and unexcused absences beyond three will lower the participation grade for this "
+          "specific course section as described in the course management system this term.",
+          "doc_frequency": 6, "distinct_depts": 3}],
+    )
+    chunk = _chunk(0, "# Attendance Policy:\n\nThe instructor takes roll at the start of "
+                      "every lecture and unexcused absences beyond three will lower the grade.")
+    chunks = [chunk]
+    flag_boilerplate(chunks, ref)
+    assert chunks[0]["is_boilerplate"] is False
+
+
+def test_header_anchored_skips_zero_body_overlap(tmp_path):
+    # NEGATIVE: a same-titled but genuinely course-specific section with ZERO
+    # body overlap (Jaccard < floor) is NOT flagged — the floor guards it.
+    ref = _make_reference_index_rows(
+        tmp_path,
+        [{"cluster_id": "bp_makeup", "representative_text": _MAKEUP_POLICY,
+          "doc_frequency": 105, "distinct_depts": 4}],
+    )
+    course_specific = (
+        "# Makeup Work Policy:\n\n"
+        "For this seminar specifically your makeup presentation must reschedule with the "
+        "guest speaker liaison and upload slides to the shared workshop drive within fortyeight "
+        "hours of the rescheduled robotics demonstration slot assigned by the lab coordinator."
+    )
+    chunks = [_chunk(0, course_specific)]
+    flag_boilerplate(chunks, ref)
+    assert chunks[0]["is_boilerplate"] is False
+
+
+def test_header_anchored_rejects_course_specific_signal(tmp_path):
+    # NEGATIVE (over-hide guard): a chunk under a standard policy header whose body
+    # clears the Jaccard floor BUT carries an instructor's own grade percentage is a
+    # CUSTOMIZED section — header-anchoring must NOT flag it (the ECEN_749 /
+    # CSCE_765 "Late Work Policy … 20% penalty" corpus-wide over-hide class).
+    ref = _make_reference_index_rows(
+        tmp_path,
+        [{"cluster_id": "bp_makeup", "representative_text": _MAKEUP_POLICY,
+          "doc_frequency": 105, "distinct_depts": 4}],
+    )
+    # Same wording as the flaggable variant (clears the floor) + a course-specific %.
+    customized = _MAKEUP_POLICY_VARIANT + (
+        "\n\nLate makeup submissions will be accepted with a penalty of 20% per day "
+        "for this section only."
+    )
+    # Sanity: the body matcher alone still declines (below BP_THRESHOLD).
+    assert ref.match(customized, threshold=0.80)[0] is None
+    chunks = [_chunk(0, customized)]
     flag_boilerplate(chunks, ref)
     assert chunks[0]["is_boilerplate"] is False
 

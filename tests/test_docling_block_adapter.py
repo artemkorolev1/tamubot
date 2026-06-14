@@ -300,6 +300,20 @@ class TestUrlRecovery:
         assert appended == 0
         assert sum(1 for b in blocks if b.get("recovered_url")) == 0
 
+    def test_skips_mailto_orphan_when_email_already_plain_text(self):
+        """ISEN_633 FID_HALLUCINATION: Docling kept the bare address as plain
+        text ("niosh@tamu.edu"), but dropped the link annotation whose link_text
+        is a mangled variant ("niosh@tamu.edu; ?pwd=ooFUavFzL") and uri is
+        "mailto:niosh@tamu.edu". Neither the full uri nor the mangled link_text
+        substring-matches the plain text, so without a mailto guard a fake
+        `[...](mailto:...)` link gets fabricated. It must be skipped instead."""
+        blocks = [{"type": "text", "text": "Contact: niosh@tamu.edu", "page_idx": 1}]
+        urls = {1: [("niosh@tamu.edu; ?pwd=ooFUavFzL", "mailto:niosh@tamu.edu")]}
+        _, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert appended == 0
+        assert sum(1 for b in blocks if b.get("recovered_url")) == 0
+        assert not any("mailto:" in b.get("text", "") for b in blocks)
+
     def test_url_link_text_emitted_bare_even_if_uri_malformed(self):
         """When the visible link text is a clean URL but the annotation's uri
         target is garbled (source-PDF typo), emit the clean visible URL bare."""
@@ -308,6 +322,71 @@ class TestUrlRecovery:
         _, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
         assert appended == 1
         assert blocks[-1]["text"] == "https://canvas.tamu.edu/"
+
+    def test_orphan_url_emits_full_line_when_prose_dropped(self):
+        """CSCE_629 FID_CONTENT_DROPPED: the link sat inside a centred instructional
+        line ("Also, check daily: https://canvas.tamu.edu/"). The annotation's
+        link_text is just the bare URL and its uri is garbled, so the bare-URL
+        branch would drop the prose "Also, check daily:". When the entry carries
+        the full visual line and that prose is absent from bronze, emit the WHOLE
+        line so the dropped prose AND the URL survive."""
+        blocks = [{"type": "text", "text": "Grading Policy", "page_idx": 3}]
+        urls = {
+            3: [
+                (
+                    "https://canvas.tamu.edu/",
+                    "http://h_ps//canvas.tamu.edu/%20(check",
+                    79.5,
+                    "Also, check daily: https://canvas.tamu.edu/",
+                )
+            ]
+        }
+        _, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert appended == 1
+        recovered = [b for b in blocks if b.get("recovered_url")]
+        assert len(recovered) == 1
+        assert recovered[0]["text"] == "Also, check daily: https://canvas.tamu.edu/"
+
+    def test_orphan_url_stays_bare_when_line_has_no_extra_prose(self):
+        """Companion regression: a full_line that is just the bare URL (no
+        surrounding prose) must still emit the bare URL, not anything fuller."""
+        blocks = [{"type": "text", "text": "Grading Policy", "page_idx": 3}]
+        urls = {
+            3: [
+                (
+                    "https://canvas.tamu.edu/",
+                    "http://h_ps//canvas.tamu.edu/%20(check",
+                    79.5,
+                    "https://canvas.tamu.edu/",
+                )
+            ]
+        }
+        _, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert appended == 1
+        recovered = [b for b in blocks if b.get("recovered_url")]
+        assert recovered[0]["text"] == "https://canvas.tamu.edu/"
+
+    def test_orphan_url_stays_bare_when_prose_already_in_bronze(self):
+        """If the surrounding prose is already present in a bronze block, the bare
+        URL is emitted (no token is novel) — never duplicate kept text."""
+        blocks = [
+            {"type": "text", "text": "Also, check daily for updates", "page_idx": 3},
+            {"type": "text", "text": "Grading Policy", "page_idx": 3},
+        ]
+        urls = {
+            3: [
+                (
+                    "https://canvas.tamu.edu/",
+                    "http://h_ps//canvas.tamu.edu/%20(check",
+                    79.5,
+                    "Also, check daily: https://canvas.tamu.edu/",
+                )
+            ]
+        }
+        _, appended = dba._inject_urls_into_blocks(blocks, urls, stem="S")
+        assert appended == 1
+        recovered = [b for b in blocks if b.get("recovered_url")]
+        assert recovered[0]["text"] == "https://canvas.tamu.edu/"
 
     def test_named_link_text_rendered_as_markdown(self):
         blocks = [{"type": "text", "text": "unrelated", "page_idx": 1}]
@@ -398,6 +477,81 @@ class TestLabelValueRecovery:
         lines = {1: ["Room: 3 A"]}  # tail tokens too short
         n = dba._extend_labels_with_values(blocks, lines, set())
         assert n == 0
+
+
+class TestOrphanedPrefixRecovery:
+    """_recover_orphaned_line_prefixes: re-attach a leading segment Docling chopped
+    off a free-text value line, leaving only its orphan tail."""
+
+    # The PyMuPDF full visual line for the ECEN_749 lab-time case.
+    FULL_LINE = "505/605: T 12:20 PM – 2:10 PM; 506/606: T 3:00 PM – 4:50 PM"
+    FRAGMENT = "- 2:10 PM;             506/606: T   3:00 PM - 4:50 PM"
+
+    def test_recovers_dropped_leading_segment(self):
+        """ECEN_749: Docling mangled the lab line and kept only the tail
+        `- 2:10 PM; 506/606…`, dropping `505/605: T 12:20 PM`. The fragment is a
+        clean suffix of the full PyMuPDF line whose dropped prefix carries the novel
+        token `505/605` -> replace the fragment with the whole line."""
+        blocks = [{"type": "text", "text": self.FRAGMENT, "page_idx": 1, "block_id": "A"}]
+        lines = {1: [self.FULL_LINE]}
+        # bronze has the fragment's own tokens but NOT 505/605 (the dropped prefix).
+        bronze_tokens = {"2:10", "3:00", "4:50", "506/606", "12:20"}
+        n = dba._recover_orphaned_line_prefixes(blocks, lines, bronze_tokens)
+        assert n == 1
+        assert blocks[0]["text"] == self.FULL_LINE
+        assert blocks[0]["recovered_line_prefix"] is True
+
+    def test_ignores_non_suffix_fragment(self):
+        """A fragment that is NOT a contiguous tail of any line (only a loose token
+        overlap) must be left unchanged."""
+        blocks = [
+            {"type": "text", "text": "506/606: T 3:00 PM – 4:50 PM extra trailing words", "page_idx": 1}
+        ]
+        lines = {1: [self.FULL_LINE]}
+        n = dba._recover_orphaned_line_prefixes(blocks, lines, set())
+        assert n == 0
+        assert blocks[0]["text"] == "506/606: T 3:00 PM – 4:50 PM extra trailing words"
+
+    def test_skips_when_prefix_already_in_bronze(self):
+        """If the dropped prefix's tokens are all already present elsewhere in bronze,
+        recovering would duplicate kept content -> leave the fragment unchanged."""
+        blocks = [{"type": "text", "text": self.FRAGMENT, "page_idx": 1}]
+        lines = {1: [self.FULL_LINE]}
+        # 505/605 IS present in bronze already -> nothing novel to recover.
+        bronze_tokens = {"2:10", "3:00", "4:50", "506/606", "12:20", "505/605"}
+        n = dba._recover_orphaned_line_prefixes(blocks, lines, bronze_tokens)
+        assert n == 0
+        assert blocks[0]["text"] == self.FRAGMENT
+
+    def test_skips_ambiguous_multiple_matches(self):
+        """If the fragment is a suffix of more than one visual line, splicing could
+        attach the wrong prefix -> skip entirely."""
+        frag = "PM; 506/606: T 3:00 PM – 4:50 PM offered"
+        blocks = [{"type": "text", "text": frag, "page_idx": 1}]
+        lines = {
+            1: [
+                "505/605: T 12:20 PM; 506/606: T 3:00 PM – 4:50 PM offered",
+                "999/999: R 9:00 PM; 506/606: T 3:00 PM – 4:50 PM offered",
+            ]
+        }
+        n = dba._recover_orphaned_line_prefixes(blocks, lines, set())
+        assert n == 0
+        assert blocks[0]["text"] == frag
+
+    def test_short_fragment_below_floor_is_ignored(self):
+        """A very short generic fragment can't trigger a splice (length floor)."""
+        blocks = [{"type": "text", "text": "- 2:10 PM", "page_idx": 1}]
+        lines = {1: [self.FULL_LINE]}
+        n = dba._recover_orphaned_line_prefixes(blocks, lines, set())
+        assert n == 0
+        assert blocks[0]["text"] == "- 2:10 PM"
+
+    def test_only_matches_same_page(self):
+        blocks = [{"type": "text", "text": self.FRAGMENT, "page_idx": 1}]
+        lines = {2: [self.FULL_LINE]}  # full line is on a different page
+        n = dba._recover_orphaned_line_prefixes(blocks, lines, set())
+        assert n == 0
+        assert blocks[0]["text"] == self.FRAGMENT
 
 
 class TestTwoColumnRecovery:

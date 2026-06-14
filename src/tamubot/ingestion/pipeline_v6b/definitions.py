@@ -35,6 +35,7 @@ from tamubot.ingestion.pipeline_v6b.checks.bronze_blocks_checks import (
     v6b_bronze_blocks_header_levels_normalized,
     v6b_bronze_blocks_heading_repair_vs_baseline,
     v6b_bronze_blocks_min_headers,
+    v6b_bronze_blocks_no_fabricated_links,
     v6b_bronze_blocks_no_orphaned_labels,
     v6b_bronze_blocks_no_replacement_chars,
     v6b_bronze_blocks_nonempty,
@@ -52,7 +53,9 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_atlas_upsert_checks import (
 from tamubot.ingestion.pipeline_v6b.checks.silver_chunk_checks import (
     v6b_silver_chunk_count_nonzero,
     v6b_silver_chunk_flagged_rate_vs_baseline,
+    v6b_silver_chunk_grading_weights_sum_100,
     v6b_silver_chunk_low_no_header_rate,
+    v6b_silver_chunk_no_header_only,
     v6b_silver_chunk_no_oversized,
     v6b_silver_chunk_schema_valid,
     v6b_silver_chunk_total_vs_baseline,
@@ -79,6 +82,7 @@ from tamubot.ingestion.pipeline_v6b.checks.silver_tag_checks import (
     v6b_silver_tag_boilerplate_rate_in_band,
     v6b_silver_tag_chunk_count_preserved,
     v6b_silver_tag_duplicate_rate_in_band,
+    v6b_silver_tag_no_boilerplate_overhide,
 )
 from tamubot.ingestion.pipeline_v6b.resources import DoclingConverterResource, NuExtractResource
 from tamubot.ingestion.pipeline_v6b.sensors import v6b_check_failure_alert
@@ -135,6 +139,7 @@ defs = Definitions(
         v6b_bronze_blocks_suspicious_heading_rate,
         v6b_bronze_blocks_table_cell_capture,
         v6b_bronze_blocks_no_orphaned_labels,
+        v6b_bronze_blocks_no_fabricated_links,
         v6b_bronze_blocks_text_coverage,
         v6b_silver_modal_budget_not_exceeded,
         v6b_silver_modal_result_schema_valid,
@@ -146,11 +151,14 @@ defs = Definitions(
         v6b_silver_chunk_count_nonzero,
         v6b_silver_chunk_low_no_header_rate,
         v6b_silver_chunk_no_oversized,
+        v6b_silver_chunk_no_header_only,
+        v6b_silver_chunk_grading_weights_sum_100,
         v6b_silver_chunk_schema_valid,
         v6b_silver_structured_not_degenerate,
         v6b_silver_tag_chunk_count_preserved,
         v6b_silver_tag_boilerplate_rate_in_band,
         v6b_silver_tag_duplicate_rate_in_band,
+        v6b_silver_tag_no_boilerplate_overhide,
         v6b_silver_embed_count_matches_chunks,
         v6b_silver_embed_model_field_present,
         v6b_silver_atlas_vector_count_matches_chunks,
