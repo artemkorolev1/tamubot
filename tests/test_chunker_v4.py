@@ -164,6 +164,64 @@ class TestRealFileRegression:
             )
 
 
+class TestSemanticCrossSectionMergeGuard:
+    """BP_OVERREACH regression: a sub-floor section must NOT backward-merge into
+    a previous chunk from a *different* section (gluing course-specific content
+    onto an adjacent generic policy and inheriting its header). See ECEN_688."""
+
+    def _ecen688_like(self) -> str:
+        # Oversized H1 forces recursion into the H2 children. "Late Work Policy"
+        # is generic boilerplate; the sibling "Course Specific Late Work Policy"
+        # is tiny (<50 tok) course-specific content that previously merged
+        # backward into the generic one.
+        return (
+            "# College of Engineering\n\n"
+            "## Grading Policy\n\n" + ("Grading detail prose with many words. " * 30) + "\n\n"
+            "## Late Work Policy\n\n"
+            "Work submitted by a student as makeup work for an excused absence is not "
+            "considered late work and is exempt from the late work policy.\n\n"
+            "## Course Specific Late Work Policy\n\n"
+            "Unexcused late work will not be accepted.\n\n"
+            "## Course Schedule\n\n" + ("Schedule prose week by week with content. " * 30)
+        )
+
+    def test_tiny_course_specific_section_not_glued_onto_generic(self):
+        chunks, _ = chunk_semantic(
+            self._ecen688_like(), flag_threshold=600, min_chunk_tokens=50
+        )
+        by_leaf = {c["header_path"].split(" > ")[-1]: c for c in chunks}
+        # The course-specific section survives as its OWN chunk with its OWN header
+        assert "Course Specific Late Work Policy" in by_leaf, (
+            f"course-specific section was absorbed; headers={list(by_leaf)}"
+        )
+        csl = by_leaf["Course Specific Late Work Policy"]
+        assert "Unexcused late work will not be accepted." in csl["content"]
+        # …and the generic Late Work Policy chunk does NOT swallow it
+        glwp = by_leaf.get("Late Work Policy")
+        assert glwp is not None
+        assert "Unexcused late work" not in glwp["content"]
+
+    def test_no_content_dropped(self):
+        md = self._ecen688_like()
+        chunks, _ = chunk_semantic(md, flag_threshold=600, min_chunk_tokens=50)
+        joined = "\n".join(c["content"] for c in chunks)
+        assert "Unexcused late work will not be accepted." in joined
+
+    def test_same_section_tiny_still_merges(self):
+        """Guard must not block within-section merges: a tiny trailing fragment
+        in the SAME section still merges (no new fragmentation there)."""
+        md = (
+            "# Root\n\n"
+            "## Only Section\n\n" + ("Body sentence with several words here. " * 40) + "\n\n"
+            "Tiny trailing line.\n\n"
+            "## Other\n\n" + ("Other body sentence with several words. " * 40)
+        )
+        chunks, log = chunk_semantic(md, flag_threshold=600, min_chunk_tokens=50)
+        # "Tiny trailing line." belongs to "Only Section" and should ride with it
+        only = [c for c in chunks if c["header_path"].endswith("Only Section")]
+        assert only and "Tiny trailing line." in only[0]["content"]
+
+
 def test_chunk_semantic_root_body_flagged_no_header():
     """Root body (text before the first header) is headerless, so it must carry
     the NO_HEADER flag the blocking low_no_header_rate check counts (M5)."""

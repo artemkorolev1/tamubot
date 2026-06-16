@@ -452,28 +452,9 @@ def chunk_semantic(
             flags.append("NO_HEADER")
         chunk["flags"] = flags
 
-    def _emit(text: str, hp: str, header: str) -> None:
+    def _append_chunk(text: str, hp: str, header: str) -> None:
+        """Append *text* as its own chunk (flags + log), no tiny-merge logic."""
         tok = _tokens_approx(text)
-        if tok < min_chunk_tokens:
-            # Try to merge into previous chunk instead of dropping
-            if chunks:
-                chunks[-1]["content"] += "\n\n" + text
-                chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
-                chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(text)
-                _refresh_flags(chunks[-1])
-                log["merged_tiny"] += 1
-            else:
-                # No previous chunk (leading section): buffer to merge FORWARD
-                # into the next real chunk rather than drop.
-                pending_forward.append(text)
-                log["merged_forward"] += 1
-            return
-        # Real chunk: flush any buffered leading fragments into it first so the
-        # head-of-document metadata rides along instead of being lost.
-        if pending_forward:
-            text = "\n\n".join(pending_forward) + "\n\n" + text
-            pending_forward.clear()
-            tok = _tokens_approx(text)
         flags: list[str] = []
         if tok > flag_threshold:
             flags.append("OVERSIZED")
@@ -494,6 +475,42 @@ def chunk_semantic(
             }
         )
         log["kept"] += 1
+
+    def _merge_into_prev(text: str) -> None:
+        chunks[-1]["content"] += "\n\n" + text
+        chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
+        chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(text)
+        _refresh_flags(chunks[-1])
+        log["merged_tiny"] += 1
+
+    def _emit(text: str, hp: str, header: str) -> None:
+        tok = _tokens_approx(text)
+        if tok < min_chunk_tokens:
+            # Merge a sub-floor fragment into the previous chunk ONLY when it
+            # belongs to the SAME section (same header_path). A cross-section
+            # backward merge would glue a course-specific section (e.g. "Course
+            # Specific Late Work Policy") onto the adjacent generic policy and
+            # let it inherit the generic header — the BP_OVERREACH defect, where
+            # the header-anchored boilerplate matcher then hides the whole chunk
+            # including the course content. When the sections differ, keep the
+            # fragment as its own chunk: never dropped, never cross-merged, and
+            # its own header guards it from header-anchored over-hiding.
+            if chunks and chunks[-1]["header_path"] == hp:
+                _merge_into_prev(text)
+            elif chunks:
+                _append_chunk(text, hp, header)
+            else:
+                # No previous chunk (leading section): buffer to merge FORWARD
+                # into the next real chunk rather than drop.
+                pending_forward.append(text)
+                log["merged_forward"] += 1
+            return
+        # Real chunk: flush any buffered leading fragments into it first so the
+        # head-of-document metadata rides along instead of being lost.
+        if pending_forward:
+            text = "\n\n".join(pending_forward) + "\n\n" + text
+            pending_forward.clear()
+        _append_chunk(text, hp, header)
 
     def _process_node(node: SectionNode, ancestors: list[str]) -> None:
         hp = _header_path(ancestors)
@@ -520,13 +537,13 @@ def chunk_semantic(
         tok = _tokens_approx(text)
 
         if tok < min_chunk_tokens:
-            # Merge into previous chunk instead of dropping
-            if chunks:
-                chunks[-1]["content"] += "\n\n" + text
-                chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
-                chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(text)
-                _refresh_flags(chunks[-1])
-                log["merged_tiny"] += 1
+            # Merge backward ONLY within the same section (see _emit). A tiny
+            # section whose header_path differs from the previous chunk's stays
+            # its own chunk rather than being glued onto an unrelated section.
+            if chunks and chunks[-1]["header_path"] == hp:
+                _merge_into_prev(text)
+            elif chunks:
+                _append_chunk(text, hp, node.header)
             else:
                 # Leading section with no backward target: buffer to merge FORWARD.
                 pending_forward.append(text)
@@ -539,13 +556,12 @@ def chunk_semantic(
             own_text = _node_text(node, include_children=False).strip()
             if _tokens_approx(own_text) >= min_chunk_tokens:
                 _emit(own_text, hp, node.header)
+            elif _tokens_approx(own_text) > 0 and chunks and chunks[-1]["header_path"] == hp:
+                # Merge tiny parent body into previous chunk (same section only)
+                _merge_into_prev(own_text)
             elif _tokens_approx(own_text) > 0 and chunks:
-                # Merge tiny parent body into previous chunk
-                chunks[-1]["content"] += "\n\n" + own_text
-                chunks[-1]["token_count"] = _tokens_approx(chunks[-1]["content"])
-                chunks[-1]["has_table"] = chunks[-1]["has_table"] or _has_table(own_text)
-                _refresh_flags(chunks[-1])
-                log["merged_tiny"] += 1
+                # Different section: keep the parent intro as its own chunk.
+                _append_chunk(own_text, hp, node.header)
             elif _tokens_approx(own_text) > 0:
                 # Tiny parent body, no backward target: merge FORWARD.
                 pending_forward.append(own_text)
