@@ -1,5 +1,6 @@
 # App
 streamlit
+streamlit-pdf-viewer
 python-dotenv
 google-genai>=1.0
 openai>=1.0
