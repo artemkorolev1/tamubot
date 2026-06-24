@@ -20,6 +20,10 @@ pymongo[srv]
 voyageai
 mem0ai
 
+# Postgres (pgvector) — Phase 1 retrieval-backend migration
+psycopg[binary,pool]>=3.2  # psycopg3 driver + connection pool (psycopg_pool)
+pgvector>=0.3.6            # vector type adapters for psycopg3 (register_vector)
+
 # Legacy (Vertex AI fallback)
 google-cloud-aiplatform
 langchain-google-vertexai

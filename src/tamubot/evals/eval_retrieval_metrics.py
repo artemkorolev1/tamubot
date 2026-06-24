@@ -229,7 +229,7 @@ def rrf_sweep(
 
     import voyageai
 
-    from tamubot.rag.tools.mongo import hybrid_search
+    from tamubot.rag.tools.backend import hybrid_search
 
     vo = voyageai.Client(api_key=config.VOYAGE_API_KEY)
     query_embed = vo.embed([query], model="voyage-3", input_type="query").embeddings[0]
@@ -287,7 +287,7 @@ def evaluate_retrieval_golden_set(
         Dict with per-item results and aggregate statistics.
     """
     from tamubot.rag.router import classify_query, compute_dynamic_k
-    from tamubot.rag.tools.mongo import hybrid_search, semantic_search
+    from tamubot.rag.tools.backend import hybrid_search, semantic_search
     from tamubot.rag.tools.voyage import rerank
 
     item_results = []
@@ -443,7 +443,7 @@ def main():
     elif args.query:
         print(f"Evaluating single query: '{args.query}'")
         from tamubot.rag.router import classify_query
-        from tamubot.rag.tools.mongo import hybrid_search
+        from tamubot.rag.tools.backend import hybrid_search
         from tamubot.rag.tools.voyage import rerank
 
         rr = classify_query(args.query)

@@ -25,6 +25,10 @@ services:
       - TAMU_BASE_URL=http://api-proxy:8080/tamu
       - VOYAGE_BASE_URL=http://api-proxy:8080/voyage
       - PIP_USER=0
+      # Postgres (pgvector) backend. Overrides any POSTGRES_URI in .env so the
+      # container reaches the sibling service by name. RETRIEVAL_BACKEND stays
+      # 'mongo' until the eval gate clears Postgres.
+      - POSTGRES_URI=postgresql://tamubot:tamubot@postgres:5432/tamubot
     mem_limit: 22g
     cpus: "11"
     shm_size: "2g"
@@ -41,9 +45,29 @@ services:
         condition: service_started
       claude-perms:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     stdin_open: true
     tty: true
+
+  # Postgres + pgvector — Phase 1 retrieval backend. pg16 image ships pgvector.
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_USER=tamubot
+      - POSTGRES_PASSWORD=tamubot
+      - POSTGRES_DB=tamubot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tamubot -d tamubot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
 
   # Heals Claude history dir permissions (root-created session dirs are
   # unreadable by the non-root 'claude' user) on every 'compose up'.
@@ -84,3 +108,4 @@ services:
 
 volumes:
   dagster_home:
+  postgres_data:

@@ -12,7 +12,7 @@ from tamubot.rag.utils import compute_dynamic_k, make_cache_key
 @error_guard_middleware
 def recursive_retrieval_node(state: PipelineState) -> dict:
     """Fetch anchor course chunks via hybrid search. Only runs on recursive path."""
-    from tamubot.rag.tools.mongo import hybrid_search
+    from tamubot.rag.tools.backend import hybrid_search
     from tamubot.rag.tools.voyage import rerank as voyage_rerank
 
     course_ids = state.get("course_ids", [])

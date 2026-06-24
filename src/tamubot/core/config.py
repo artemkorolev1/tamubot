@@ -22,6 +22,13 @@ RAG_CORPUS_RESOURCE_NAME = os.getenv(
 MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DB = os.getenv("MONGODB_DB", "tamubot")
 
+# --- Postgres (pgvector) — Phase 1 of the MongoDB → Postgres migration ---
+# Both stores can be populated in parallel during the migration; flip
+# RETRIEVAL_BACKEND to "postgres" once the eval gate (golden_recall_at_5) clears
+# Postgres at >= Mongo parity. (RETRIEVAL_BACKEND itself is defined once, below.)
+POSTGRES_URI = os.getenv("POSTGRES_URI")
+POSTGRES_POOL_MAX: int = int(os.getenv("POSTGRES_POOL_MAX", "8"))
+
 # --- Voyage AI (embeddings + reranking) ---
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 VOYAGE_RERANK_MODEL = os.getenv("VOYAGE_RERANK_MODEL", "rerank-2")
@@ -125,8 +132,13 @@ RERANK_KNEE_MIN_CHUNKS: int = int(os.getenv("RERANK_KNEE_MIN_CHUNKS", "2"))
 RERANK_KNEE_MIN_GAP_FALLBACK: float = float(os.getenv("RERANK_KNEE_MIN_GAP_FALLBACK", "0.05"))
 
 # --- Retrieval backend ---
-# "mongodb" (default) or "vertex" (legacy fallback)
-RETRIEVAL_BACKEND = os.getenv("RETRIEVAL_BACKEND", "mongodb")
+# Selects which store the RAG hot path reads from:
+#   "mongodb"  (default) — MongoDB Atlas via rag/tools/mongo.py
+#   "postgres"           — Postgres + pgvector via rag/tools/queries.py
+#   "vertex"             — legacy Vertex AI RAG fallback (streamlit only)
+# "mongodb" and "postgres" both drive the LangGraph pipeline; only "vertex"
+# takes the legacy path.
+RETRIEVAL_BACKEND = os.getenv("RETRIEVAL_BACKEND", "mongodb").strip().lower()
 
 # --- Course-summary primer ---
 # When True, hybrid_course also fetches the per-course summary as a non-citable

@@ -89,7 +89,7 @@ def _build_context_primer(course_ids: list[str]) -> str | None:
     """
     if not config.SUMMARY_AS_PRIMER or not course_ids:
         return None
-    from tamubot.rag.tools.mongo import get_course_summary_chunks
+    from tamubot.rag.tools.backend import get_course_summary_chunks
 
     chunks = get_course_summary_chunks(course_ids) or []
     if not chunks:
@@ -182,7 +182,7 @@ def _hybrid_course_for_query(
 @error_guard_middleware
 def retrieval_node(state: PipelineState) -> dict:
     """Execute retrieval based on function type."""
-    from tamubot.rag.tools.mongo import hybrid_search, semantic_search
+    from tamubot.rag.tools.backend import hybrid_search, semantic_search
     from tamubot.rag.tools.voyage import rerank as voyage_rerank
 
     function = state.get("function", "out_of_scope")

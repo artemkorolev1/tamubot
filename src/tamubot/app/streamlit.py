@@ -60,7 +60,9 @@ if "messages" not in st.session_state:
 # Backend selection
 # ---------------------------------------------------------------------------
 
-USE_MONGODB = config.RETRIEVAL_BACKEND == "mongodb"
+# "mongodb" and "postgres" both run the LangGraph pipeline (backend dispatch
+# happens deeper, at the retrieval node); only "vertex" takes the legacy path.
+USE_MONGODB = config.RETRIEVAL_BACKEND in ("mongodb", "postgres")
 
 _session_manager = None
 
